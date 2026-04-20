@@ -1,5 +1,4 @@
 import type { TemplateProps } from "./types";
-import { textSizeToMultiplier } from "./index";
 import {
   getGridPatternMetrics,
   getScaledBorderWidth,
@@ -19,7 +18,6 @@ function GridPattern({
   height: number;
 }) {
   const opacity = 0.3;
-  const patternColor = color;
   const metrics = getGridPatternMetrics(pattern as GridPatternName, width);
 
   switch (pattern) {
@@ -32,7 +30,7 @@ function GridPattern({
         >
           <defs>
             <pattern
-              id="course-dots"
+              id="background-dots"
               x="0"
               y="0"
               width={metrics.tileWidth}
@@ -43,11 +41,11 @@ function GridPattern({
                 cx={metrics.pointX}
                 cy={metrics.pointY}
                 r={metrics.dotRadius}
-                fill={patternColor}
+                fill={color}
               />
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#course-dots)" />
+          <rect width="100%" height="100%" fill="url(#background-dots)" />
         </svg>
       );
     case "grid":
@@ -59,7 +57,7 @@ function GridPattern({
         >
           <defs>
             <pattern
-              id="course-grid"
+              id="background-grid"
               x="0"
               y="0"
               width={metrics.tileWidth}
@@ -69,12 +67,12 @@ function GridPattern({
               <path
                 d={`M ${metrics.tileWidth} 0 L 0 0 0 ${metrics.tileHeight}`}
                 fill="none"
-                stroke={patternColor}
+                stroke={color}
                 strokeWidth={metrics.strokeWidth}
               />
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#course-grid)" />
+          <rect width="100%" height="100%" fill="url(#background-grid)" />
         </svg>
       );
     case "diagonal":
@@ -86,7 +84,7 @@ function GridPattern({
         >
           <defs>
             <pattern
-              id="course-diag"
+              id="background-diagonal"
               x="0"
               y="0"
               width={metrics.tileWidth}
@@ -96,12 +94,12 @@ function GridPattern({
               <path
                 d={`M 0 ${metrics.tileHeight} L ${metrics.tileWidth} 0`}
                 fill="none"
-                stroke={patternColor}
+                stroke={color}
                 strokeWidth={metrics.strokeWidth}
               />
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#course-diag)" />
+          <rect width="100%" height="100%" fill="url(#background-diagonal)" />
         </svg>
       );
     case "cross":
@@ -113,7 +111,7 @@ function GridPattern({
         >
           <defs>
             <pattern
-              id="course-cross"
+              id="background-cross"
               x="0"
               y="0"
               width={metrics.tileWidth}
@@ -123,12 +121,12 @@ function GridPattern({
               <path
                 d={`M ${metrics.pointX} 0 L ${metrics.pointX} ${metrics.tileHeight} M 0 ${metrics.pointY} L ${metrics.tileWidth} ${metrics.pointY}`}
                 fill="none"
-                stroke={patternColor}
+                stroke={color}
                 strokeWidth={metrics.strokeWidth}
               />
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#course-cross)" />
+          <rect width="100%" height="100%" fill="url(#background-cross)" />
         </svg>
       );
     case "hexagon":
@@ -140,7 +138,7 @@ function GridPattern({
         >
           <defs>
             <pattern
-              id="course-hex"
+              id="background-hexagon"
               x="0"
               y="0"
               width={metrics.tileWidth}
@@ -150,12 +148,12 @@ function GridPattern({
               <path
                 d={`M ${Math.round(metrics.tileWidth / 2)} 0 L ${metrics.tileWidth} ${Math.round(metrics.tileHeight * 0.17)} ${metrics.tileWidth} ${Math.round(metrics.tileHeight * 0.5)} ${Math.round(metrics.tileWidth / 2)} ${Math.round(metrics.tileHeight * 0.67)} 0 ${Math.round(metrics.tileHeight * 0.5)} 0 ${Math.round(metrics.tileHeight * 0.17)}Z`}
                 fill="none"
-                stroke={patternColor}
+                stroke={color}
                 strokeWidth={metrics.strokeWidth}
               />
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#course-hex)" />
+          <rect width="100%" height="100%" fill="url(#background-hexagon)" />
         </svg>
       );
     case "circuit":
@@ -167,7 +165,7 @@ function GridPattern({
         >
           <defs>
             <pattern
-              id="course-circuit"
+              id="background-circuit"
               x="0"
               y="0"
               width={metrics.tileWidth}
@@ -178,23 +176,23 @@ function GridPattern({
                 cx={metrics.pointX}
                 cy={metrics.pointY}
                 r={metrics.dotRadius}
-                fill={patternColor}
+                fill={color}
               />
               <path
                 d={`M ${metrics.pointX} ${metrics.pointY} L ${Math.round(metrics.tileWidth * 0.83)} ${metrics.pointY} ${Math.round(metrics.tileWidth * 0.83)} ${Math.round(metrics.tileHeight * 0.83)}`}
                 fill="none"
-                stroke={patternColor}
+                stroke={color}
                 strokeWidth={metrics.strokeWidth}
               />
               <circle
                 cx={Math.round(metrics.tileWidth * 0.83)}
                 cy={Math.round(metrics.tileHeight * 0.83)}
                 r={metrics.dotRadius}
-                fill={patternColor}
+                fill={color}
               />
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#course-circuit)" />
+          <rect width="100%" height="100%" fill="url(#background-circuit)" />
         </svg>
       );
     default:
@@ -202,64 +200,26 @@ function GridPattern({
   }
 }
 
-export function CenteredCourseThumbnailTemplate({
+export function BackgroundThumbnailTemplate({
   width,
   height,
   values,
   theme,
   fontFamily,
   primaryFontFamily,
-  secondaryFontFamily,
   fontSize,
   socialRenderMode = "full",
   borderWidth,
   borderColor,
+  brandLogoUrl,
+  brandLogoSize = 90,
   transparentBackground = false,
-  tutorialImageUrl,
-  tutorialImageSize = 100,
-  tutorialImageOpacity = 100,
   copyrightText,
 }: TemplateProps) {
   const scale = width / 1280;
   const primaryFont = primaryFontFamily ?? fontFamily ?? "'Outfit', sans-serif";
-  const secondaryFont =
-    secondaryFontFamily ?? fontFamily ?? "'Share Tech Mono', monospace";
-  const titleSize =
-    Math.round(fontSize * 1.4 * scale) *
-    textSizeToMultiplier(values["title_size"] ?? "lg");
   const showGrid = values["show_grid"] !== "false";
   const gridPattern = values["grid_pattern"] ?? "dots";
-
-  const tutorialScalePercent = Math.min(250, Math.max(50, tutorialImageSize));
-  const imageOpacity = Math.min(100, Math.max(0, tutorialImageOpacity)) / 100;
-
-  const badge = values["badge"] ?? "";
-  const episode = values["episode"] ?? "";
-  const badgeLine = [badge, episode].filter(Boolean).join(" | ");
-
-  if (socialRenderMode === "only") {
-    return (
-      <div
-        style={{
-          width,
-          height,
-          position: "relative",
-          overflow: "hidden",
-          background: "transparent",
-          fontFamily: primaryFont,
-        }}
-      >
-        <ThumbnailFooter
-          width={width}
-          color={theme.textSecondary}
-          fontSize={fontSize}
-          footerFontFamily={primaryFont}
-          renderMode="only"
-          text={copyrightText}
-        />
-      </div>
-    );
-  }
 
   return (
     <div
@@ -279,33 +239,6 @@ export function CenteredCourseThumbnailTemplate({
             : "none",
       }}
     >
-      {tutorialImageUrl && (
-        <div
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            zIndex: 0,
-            opacity: imageOpacity,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <img
-            src={tutorialImageUrl}
-            alt="Tutorial Background"
-            style={{
-              width: Math.round(width * (tutorialScalePercent / 100)),
-              height: "auto",
-              objectFit: "contain",
-              display: "block",
-            }}
-          />
-        </div>
-      )}
-
       {showGrid && (
         <GridPattern
           pattern={gridPattern}
@@ -327,52 +260,28 @@ export function CenteredCourseThumbnailTemplate({
         }}
       />
 
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: `${Math.round(40 * scale)}px ${Math.round(60 * scale)}px`,
-          zIndex: 2,
-        }}
-      >
+      {brandLogoUrl && (
         <div
           style={{
-            fontSize: titleSize,
-            fontWeight: 900,
-            color: theme.textPrimary,
-            lineHeight: 1.1,
-            textAlign: "center",
-            wordWrap: "break-word",
-            fontFamily: secondaryFont,
-            maxWidth: "90%",
+            position: "absolute",
+            top: Math.round(20 * scale),
+            right: Math.round(24 * scale),
+            zIndex: 3,
+            display: "flex",
+            justifyContent: "flex-end",
           }}
         >
-          {values["title"] ?? "Tutorial Title"}
-        </div>
-
-        {badgeLine && (
-          <div
+          <img
+            src={brandLogoUrl}
+            alt="Brand Logo"
             style={{
-              marginTop: Math.round(20 * scale),
-              fontSize: Math.round(fontSize * 0.45 * scale),
-              fontWeight: 600,
-              color: theme.accent,
-              fontFamily: primaryFont,
-              letterSpacing: "0.05em",
-              textAlign: "center",
+              width: Math.round(brandLogoSize * scale),
+              height: "auto",
+              objectFit: "contain",
             }}
-          >
-            {badgeLine}
-          </div>
-        )}
-      </div>
+          />
+        </div>
+      )}
 
       <ThumbnailFooter
         width={width}

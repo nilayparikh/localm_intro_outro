@@ -5,6 +5,7 @@ import {
   getScaledBorderWidth,
   type GridPatternName,
 } from "./rendering";
+import { ThumbnailFooter } from "./ThumbnailFooter";
 
 function GridPattern({
   pattern,
@@ -201,54 +202,6 @@ function GridPattern({
   }
 }
 
-function SocialFooter({
-  width,
-  color,
-  fontSize,
-  footerFontFamily,
-  renderMode = "full",
-}: {
-  position: "left" | "center" | "right";
-  width: number;
-  color: string;
-  fontSize: number;
-  footerFontFamily: string;
-  renderMode?: "full" | "hidden" | "only";
-}) {
-  if (renderMode === "hidden") return null;
-
-  const scale = width / 1280;
-  const textSize = Math.round(fontSize * 0.28 * scale);
-
-  return (
-    <div
-      style={{
-        position: "absolute",
-        bottom: Math.round(12 * scale),
-        left: Math.round(24 * scale),
-        right: Math.round(24 * scale),
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 4,
-      }}
-    >
-      <div
-        style={{
-          marginTop: Math.round(8 * scale),
-          color,
-          fontFamily: footerFontFamily,
-          fontSize: textSize,
-          opacity: 0.72,
-        }}
-      >
-        © 2026 LocalM™. All rights reserved.
-      </div>
-    </div>
-  );
-}
-
 export function CenteredThumbnailTemplate({
   width,
   height,
@@ -258,7 +211,6 @@ export function CenteredThumbnailTemplate({
   primaryFontFamily,
   secondaryFontFamily,
   fontSize,
-  socialPosition,
   socialRenderMode = "full",
   borderWidth,
   borderColor,
@@ -266,6 +218,7 @@ export function CenteredThumbnailTemplate({
   tutorialImageUrl,
   tutorialImageSize = 100,
   tutorialImageOpacity = 100,
+  copyrightText,
 }: TemplateProps) {
   const scale = width / 1280;
   const primaryFont = primaryFontFamily ?? fontFamily ?? "'Outfit', sans-serif";
@@ -292,13 +245,13 @@ export function CenteredThumbnailTemplate({
           fontFamily: primaryFont,
         }}
       >
-        <SocialFooter
-          position={socialPosition}
+        <ThumbnailFooter
           width={width}
           color={theme.textSecondary}
           fontSize={fontSize}
           footerFontFamily={primaryFont}
           renderMode="only"
+          text={copyrightText}
         />
       </div>
     );
@@ -401,13 +354,13 @@ export function CenteredThumbnailTemplate({
         </div>
       </div>
 
-      <SocialFooter
-        position={socialPosition}
+      <ThumbnailFooter
         width={width}
         color={theme.textSecondary}
         fontSize={fontSize}
         footerFontFamily={primaryFont}
         renderMode={socialRenderMode}
+        text={copyrightText}
       />
     </div>
   );

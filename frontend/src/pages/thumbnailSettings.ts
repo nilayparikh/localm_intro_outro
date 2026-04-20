@@ -5,6 +5,12 @@ import {
   resolveThemeDefinition,
 } from "../themes/themeDefinitions";
 
+export const DEFAULT_COPYRIGHT_TEXT = "© 2026 LocalM™. All rights reserved.";
+
+export function clampBrandLogoSize(value: number): number {
+  return Math.min(120, Math.max(60, Math.round(value)));
+}
+
 export interface ThumbnailTemplateCapabilities {
   showsBrandLogo: boolean;
   showsTutorialImage: boolean;
@@ -27,12 +33,12 @@ export function getThumbnailTemplateCapabilities(
 ): ThumbnailTemplateCapabilities {
   const template = getTemplateDef(templateId);
   const showsBrandLogo = template?.hasPip ?? false;
-  const showsTutorialImage = showsBrandLogo;
+  const showsTutorialImage = template?.supportsTutorialImage ?? showsBrandLogo;
 
   return {
     showsBrandLogo,
     showsTutorialImage,
-    showsTutorialImageBottomPadding: showsBrandLogo,
+    showsTutorialImageBottomPadding: showsTutorialImage && showsBrandLogo,
     showsTutorialImageOpacity: showsTutorialImage && !showsBrandLogo,
   };
 }

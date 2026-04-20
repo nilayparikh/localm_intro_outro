@@ -4,6 +4,7 @@ import {
   BUILT_IN_THEME_DEFINITIONS,
   buildThemeBackground,
   buildThemeExportData,
+  buildThemeReactPageSource,
   createThemeDefinition,
   resolveThemeDefinition,
   toRenderableTheme,
@@ -97,4 +98,35 @@ test("theme export includes full dynamic theme configuration", () => {
   assert.equal(exported.name, "Exportable");
   assert.ok(Array.isArray(exported.backgroundLayers));
   assert.equal(exported.backgroundLayers.length, 1);
+});
+
+test("theme export can generate a React page that preserves the background algorithm", () => {
+  const theme = createThemeDefinition({
+    id: "exportable",
+    name: "Exportable",
+    backgroundLayers: [
+      {
+        id: "layer-1",
+        type: "linear",
+        angle: 120,
+        centerX: 50,
+        centerY: 50,
+        radius: 80,
+        opacity: 90,
+        stops: [
+          { id: "stop-1", color: "#111111", position: 0 },
+          { id: "stop-2", color: "#222222", position: 50 },
+          { id: "stop-3", color: "#333333", position: 100 },
+        ],
+      },
+    ],
+  });
+
+  const reactPageSource = buildThemeReactPageSource(theme);
+
+  assert.match(reactPageSource, /function buildThemeBackground/);
+  assert.match(reactPageSource, /const themeDefinition = /);
+  assert.match(reactPageSource, /Exportable/);
+  assert.match(reactPageSource, /backgroundLayers/);
+  assert.match(reactPageSource, /linear-gradient/);
 });

@@ -277,6 +277,18 @@ function buildGradientLayerCss(layer: ThemeGradientLayer): string {
   return `linear-gradient(${layer.angle}deg, ${stops})`;
 }
 
+function buildThemePageComponentName(themeName: string): string {
+  const normalized = themeName
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((segment) => segment[0]?.toUpperCase() + segment.slice(1))
+    .join("");
+
+  return `${normalized || "Theme"}Page`;
+}
+
 export const BUILT_IN_THEME_DEFINITIONS: ThemeDefinition[] = Object.entries(
   BUILT_IN_RENDER_THEMES,
 ).map(([themeId, theme]) => ({
@@ -360,4 +372,95 @@ export function toRenderableTheme(theme: ThemeDefinition): ThemeColors {
 
 export function buildThemeExportData(theme: ThemeDefinition): string {
   return JSON.stringify(theme, null, 2);
+}
+
+export function buildThemeReactPageSource(theme: ThemeDefinition): string {
+  const componentName = buildThemePageComponentName(theme.name);
+  const serializedTheme = JSON.stringify(theme, null, 2);
+
+  return `import React from "react";
+
+const themeDefinition = ${serializedTheme};
+
+function hexToRgba(color, opacity) {
+  const normalized = color.replace("#", "").trim();
+  const alpha = Math.min(1, Math.max(0, opacity / 100));
+
+  if (!/^[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(normalized)) {
+    return color;
+  }
+
+  const expanded =
+    normalized.length === 3
+      ? normalized
+          .split("")
+          .map((segment) => segment + segment)
+          .join("")
+      : normalized;
+
+  const red = Number.parseInt(expanded.slice(0, 2), 16);
+  const green = Number.parseInt(expanded.slice(2, 4), 16);
+  const blue = Number.parseInt(expanded.slice(4, 6), 16);
+
+  return \`rgba(\${red}, \${green}, \${blue}, \${alpha.toFixed(3)})\`;
+}
+
+function buildGradientLayerCss(layer) {
+  const stops = layer.stops
+    .map((stop) => \`\${hexToRgba(stop.color, layer.opacity)} \${stop.position}%\`)
+    .join(", ");
+
+  if (layer.type === "radial") {
+    return \`radial-gradient(circle \${layer.radius}% at \${layer.centerX}% \${layer.centerY}%, \${stops})\`;
+  }
+
+  return \`linear-gradient(\${layer.angle}deg, \${stops})\`;
+}
+
+function buildThemeBackground(theme) {
+  if (!theme.backgroundLayers?.length) {
+    return theme.background;
+  }
+
+  return \`\${theme.backgroundLayers.map((layer) => buildGradientLayerCss(layer)).join(", ")}, \${theme.background}\`;
+}
+
+export default function ${componentName}() {
+  const backgroundImage = buildThemeBackground(themeDefinition);
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        padding: 32,
+        background: themeDefinition.background,
+        color: themeDefinition.textPrimary,
+        fontFamily: "Outfit, sans-serif",
+      }}
+    >
+      <div
+        style={{
+          width: "min(960px, 100%)",
+          minHeight: 540,
+          borderRadius: 32,
+          padding: 40,
+          background: backgroundImage,
+          border: \`4px solid \${themeDefinition.borderColor || themeDefinition.accent}\`,
+          boxShadow: "0 24px 80px rgba(0, 0, 0, 0.28)",
+        }}
+      >
+        <p style={{ margin: 0, color: themeDefinition.textSecondary }}>
+          Exported theme preview
+        </p>
+        <h1 style={{ marginTop: 12, marginBottom: 8 }}>{themeDefinition.name}</h1>
+        <p style={{ margin: 0, maxWidth: 640, color: themeDefinition.textSecondary }}>
+          {themeDefinition.description || "Dynamic theme exported from LocalM Intro Outro."}
+        </p>
+      </div>
+    </div>
+  );
+}
+`;
 }

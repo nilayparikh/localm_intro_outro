@@ -14,7 +14,7 @@ Stores reusable editor presets.
 
 ### `banners`
 
-Stores saved banner documents, including template, theme, typography, image, and field content.
+Stores saved banner documents, including template, theme, typography, image, field content, footer visibility, footer text, and logo sizing.
 
 ### `themes`
 

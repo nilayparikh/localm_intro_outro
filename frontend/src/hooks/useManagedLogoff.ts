@@ -33,6 +33,8 @@ export function useManagedLogoff() {
         fontSize: draft.fontSize,
         brandLogoUrl: draft.brandLogoUrl,
         brandLogoSize: draft.brandLogoSize,
+        showCopyrightMessage: draft.showCopyrightMessage,
+        copyrightText: draft.copyrightText,
         tutorialImageUrl: draft.tutorialImageUrl,
         tutorialImageSize: draft.tutorialImageSize,
         tutorialImageBottomPadding: draft.tutorialImageBottomPadding,

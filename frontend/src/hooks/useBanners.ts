@@ -17,6 +17,8 @@ export interface BannerDoc {
   fontSize: number;
   brandLogoUrl: string | null;
   brandLogoSize: number;
+  showCopyrightMessage: boolean;
+  copyrightText: string;
   tutorialImageUrl: string | null;
   tutorialImageSize: number;
   tutorialImageBottomPadding: number;

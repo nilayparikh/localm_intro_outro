@@ -7,6 +7,7 @@ import { TutorialThumbnailTemplate } from "./TutorialThumbnailTemplate";
 import { CodeThumbnailTemplate } from "./CodeThumbnailTemplate";
 import { CenteredThumbnailTemplate } from "./CenteredThumbnailTemplate";
 import { CenteredCourseThumbnailTemplate } from "./CenteredCourseThumbnailTemplate";
+import { BackgroundThumbnailTemplate } from "./BackgroundThumbnailTemplate";
 
 export type TemplateComponent = React.ComponentType<TemplateProps>;
 
@@ -72,6 +73,7 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
       "YouTube tutorial thumbnail with title, subtitle, and background pattern. Perfect for coding tutorials.",
     tool: "thumbnail",
     hasPip: true,
+    supportsTutorialImage: true,
     fields: [
       {
         id: "title",
@@ -114,6 +116,7 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
       "Code-focused thumbnail with syntax highlighting theme, tech stack badges, and code snippet preview.",
     tool: "thumbnail",
     hasPip: true,
+    supportsTutorialImage: true,
     fields: [
       {
         id: "title",
@@ -144,6 +147,16 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
       },
       ...gridPatternFields,
     ],
+  },
+  {
+    id: "background_thumbnail",
+    name: "Background",
+    description:
+      "Background-only export with dynamic theme gradients, optional grid overlay, optional brand logo, and border controls.",
+    tool: "thumbnail",
+    hasPip: true,
+    supportsTutorialImage: false,
+    fields: [...gridPatternFields],
   },
   {
     id: "centered_thumbnail",
@@ -210,6 +223,7 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
 export const TEMPLATE_COMPONENTS: Record<string, TemplateComponent> = {
   tutorial_thumbnail: TutorialThumbnailTemplate,
   code_thumbnail: CodeThumbnailTemplate,
+  background_thumbnail: BackgroundThumbnailTemplate,
   centered_thumbnail: CenteredThumbnailTemplate,
   centered_course_thumbnail: CenteredCourseThumbnailTemplate,
 };

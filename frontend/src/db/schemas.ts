@@ -54,6 +54,8 @@ export const bannersSchema: RxJsonSchema<any> = {
     fontSize: { type: "number" },
     brandLogoUrl: { type: ["string", "null"] },
     brandLogoSize: { type: "number" },
+    showCopyrightMessage: { type: "boolean" },
+    copyrightText: { type: "string" },
     tutorialImageUrl: { type: ["string", "null"] },
     tutorialImageSize: { type: "number" },
     tutorialImageBottomPadding: { type: "number" },

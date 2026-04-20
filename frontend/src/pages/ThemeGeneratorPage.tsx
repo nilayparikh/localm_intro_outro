@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { saveAs } from "file-saver";
+import JSZip from "jszip";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
@@ -30,7 +31,11 @@ import { SettingsDialog } from "../components/SettingsDialog";
 import { SyncMenu } from "../components/SyncMenu";
 import { useThemes } from "../hooks/useThemes";
 import type { ThemeDefinition, ThemeGradientLayer } from "../templates/types";
-import { toRenderableTheme } from "../themes/themeDefinitions";
+import {
+  buildThemeExportData,
+  buildThemeReactPageSource,
+  toRenderableTheme,
+} from "../themes/themeDefinitions";
 import {
   buildThemeEditorState,
   buildThemeExportFileName,
@@ -125,7 +130,6 @@ export function ThemeGeneratorPage() {
     themeOptions,
     saveTheme,
     deleteTheme,
-    exportTheme,
     exportThemes,
   } = useThemes();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -231,18 +235,20 @@ export function ThemeGeneratorPage() {
     toast.success(`Deleted theme "${draft.name}"`);
   }, [deleteTheme, draft, themes]);
 
-  const handleExportTheme = useCallback(() => {
+  const handleExportTheme = useCallback(async () => {
     if (!draft) {
       return;
     }
 
-    saveAs(
-      new Blob([exportTheme(draft.id)], {
-        type: "application/json;charset=utf-8",
-      }),
-      buildThemeExportFileName(draft.name),
-    );
-  }, [draft, exportTheme]);
+    const zip = new JSZip();
+    const jsonFileName = buildThemeExportFileName(draft.name);
+    const baseName = jsonFileName.replace(/\.json$/i, "");
+
+    zip.file(jsonFileName, buildThemeExportData(draft));
+    zip.file(`${baseName}_page.tsx`, buildThemeReactPageSource(draft));
+
+    saveAs(await zip.generateAsync({ type: "blob" }), `${baseName}.zip`);
+  }, [draft]);
 
   const handleExportAllThemes = useCallback(() => {
     saveAs(

@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  DEFAULT_COPYRIGHT_TEXT,
   buildBannerDialogState,
+  clampBrandLogoSize,
   getThumbnailTemplateCapabilities,
   getThemeBorderColor,
 } from "../../src/pages/thumbnailSettings";
@@ -40,6 +42,15 @@ test("centered templates hide tutorial image controls entirely", () => {
       showsTutorialImageOpacity: false,
     },
   );
+});
+
+test("background template keeps border and grid controls while making the logo optional", () => {
+  assert.deepEqual(getThumbnailTemplateCapabilities("background_thumbnail"), {
+    showsBrandLogo: true,
+    showsTutorialImage: false,
+    showsTutorialImageBottomPadding: false,
+    showsTutorialImageOpacity: false,
+  });
 });
 
 test("save dialog starts from the current banner and keeps overwrite intent explicit", () => {
@@ -104,4 +115,14 @@ test("theme border color prefers the saved dynamic theme value when provided", (
   ];
 
   assert.equal(getThemeBorderColor("custom", themes), "#f59e0b");
+});
+
+test("brand logo size is clamped to the supported thumbnail range", () => {
+  assert.equal(clampBrandLogoSize(10), 60);
+  assert.equal(clampBrandLogoSize(90), 90);
+  assert.equal(clampBrandLogoSize(180), 120);
+});
+
+test("copyright defaults stay aligned across thumbnail templates", () => {
+  assert.equal(DEFAULT_COPYRIGHT_TEXT, "© 2026 LocalM™. All rights reserved.");
 });

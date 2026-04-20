@@ -18,9 +18,11 @@ Choose a profile before connecting:
 ## Create And Edit
 
 - Pick a template, platform, and theme.
-- Edit text, images, borders, and typography.
+- Edit text, images, borders, typography, footer visibility, and copyright text.
 - Paste an image from the clipboard to populate the tutorial image.
 - Save the current banner when you want a named reusable record.
+
+The `Background` thumbnail template keeps only the background-specific controls: theme, border, grid overlay, optional brand logo, and footer settings.
 
 The current draft is persisted automatically, including pasted images.
 
@@ -33,7 +35,8 @@ Use the Theme Generator from the launcher to:
 - edit background, surface, text, accent, and default border colors
 - stack multiple linear or radial gradient layers
 - set gradient angles, radial center points, radius, opacity, and stop positions
-- export the current theme or the full theme library as JSON
+- export the current theme as a zip containing the theme JSON and a generated React page
+- export the full theme library as JSON
 
 Saved themes become available immediately in the Thumbnail Generator theme picker.
 

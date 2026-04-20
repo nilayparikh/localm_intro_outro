@@ -30,6 +30,7 @@ export interface TemplateProps {
   tutorialCtaText?: string;
   tutorialCtaUrl?: string;
   transparentBackground?: boolean;
+  copyrightText?: string;
 }
 
 export interface TemplateDef {
@@ -39,6 +40,7 @@ export interface TemplateDef {
   tool: "thumbnail" | "frame";
   fields: FieldDef[];
   hasPip?: boolean;
+  supportsTutorialImage?: boolean;
   transparentBackground?: boolean;
 }
 

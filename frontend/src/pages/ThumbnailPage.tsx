@@ -51,7 +51,9 @@ import { SettingsDialog } from "../components/SettingsDialog";
 import { SyncMenu } from "../components/SyncMenu";
 import { useSync } from "../sync";
 import {
+  DEFAULT_COPYRIGHT_TEXT,
   buildBannerDialogState,
+  clampBrandLogoSize,
   getThumbnailTemplateCapabilities,
   getThemeBorderColor,
 } from "./thumbnailSettings";
@@ -292,7 +294,9 @@ export function ThumbnailPage() {
   );
   const [fontSize, setFontSize] = useState(48);
   const [brandLogoUrl, setBrandLogoUrl] = useState<string | null>(null);
-  const [brandLogoSize, setBrandLogoSize] = useState(180);
+  const [brandLogoSize, setBrandLogoSize] = useState(90);
+  const [showCopyrightMessage, setShowCopyrightMessage] = useState(true);
+  const [copyrightText, setCopyrightText] = useState(DEFAULT_COPYRIGHT_TEXT);
   const [tutorialImageUrl, setTutorialImageUrl] = useState<string | null>(null);
   const [tutorialImageSize, setTutorialImageSize] = useState(100);
   const [tutorialImageBottomPadding, setTutorialImageBottomPadding] =
@@ -417,6 +421,8 @@ export function ThumbnailPage() {
       fontSize,
       brandLogoUrl,
       brandLogoSize,
+      showCopyrightMessage,
+      copyrightText,
       tutorialImageUrl,
       tutorialImageSize,
       tutorialImageBottomPadding,
@@ -436,6 +442,8 @@ export function ThumbnailPage() {
       fontSize,
       brandLogoUrl,
       brandLogoSize,
+      showCopyrightMessage,
+      copyrightText,
       tutorialImageUrl,
       tutorialImageSize,
       tutorialImageBottomPadding,
@@ -464,7 +472,9 @@ export function ThumbnailPage() {
         setPrimaryFontFamily(banner.primaryFontFamily);
         setFontSize(banner.fontSize);
         setBrandLogoUrl(banner.brandLogoUrl);
-        setBrandLogoSize(banner.brandLogoSize);
+        setBrandLogoSize(clampBrandLogoSize(banner.brandLogoSize));
+        setShowCopyrightMessage(banner.showCopyrightMessage ?? true);
+        setCopyrightText(banner.copyrightText || DEFAULT_COPYRIGHT_TEXT);
         setTutorialImageUrl(banner.tutorialImageUrl);
         setTutorialImageSize(
           clampTutorialImagePercent(banner.tutorialImageSize),
@@ -518,7 +528,9 @@ export function ThumbnailPage() {
         secondaryFontFamily: draft.secondaryFontFamily,
         fontSize: draft.fontSize,
         brandLogoUrl: draft.brandLogoUrl,
-        brandLogoSize: draft.brandLogoSize,
+        brandLogoSize: clampBrandLogoSize(draft.brandLogoSize),
+        showCopyrightMessage: draft.showCopyrightMessage ?? true,
+        copyrightText: draft.copyrightText || DEFAULT_COPYRIGHT_TEXT,
         tutorialImageUrl: draft.tutorialImageUrl,
         tutorialImageSize: draft.tutorialImageSize,
         tutorialImageBottomPadding: draft.tutorialImageBottomPadding,
@@ -603,6 +615,8 @@ export function ThumbnailPage() {
       fontSize,
       brandLogoUrl,
       brandLogoSize,
+      showCopyrightMessage,
+      copyrightText,
       tutorialImageUrl,
       tutorialImageSize,
       tutorialImageBottomPadding,
@@ -613,6 +627,7 @@ export function ThumbnailPage() {
       borderWidth,
       brandLogoSize,
       brandLogoUrl,
+      copyrightText,
       fieldValues,
       fontSize,
       platformId,
@@ -621,6 +636,7 @@ export function ThumbnailPage() {
       secondaryFontFamily,
       selectedBannerId,
       selectedFontPairId,
+      showCopyrightMessage,
       templateId,
       themeId,
       tutorialImageBottomPadding,
@@ -735,7 +751,9 @@ export function ThumbnailPage() {
             secondaryFontFamily: banner.secondaryFontFamily,
             fontSize: banner.fontSize,
             brandLogoUrl: banner.brandLogoUrl,
-            brandLogoSize: banner.brandLogoSize,
+            brandLogoSize: clampBrandLogoSize(banner.brandLogoSize),
+            showCopyrightMessage: banner.showCopyrightMessage ?? true,
+            copyrightText: banner.copyrightText || DEFAULT_COPYRIGHT_TEXT,
             tutorialImageUrl: banner.tutorialImageUrl,
             tutorialImageSize: banner.tutorialImageSize,
             tutorialImageBottomPadding: banner.tutorialImageBottomPadding,
@@ -886,10 +904,11 @@ export function ThumbnailPage() {
   // Export handlers
   const handleExportMain = useCallback(async () => {
     if (!canvasMainExportRef.current) return;
-    const name = fieldValues["title"] ?? "thumbnail";
+    const name =
+      fieldValues["title"]?.trim() || currentTemplate?.name || "thumbnail";
     const safeFilename = name.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
     await exportPng(canvasMainExportRef.current, `${safeFilename}_main.png`);
-  }, [exportPng, fieldValues]);
+  }, [currentTemplate?.name, exportPng, fieldValues]);
 
   // Scale for preview
   const containerWidth = 720;
@@ -1167,6 +1186,36 @@ export function ThumbnailPage() {
               </SectionCard>
 
               <SectionCard
+                title="Footer"
+                icon={<TextFieldsIcon />}
+                collapsible
+                defaultExpanded
+              >
+                <Stack spacing={2}>
+                  <SelectControl
+                    label="Show Copyright"
+                    value={showCopyrightMessage ? "true" : "false"}
+                    onChange={(value) => setShowCopyrightMessage(value === "true")}
+                    options={[
+                      { value: "true", label: "On" },
+                      { value: "false", label: "Off" },
+                    ]}
+                    tooltip="Show or hide the footer copyright message"
+                  />
+                  <Box sx={{ py: 1 }}>
+                    <Typography sx={CONTROL_LABEL_SX}>Copyright Text</Typography>
+                    <TextField
+                      value={copyrightText}
+                      onChange={(event) => setCopyrightText(event.target.value)}
+                      size="small"
+                      fullWidth
+                      sx={TEXT_INPUT_SX}
+                    />
+                  </Box>
+                </Stack>
+              </SectionCard>
+
+              <SectionCard
                 title="Assets"
                 icon={<ImageIcon />}
                 collapsible
@@ -1238,9 +1287,11 @@ export function ThumbnailPage() {
                           <SliderControl
                             label="Logo Size"
                             value={brandLogoSize}
-                            onChange={setBrandLogoSize}
-                            min={120}
-                            max={500}
+                            onChange={(value) =>
+                              setBrandLogoSize(clampBrandLogoSize(value))
+                            }
+                            min={60}
+                            max={120}
                             step={5}
                             formatValue={(v) => `${v}px`}
                             tooltip="Width of the brand logo"
@@ -1411,7 +1462,7 @@ export function ThumbnailPage() {
                     fontSize={fontSize}
                     socialAccounts={{}}
                     socialPosition="center"
-                    socialRenderMode="full"
+                    socialRenderMode={showCopyrightMessage ? "full" : "hidden"}
                     borderWidth={borderWidth}
                     borderColor={borderColor}
                     overlayImageUrl={null}
@@ -1424,6 +1475,7 @@ export function ThumbnailPage() {
                     tutorialImageSize={tutorialImageSize}
                     tutorialImageBottomPadding={tutorialImageBottomPadding}
                     tutorialImageOpacity={tutorialImageOpacity}
+                    copyrightText={copyrightText}
                   />
                 ) : (
                   <Box
@@ -1456,7 +1508,7 @@ export function ThumbnailPage() {
                       fontSize={fontSize}
                       socialAccounts={{}}
                       socialPosition="center"
-                      socialRenderMode="full"
+                      socialRenderMode={showCopyrightMessage ? "full" : "hidden"}
                       borderWidth={borderWidth}
                       borderColor={borderColor}
                       overlayImageUrl={null}
@@ -1469,6 +1521,7 @@ export function ThumbnailPage() {
                       tutorialImageSize={tutorialImageSize}
                       tutorialImageBottomPadding={tutorialImageBottomPadding}
                       tutorialImageOpacity={tutorialImageOpacity}
+                      copyrightText={copyrightText}
                     />
                   </div>
                 </Box>

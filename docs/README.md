@@ -12,10 +12,12 @@ LocalM Intro Outro is a browser-first banner editor for tutorial and social grap
 ## Capabilities
 
 - Template-based banner authoring
+- Background-only thumbnail export with optional logo, border, and grid overlay
 - Theme Generator for editable theme records, multi-layer gradients, and border defaults
 - Persisted draft recovery across refresh and restart
 - Saved banner profiles in RxDB
 - Saved theme profiles in RxDB
+- Per-banner footer visibility, custom copyright text, and constrained logo sizing
 - Clipboard image paste for tutorial art
 - Auto-save on logout and manual sync controls
 - Profile-based Azure tables: `BannersDev` and `BannersProd`
