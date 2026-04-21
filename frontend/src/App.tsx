@@ -2,7 +2,7 @@
  * LocalM™ Banners - Main Application
  *
  * 100% static React app with RxDB local-first database.
- * Auth gate requires Azure SAS token stored in sessionStorage.
+ * Auth gate persists Azure browser credentials until the user logs off.
  *
  * Routes:
  * - / : Tool launcher
@@ -10,7 +10,7 @@
  * - /themes : Theme generator
  */
 
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -38,6 +38,10 @@ export default function App() {
                   <Route path="/" element={<LauncherPage />} />
                   <Route path="/thumbnail" element={<ThumbnailPage />} />
                   <Route path="/themes" element={<ThemeGeneratorPage />} />
+                  <Route
+                    path="/animation/:mode"
+                    element={<Navigate to="/thumbnail" replace />}
+                  />
                 </Routes>
               </BrowserRouter>
             </SyncProvider>

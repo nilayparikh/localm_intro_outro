@@ -141,8 +141,15 @@ export const themesSchema: RxJsonSchema<any> = {
   indexes: ["updatedAt"],
 };
 
+export const appStateMigrationStrategies = {
+  1: async (documentData: Record<string, unknown>) => {
+    const { currentAnimationDraft: _removed, ...nextDocument } = documentData;
+    return nextDocument;
+  },
+};
+
 export const appStateSchema: RxJsonSchema<any> = {
-  version: 0,
+  version: 1,
   primaryKey: "id",
   type: "object",
   properties: {

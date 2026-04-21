@@ -37,7 +37,7 @@ test("createAsyncSingleton retries after a failed attempt", async () => {
 test("getDatabaseOptions uses closeDuplicates in dev instead of ignoreDuplicate", () => {
   const options = getDatabaseOptions(true);
 
-  assert.equal(options.name, "localm_banners");
+  assert.equal(options.name, "localm_intro_outro");
   assert.equal(options.closeDuplicates, true);
   assert.equal(options.multiInstance, false);
   assert.equal("ignoreDuplicate" in options, false);

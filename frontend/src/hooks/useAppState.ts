@@ -49,6 +49,7 @@ const APP_STATE_ID = "ui_state";
 export function useAppState() {
   const db = useDatabaseContext();
   const [appState, setAppState] = useState<AppState>(DEFAULT_APP_STATE);
+  const [isHydrated, setIsHydrated] = useState(false);
   const appStateRef = useRef(appState);
 
   useEffect(() => {
@@ -59,6 +60,7 @@ export function useAppState() {
     const sub = db.app_state.findOne(APP_STATE_ID).$.subscribe((doc: any) => {
       if (!doc) {
         setAppState(DEFAULT_APP_STATE);
+        setIsHydrated(true);
         return;
       }
 
@@ -72,6 +74,7 @@ export function useAppState() {
         lastSyncMessage:
           doc.lastSyncMessage ?? DEFAULT_APP_STATE.lastSyncMessage,
       });
+      setIsHydrated(true);
     });
 
     return () => sub.unsubscribe();
@@ -89,5 +92,5 @@ export function useAppState() {
     [db],
   );
 
-  return { appState, updateAppState };
+  return { appState, updateAppState, isHydrated };
 }

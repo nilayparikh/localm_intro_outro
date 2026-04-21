@@ -1,11 +1,17 @@
 import type { TemplateProps } from "./types";
 import { textSizeToMultiplier } from "./index";
 import {
+  buildTemplateFrameStyle,
+  buildTemplatePanelStyle,
+  buildTemplateSeparatorStyle,
   getGridPatternMetrics,
-  getScaledBorderWidth,
+  resolveTemplateBorderStyle,
+  resolveTemplateSurfaceShadowStyle,
+  resolveTemplateSurfaceStyle,
   type GridPatternName,
 } from "./rendering";
-import { ThumbnailFooter } from "./ThumbnailFooter";
+import { ThumbnailCapsules } from "./ThumbnailCapsules";
+import { ThumbnailFooter, resolveFooterSize } from "./ThumbnailFooter";
 
 function GridPattern({
   pattern,
@@ -227,11 +233,31 @@ export function CenteredCourseThumbnailTemplate({
   const titleSize =
     Math.round(fontSize * 1.4 * scale) *
     textSizeToMultiplier(values["title_size"] ?? "lg");
+  const secondarySizeMultiplier = textSizeToMultiplier(
+    values["secondary_size"] ?? "md",
+  );
   const showGrid = values["show_grid"] !== "false";
   const gridPattern = values["grid_pattern"] ?? "dots";
+  const surfaceStyle = resolveTemplateSurfaceStyle(values["surface_style"]);
+  const surfaceShadow = resolveTemplateSurfaceShadowStyle(values["surface_shadow"]);
+  const borderStyle = resolveTemplateBorderStyle(values["border_style"]);
+  const borderColorSecondary = values["border_color_secondary"]?.trim() || undefined;
+  const footerSize = resolveFooterSize(values["footer_size"]);
+  const metadataSize = Math.round(
+    fontSize * 0.45 * scale * secondarySizeMultiplier,
+  );
+  const contentPanelStyle = buildTemplatePanelStyle({
+    surfaceStyle,
+    theme,
+    scale,
+    shadowStyle: surfaceShadow,
+  });
 
   const tutorialScalePercent = Math.min(250, Math.max(50, tutorialImageSize));
   const imageOpacity = Math.min(100, Math.max(0, tutorialImageOpacity)) / 100;
+  const tutorialImageSource = tutorialImageUrl?.trim()
+    ? tutorialImageUrl.trim()
+    : null;
 
   const badge = values["badge"] ?? "";
   const episode = values["episode"] ?? "";
@@ -254,6 +280,7 @@ export function CenteredCourseThumbnailTemplate({
           color={theme.textSecondary}
           fontSize={fontSize}
           footerFontFamily={primaryFont}
+          size={footerSize}
           renderMode="only"
           text={copyrightText}
         />
@@ -263,23 +290,19 @@ export function CenteredCourseThumbnailTemplate({
 
   return (
     <div
-      style={{
+      style={buildTemplateFrameStyle({
         width,
         height,
-        position: "relative",
-        overflow: "hidden",
         fontFamily: primaryFont,
-        background: transparentBackground
-          ? "none"
-          : (theme.backgroundImage ??
-            `linear-gradient(135deg, ${theme.gradientStart}, ${theme.gradientMid}, ${theme.gradientEnd})`),
-        border:
-          borderWidth > 0
-            ? `${getScaledBorderWidth(width, borderWidth)}px solid ${borderColor}`
-            : "none",
-      }}
+        transparentBackground,
+        theme,
+        borderWidth,
+        borderColor,
+        borderColorSecondary,
+        borderStyle,
+      })}
     >
-      {tutorialImageUrl && (
+      {tutorialImageSource && (
         <div
           style={{
             position: "absolute",
@@ -294,7 +317,7 @@ export function CenteredCourseThumbnailTemplate({
           }}
         >
           <img
-            src={tutorialImageUrl}
+            src={tutorialImageSource}
             alt="Tutorial Background"
             style={{
               width: Math.round(width * (tutorialScalePercent / 100)),
@@ -327,6 +350,13 @@ export function CenteredCourseThumbnailTemplate({
         }}
       />
 
+      <ThumbnailCapsules
+        values={values}
+        theme={theme}
+        scale={scale}
+        fontFamily={primaryFont}
+      />
+
       <div
         style={{
           position: "absolute",
@@ -344,34 +374,60 @@ export function CenteredCourseThumbnailTemplate({
       >
         <div
           style={{
-            fontSize: titleSize,
-            fontWeight: 900,
-            color: theme.textPrimary,
-            lineHeight: 1.1,
-            textAlign: "center",
-            wordWrap: "break-word",
-            fontFamily: secondaryFont,
-            maxWidth: "90%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            maxWidth: surfaceStyle === "standard" ? "90%" : "92%",
+            padding:
+              surfaceStyle === "standard"
+                ? undefined
+                : `${Math.round(26 * scale)}px ${Math.round(32 * scale)}px`,
+            borderRadius:
+              surfaceStyle === "standard" ? undefined : Math.round(28 * scale),
+            ...contentPanelStyle,
           }}
         >
-          {values["title"] ?? "Tutorial Title"}
-        </div>
-
-        {badgeLine && (
           <div
             style={{
-              marginTop: Math.round(20 * scale),
-              fontSize: Math.round(fontSize * 0.45 * scale),
-              fontWeight: 600,
-              color: theme.accent,
-              fontFamily: primaryFont,
-              letterSpacing: "0.05em",
+              fontSize: titleSize,
+              fontWeight: 900,
+              color: theme.textPrimary,
+              lineHeight: 1.1,
               textAlign: "center",
+              wordWrap: "break-word",
+              fontFamily: secondaryFont,
+              maxWidth: "100%",
             }}
           >
-            {badgeLine}
+            {values["title"] ?? "Tutorial Title"}
           </div>
-        )}
+
+          {badgeLine && (
+            <>
+              <div
+                style={buildTemplateSeparatorStyle({
+                  theme,
+                  borderColor,
+                  borderColorSecondary,
+                  borderStyle,
+                  scale,
+                })}
+              />
+              <div
+                style={{
+                  fontSize: metadataSize,
+                  fontWeight: 600,
+                  color: theme.textSecondary,
+                  fontFamily: primaryFont,
+                  letterSpacing: "0.05em",
+                  textAlign: "center",
+                }}
+              >
+                {badgeLine}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <ThumbnailFooter
@@ -379,6 +435,7 @@ export function CenteredCourseThumbnailTemplate({
         color={theme.textSecondary}
         fontSize={fontSize}
         footerFontFamily={primaryFont}
+        size={footerSize}
         renderMode={socialRenderMode}
         text={copyrightText}
       />

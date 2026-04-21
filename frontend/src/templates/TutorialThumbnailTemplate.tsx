@@ -1,11 +1,16 @@
 import type { TemplateProps } from "./types";
 import { textSizeToMultiplier } from "./index";
 import {
+  buildTemplateFrameStyle,
+  buildTemplatePanelStyle,
+  colorWithAlpha,
   getGridPatternMetrics,
-  getScaledBorderWidth,
+  resolveTemplateBorderStyle,
+  resolveTemplateSurfaceShadowStyle,
+  resolveTemplateSurfaceStyle,
   type GridPatternName,
 } from "./rendering";
-import { ThumbnailFooter } from "./ThumbnailFooter";
+import { ThumbnailFooter, resolveFooterSize } from "./ThumbnailFooter";
 
 function GridPattern({
   pattern,
@@ -233,11 +238,26 @@ export function TutorialThumbnailTemplate({
   const titleSize =
     Math.round(fontSize * 1.4 * scale) *
     textSizeToMultiplier(values["title_size"] ?? "lg");
-  const subtitleSize = Math.round(fontSize * 0.6 * scale);
+  const secondarySizeMultiplier = textSizeToMultiplier(
+    values["secondary_size"] ?? "md",
+  );
+  const subtitleSize = Math.round(fontSize * 0.6 * scale * secondarySizeMultiplier);
+  const metadataSize = Math.round(fontSize * 0.35 * scale * secondarySizeMultiplier);
   const showGrid = values["show_grid"] !== "false";
   const gridPattern = values["grid_pattern"] ?? "dots";
   const badge = values["badge"] ?? "";
   const episode = values["episode"] ?? "";
+  const surfaceStyle = resolveTemplateSurfaceStyle(values["surface_style"]);
+  const surfaceShadow = resolveTemplateSurfaceShadowStyle(values["surface_shadow"]);
+  const borderStyle = resolveTemplateBorderStyle(values["border_style"]);
+  const borderColorSecondary = values["border_color_secondary"]?.trim() || undefined;
+  const footerSize = resolveFooterSize(values["footer_size"]);
+  const contentPanelStyle = buildTemplatePanelStyle({
+    surfaceStyle,
+    theme,
+    scale,
+    shadowStyle: surfaceShadow,
+  });
 
   if (socialRenderMode === "only") {
     return (
@@ -256,6 +276,7 @@ export function TutorialThumbnailTemplate({
           color={theme.textSecondary}
           fontSize={fontSize}
           footerFontFamily={primaryFont}
+          size={footerSize}
           renderMode="only"
           text={copyrightText}
         />
@@ -265,21 +286,17 @@ export function TutorialThumbnailTemplate({
 
   return (
     <div
-      style={{
+      style={buildTemplateFrameStyle({
         width,
         height,
-        position: "relative",
-        overflow: "hidden",
         fontFamily: primaryFont,
-        background: transparentBackground
-          ? "none"
-          : (theme.backgroundImage ??
-            `linear-gradient(135deg, ${theme.gradientStart}, ${theme.gradientMid}, ${theme.gradientEnd})`),
-        border:
-          borderWidth > 0
-            ? `${getScaledBorderWidth(width, borderWidth)}px solid ${borderColor}`
-            : "none",
-      }}
+        transparentBackground,
+        theme,
+        borderWidth,
+        borderColor,
+        borderColorSecondary,
+        borderStyle,
+      })}
     >
       {showGrid && (
         <GridPattern
@@ -316,56 +333,77 @@ export function TutorialThumbnailTemplate({
           zIndex: 1,
         }}
       >
-        {badge && (
-          <div
-            style={{
-              display: "inline-flex",
-              alignSelf: "flex-start",
-              background: theme.accent,
-              color: theme.background,
-              fontSize: Math.round(fontSize * 0.35 * scale),
-              fontWeight: 800,
-              padding: `${Math.round(6 * scale)}px ${Math.round(16 * scale)}px`,
-              borderRadius: Math.round(4 * scale),
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              marginBottom: Math.round(16 * scale),
-            }}
-          >
-            {badge}
-            {episode && ` • ${episode}`}
-          </div>
-        )}
-
         <div
           style={{
-            fontSize: titleSize,
-            fontWeight: 900,
-            color: theme.textPrimary,
-            lineHeight: 1.1,
-            maxWidth: "90%",
-            wordWrap: "break-word",
-            fontFamily: secondaryFont,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            alignSelf: "flex-start",
+            maxWidth: surfaceStyle === "standard" ? "90%" : "92%",
+            padding:
+              surfaceStyle === "standard"
+                ? undefined
+                : `${Math.round(24 * scale)}px ${Math.round(28 * scale)}px`,
+            borderRadius:
+              surfaceStyle === "standard" ? undefined : Math.round(24 * scale),
+            ...contentPanelStyle,
           }}
         >
-          {values["title"] ?? "Tutorial Title"}
-        </div>
+            {badge && (
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignSelf: "flex-start",
+                  background:
+                    surfaceStyle === "standard"
+                      ? `${theme.surface}cc`
+                      : colorWithAlpha(theme.surface, 0.46),
+                  color: theme.textSecondary,
+                  border: `1px solid ${colorWithAlpha(theme.accent, 0.35)}`,
+                  fontSize: metadataSize,
+                  fontWeight: 800,
+                  padding: `${Math.round(6 * scale)}px ${Math.round(16 * scale)}px`,
+                  borderRadius: Math.round(999 * scale),
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  marginBottom: Math.round(16 * scale),
+                }}
+              >
+                {badge}
+                {episode && ` • ${episode}`}
+              </div>
+            )}
 
-        {values["subtitle"] && (
-          <div
-            style={{
-              fontSize: subtitleSize,
-              color: theme.textSecondary,
-              marginTop: Math.round(12 * scale),
-              maxWidth: "80%",
-              lineHeight: 1.4,
-              fontFamily: primaryFont,
-            }}
-          >
-            {values["subtitle"]}
+            <div
+              style={{
+                fontSize: titleSize,
+                fontWeight: 900,
+                color: theme.textPrimary,
+                lineHeight: 1.1,
+                maxWidth: "100%",
+                wordWrap: "break-word",
+                fontFamily: secondaryFont,
+              }}
+            >
+              {values["title"] ?? "Tutorial Title"}
+            </div>
+
+            {values["subtitle"] && (
+              <div
+                style={{
+                  fontSize: subtitleSize,
+                  color: theme.textSecondary,
+                  marginTop: Math.round(12 * scale),
+                  maxWidth: "100%",
+                  lineHeight: 1.4,
+                  fontFamily: primaryFont,
+                }}
+              >
+                {values["subtitle"]}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
 
       {brandLogoUrl && (
         <div
@@ -430,6 +468,7 @@ export function TutorialThumbnailTemplate({
         color={theme.textSecondary}
         fontSize={fontSize}
         footerFontFamily={primaryFont}
+        size={footerSize}
         renderMode={socialRenderMode}
         text={copyrightText}
       />

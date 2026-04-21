@@ -23,7 +23,16 @@ interface TableServiceClientLike {
   createTable: (tableName: string) => Promise<unknown>;
 }
 
-type SyncableCollectionName =
+interface TableClientLike {
+  listEntities: TableClient["listEntities"];
+  upsertEntity: TableClient["upsertEntity"];
+  deleteEntity: (partitionKey: string, rowKey: string) => Promise<unknown>;
+}
+
+type UpsertRemoteClientLike = Pick<TableClientLike, "upsertEntity">;
+type DeleteRemoteClientLike = Pick<TableClientLike, "deleteEntity">;
+
+export type SyncableCollectionName =
   | "settings"
   | "presets"
   | "banners"
@@ -86,7 +95,7 @@ export async function awaitReplicationsInSync(
   await Promise.race([inSyncPromise, firstValueFrom(merge(...errorStreams))]);
 }
 
-function getTableClient(authState: StoredAuthState): TableClient {
+export function getTableClient(authState: StoredAuthState): TableClientLike {
   const auth = resolveStorageAuth(authState);
   const clientConfig = buildTableClientConfig(auth.connection);
 
@@ -131,6 +140,15 @@ function isTableAlreadyExistsError(error: unknown): boolean {
   const candidate = error as { statusCode?: number; code?: string };
   return (
     candidate?.statusCode === 409 || candidate?.code === "TableAlreadyExists"
+  );
+}
+
+function isEntityNotFoundError(error: unknown): boolean {
+  const candidate = error as { statusCode?: number; code?: string };
+  return (
+    candidate?.statusCode === 404 ||
+    candidate?.code === "ResourceNotFound" ||
+    candidate?.code === "EntityNotFound"
   );
 }
 
@@ -265,6 +283,134 @@ async function getRemoteDocuments(
   return docs;
 }
 
+async function deleteLocalDocumentsMissingRemotely(
+  collection: any,
+  remoteDocs: Map<string, any>,
+): Promise<void> {
+  const localDocs = await collection.find().exec();
+  const remoteIds = new Set(remoteDocs.keys());
+
+  await Promise.all(
+    localDocs
+      .filter((doc: any) => !remoteIds.has(doc.toJSON().id))
+      .map((doc: any) => doc.remove()),
+  );
+}
+
+export async function deleteRemoteDocumentsMissingLocally(
+  partitionKey: string,
+  localDocs: Map<string, any>,
+  remoteDocs: Map<string, any>,
+  authState: StoredAuthState,
+  createClient: (
+    authState: StoredAuthState,
+  ) =>
+    | Promise<Pick<TableClientLike, "deleteEntity">>
+    | Pick<TableClientLike, "deleteEntity"> = getTableClient,
+): Promise<void> {
+  const deletedIds = [...remoteDocs.keys()].filter((id) => !localDocs.has(id));
+  if (deletedIds.length === 0) {
+    return;
+  }
+
+  const client = await createClient(authState);
+
+  for (const id of deletedIds) {
+    await client.deleteEntity(partitionKey, id);
+    remoteDocs.delete(id);
+  }
+}
+
+export async function upsertRemoteDocument(
+  partitionKey: string,
+  doc: any,
+  authState: StoredAuthState,
+  options: {
+    ensureTable?: () => Promise<void>;
+    createClient?: (
+      authState: StoredAuthState,
+    ) => Promise<UpsertRemoteClientLike> | UpsertRemoteClientLike;
+  } = {},
+): Promise<void> {
+  const ensureTable =
+    options.ensureTable ?? (() => ensureTableExists(authState));
+  const createClient = options.createClient ?? getTableClient;
+
+  await ensureTable();
+  const client = await createClient(authState);
+  await client.upsertEntity(
+    toRemoteEntity(partitionKey, doc, authState),
+    "Replace",
+  );
+}
+
+export async function deleteRemoteDocument(
+  partitionKey: string,
+  rowKey: string,
+  authState: StoredAuthState,
+  options: {
+    ensureTable?: () => Promise<void>;
+    createClient?: (
+      authState: StoredAuthState,
+    ) => Promise<DeleteRemoteClientLike> | DeleteRemoteClientLike;
+  } = {},
+): Promise<void> {
+  const ensureTable =
+    options.ensureTable ?? (() => ensureTableExists(authState));
+  const createClient = options.createClient ?? getTableClient;
+
+  await ensureTable();
+  const client = await createClient(authState);
+
+  try {
+    await client.deleteEntity(partitionKey, rowKey);
+  } catch (error) {
+    if (!isEntityNotFoundError(error)) {
+      throw error;
+    }
+  }
+}
+
+export async function refreshCollectionsFromAzure(
+  db: BannersDatabase,
+  authState: StoredAuthState,
+  options: {
+    collectionNames?: readonly SyncableCollectionName[];
+    ensureTableExistsFn?: (authState: StoredAuthState) => Promise<void>;
+    getRemoteDocumentsFn?: (
+      partitionKey: string,
+      authState: StoredAuthState,
+    ) => Promise<Map<string, any>>;
+    pullRemoteDocumentsFn?: (
+      collection: any,
+      remoteDocs: Map<string, any>,
+    ) => Promise<void>;
+    deleteLocalDocumentsMissingRemotelyFn?: (
+      collection: any,
+      remoteDocs: Map<string, any>,
+    ) => Promise<void>;
+  } = {},
+): Promise<void> {
+  const collectionNames = options.collectionNames ?? SYNCABLE_COLLECTIONS;
+  const ensureTableExistsFn = options.ensureTableExistsFn ?? ensureTableExists;
+  const getRemoteDocumentsFn =
+    options.getRemoteDocumentsFn ?? getRemoteDocuments;
+  const pullRemoteDocumentsFn =
+    options.pullRemoteDocumentsFn ?? pullRemoteDocuments;
+  const deleteLocalDocumentsMissingRemotelyFn =
+    options.deleteLocalDocumentsMissingRemotelyFn ??
+    deleteLocalDocumentsMissingRemotely;
+
+  await ensureTableExistsFn(authState);
+
+  for (const name of collectionNames) {
+    const collection = db[name];
+    const remoteDocs = await getRemoteDocumentsFn(name, authState);
+    await pullRemoteDocumentsFn(collection, remoteDocs);
+    await deleteLocalDocumentsMissingRemotelyFn(collection, remoteDocs);
+  }
+}
+
 async function pushLocalDocuments(
   partitionKey: string,
   localDocs: Map<string, any>,
@@ -313,10 +459,43 @@ async function pullRemoteDocuments(
 export async function syncDatabaseOnce(
   db: BannersDatabase,
   authState: StoredAuthState,
+  options: {
+    collectionNames?: readonly SyncableCollectionName[];
+    ensureTableExistsFn?: (authState: StoredAuthState) => Promise<void>;
+    getRemoteDocumentsFn?: (
+      partitionKey: string,
+      authState: StoredAuthState,
+    ) => Promise<Map<string, any>>;
+    deleteRemoteDocumentsMissingLocallyFn?: (
+      partitionKey: string,
+      localDocs: Map<string, any>,
+      remoteDocs: Map<string, any>,
+      authState: StoredAuthState,
+    ) => Promise<void>;
+    pushLocalDocumentsFn?: (
+      partitionKey: string,
+      localDocs: Map<string, any>,
+      remoteDocs: Map<string, any>,
+      authState: StoredAuthState,
+    ) => Promise<void>;
+    pullRemoteDocumentsFn?: (
+      collection: any,
+      remoteDocs: Map<string, any>,
+    ) => Promise<void>;
+  } = {},
 ): Promise<void> {
-  await ensureTableExists(authState);
+  const ensureTableExistsFn = options.ensureTableExistsFn ?? ensureTableExists;
+  const getRemoteDocumentsFn =
+    options.getRemoteDocumentsFn ?? getRemoteDocuments;
+  const pushLocalDocumentsFn =
+    options.pushLocalDocumentsFn ?? pushLocalDocuments;
+  const pullRemoteDocumentsFn =
+    options.pullRemoteDocumentsFn ?? pullRemoteDocuments;
+  const collectionNames = options.collectionNames ?? SYNCABLE_COLLECTIONS;
 
-  for (const name of SYNCABLE_COLLECTIONS) {
+  await ensureTableExistsFn(authState);
+
+  for (const name of collectionNames) {
     const collection = db[name];
     const localDocs = await collection.find().exec();
     const localDocMap = new Map<string, any>(
@@ -326,9 +505,9 @@ export async function syncDatabaseOnce(
       }),
     );
 
-    const remoteDocs = await getRemoteDocuments(name, authState);
-    await pushLocalDocuments(name, localDocMap, remoteDocs, authState);
-    await pullRemoteDocuments(collection, remoteDocs);
+    const remoteDocs = await getRemoteDocumentsFn(name, authState);
+    await pushLocalDocumentsFn(name, localDocMap, remoteDocs, authState);
+    await pullRemoteDocumentsFn(collection, remoteDocs);
   }
 }
 

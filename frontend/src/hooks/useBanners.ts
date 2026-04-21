@@ -1,72 +1,51 @@
-import { useState, useEffect, useCallback } from "react";
-import { v4 as uuidv4 } from "uuid";
-import { useDatabase } from "../db";
+import { useMemo } from "react";
+import { useAzureCachedCollection, type CachedCrudCollection } from "@common";
+import { useDatabaseContext } from "../db";
+import { useAuth } from "../auth";
+import {
+  BANNER_SORT,
+  createBannerRemoteAdapter,
+  prepareBannerForSave,
+  type BannerDoc,
+  type BannerSaveInput,
+} from "../persistence/bannerPersistence";
 
-export interface BannerDoc {
-  id: string;
-  name: string;
-  templateId: string;
-  themeId: string;
-  platformId: string;
-  fieldValues: Record<string, string>;
-  borderWidth: number;
-  borderColor: string;
-  fontPairId: string;
-  primaryFontFamily: string;
-  secondaryFontFamily: string;
-  fontSize: number;
-  brandLogoUrl: string | null;
-  brandLogoSize: number;
-  showCopyrightMessage: boolean;
-  copyrightText: string;
-  tutorialImageUrl: string | null;
-  tutorialImageSize: number;
-  tutorialImageBottomPadding: number;
-  tutorialImageOpacity: number;
-  updatedAt: number;
-}
+export type { BannerDoc } from "../persistence/bannerPersistence";
 
 export function useBanners() {
-  const { db } = useDatabase();
-  const [banners, setBanners] = useState<BannerDoc[]>([]);
+  const db = useDatabaseContext();
+  const { authState } = useAuth();
+  const remote = useMemo(
+    () => (authState ? createBannerRemoteAdapter(authState) : null),
+    [authState],
+  );
+  const {
+    records: banners,
+    save,
+    remove,
+    get,
+    refresh,
+  } = useAzureCachedCollection<BannerDoc, BannerSaveInput>({
+    collection: db.banners as unknown as CachedCrudCollection<BannerDoc>,
+    remote,
+    loadStrategy: remote ? "remote-first" : "cache-first",
+    prepareForSave: prepareBannerForSave,
+    sort: BANNER_SORT,
+  });
 
-  useEffect(() => {
-    if (!db) return;
-    const sub = db.banners
-      .find({ sort: [{ updatedAt: "desc" }] })
-      .$.subscribe((docs: any[]) => {
-        setBanners(docs.map((d: any) => d.toJSON() as BannerDoc));
-      });
-    return () => sub.unsubscribe();
-  }, [db]);
-
-  const saveBanner = useCallback(
-    async (data: Omit<BannerDoc, "id" | "updatedAt"> & { id?: string }) => {
-      if (!db) return;
-      const doc = { ...data, id: data.id ?? uuidv4(), updatedAt: Date.now() };
-      await db.banners.upsert(doc);
-      return doc.id;
+  const saveBanner = useMemo(
+    () => async (data: BannerSaveInput) => {
+      const savedBanner = await save(data);
+      return savedBanner.id;
     },
-    [db],
+    [save],
   );
 
-  const deleteBanner = useCallback(
-    async (id: string) => {
-      if (!db) return;
-      const doc = await db.banners.findOne(id).exec();
-      if (doc) await doc.remove();
-    },
-    [db],
-  );
-
-  const getBanner = useCallback(
-    async (id: string) => {
-      if (!db) return null;
-      const doc = await db.banners.findOne(id).exec();
-      return doc ? (doc.toJSON() as BannerDoc) : null;
-    },
-    [db],
-  );
-
-  return { banners, saveBanner, deleteBanner, getBanner };
+  return {
+    banners,
+    saveBanner,
+    deleteBanner: remove,
+    getBanner: get,
+    refreshBanners: refresh,
+  };
 }

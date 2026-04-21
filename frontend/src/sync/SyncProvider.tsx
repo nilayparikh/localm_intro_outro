@@ -11,7 +11,13 @@ import toast from "react-hot-toast";
 import { useAuth } from "../auth";
 import { useDatabaseContext } from "../db";
 import { useAppState } from "../hooks/useAppState";
-import { syncDatabaseOnce } from "./azureTableSync";
+import {
+  refreshCollectionsFromAzure,
+  syncDatabaseOnce,
+} from "./azureTableSync";
+
+const LEGACY_SYNC_COLLECTIONS = ["settings", "presets", "app_state"] as const;
+const REMOTE_FIRST_REFRESH_COLLECTIONS = ["banners", "themes"] as const;
 
 interface SyncContextValue {
   isSyncing: boolean;
@@ -56,7 +62,12 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         });
 
         try {
-          await syncDatabaseOnce(db, authState);
+          await syncDatabaseOnce(db, authState, {
+            collectionNames: LEGACY_SYNC_COLLECTIONS,
+          });
+          await refreshCollectionsFromAzure(db, authState, {
+            collectionNames: REMOTE_FIRST_REFRESH_COLLECTIONS,
+          });
 
           const lastSyncAt = Date.now();
           await updateAppState({

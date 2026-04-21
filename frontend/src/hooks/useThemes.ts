@@ -1,13 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
+import { useAzureCachedCollection, type CachedCrudCollection } from "@common";
 import { useDatabaseContext } from "../db";
+import { useAuth } from "../auth";
 import type { ThemeDefinition } from "../templates/types";
 import {
-  BUILT_IN_THEME_DEFINITIONS,
   buildThemeExportData,
-  createThemeDefinition,
   resolveThemeDefinition,
   toRenderableTheme,
 } from "../themes/themeDefinitions";
+import {
+  createThemeRemoteAdapter,
+  mergeStoredThemesWithBuiltIns,
+  prepareThemeForSave,
+} from "../persistence/themePersistence";
 
 function sortThemes(themes: ThemeDefinition[]): ThemeDefinition[] {
   return [...themes].sort((left, right) => left.name.localeCompare(right.name));
@@ -15,64 +20,48 @@ function sortThemes(themes: ThemeDefinition[]): ThemeDefinition[] {
 
 export function useThemes() {
   const db = useDatabaseContext();
-  const [themes, setThemes] = useState<ThemeDefinition[]>(
-    sortThemes(BUILT_IN_THEME_DEFINITIONS),
+  const { authState } = useAuth();
+  const remote = useMemo(
+    () => (authState ? createThemeRemoteAdapter(authState) : null),
+    [authState],
   );
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void (async () => {
-      const existingThemes = await db.themes.find().exec();
-      if (existingThemes.length === 0) {
-        await Promise.all(
-          BUILT_IN_THEME_DEFINITIONS.map((theme) => db.themes.upsert(theme)),
-        );
-      }
-    })();
-
-    const subscription = db.themes.find().$.subscribe((docs: any[]) => {
-      if (cancelled) {
-        return;
-      }
-
-      const nextThemes = docs.map((doc) => doc.toJSON() as ThemeDefinition);
-      setThemes(
-        nextThemes.length > 0
-          ? sortThemes(nextThemes)
-          : sortThemes(BUILT_IN_THEME_DEFINITIONS),
-      );
-    });
-
-    return () => {
-      cancelled = true;
-      subscription.unsubscribe();
-    };
-  }, [db]);
+  const prepareThemeSave = useCallback(
+    (theme: Partial<ThemeDefinition>, currentStoredThemes: ThemeDefinition[]) =>
+      prepareThemeForSave(
+        theme,
+        mergeStoredThemesWithBuiltIns(currentStoredThemes),
+      ),
+    [],
+  );
+  const {
+    records: storedThemes,
+    save,
+    remove,
+    refresh,
+  } = useAzureCachedCollection<ThemeDefinition, Partial<ThemeDefinition>>({
+    collection: db.themes as unknown as CachedCrudCollection<ThemeDefinition>,
+    remote,
+    loadStrategy: remote ? "remote-first" : "cache-first",
+    prepareForSave: prepareThemeSave,
+  });
+  const themes = useMemo(
+    () => mergeStoredThemesWithBuiltIns(storedThemes),
+    [storedThemes],
+  );
 
   const saveTheme = useCallback(
     async (theme: Partial<ThemeDefinition>) => {
-      const nextTheme = createThemeDefinition({
-        ...resolveThemeDefinition(themes, theme.id ?? ""),
-        ...theme,
-        id: theme.id ?? createThemeDefinition().id,
-        updatedAt: Date.now(),
-      });
-
-      await db.themes.upsert(nextTheme);
-      return nextTheme.id;
+      const savedTheme = await save(theme);
+      return savedTheme.id;
     },
-    [db, themes],
+    [save],
   );
 
   const deleteTheme = useCallback(
     async (themeId: string) => {
-      const doc = await db.themes.findOne(themeId).exec();
-      if (doc) {
-        await doc.remove();
-      }
+      await remove(themeId);
     },
-    [db],
+    [remove],
   );
 
   const exportTheme = useCallback(
@@ -107,6 +96,7 @@ export function useThemes() {
     themeOptions,
     saveTheme,
     deleteTheme,
+    refreshThemes: refresh,
     exportTheme,
     exportThemes,
     getTheme,

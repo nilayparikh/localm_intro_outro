@@ -19,6 +19,177 @@ export const TEXT_SIZE_OPTIONS = [
   { value: "xl", label: "Extra Large" },
 ];
 
+export const SIZE_PRESET_OPTIONS = [
+  { value: "small", label: "Small" },
+  { value: "medium", label: "Medium" },
+  { value: "large", label: "Large" },
+];
+
+export const SURFACE_STYLE_OPTIONS = [
+  { value: "standard", label: "Standard" },
+  { value: "glass", label: "Glass" },
+  { value: "glass-strong", label: "Glass Strong" },
+];
+
+export const SURFACE_SHADOW_OPTIONS = [
+  { value: "near", label: "Near" },
+  { value: "middle", label: "Middle" },
+  { value: "distance", label: "Distance" },
+];
+
+export const BORDER_STYLE_OPTIONS = [
+  { value: "solid", label: "Solid" },
+  { value: "gradient", label: "Gradient" },
+  { value: "glass", label: "Glass" },
+];
+
+export const CAPSULE_STYLE_OPTIONS = [
+  { value: "standard", label: "Standard" },
+  { value: "glass", label: "Glass" },
+  { value: "glass-strong", label: "Glass Strong" },
+];
+
+const SECONDARY_TEXT_SIZE_FIELD: FieldDef = {
+  id: "secondary_size",
+  label: "Secondary Size",
+  type: "select",
+  defaultValue: "md",
+  options: TEXT_SIZE_OPTIONS,
+};
+
+const SURFACE_STYLE_FIELD: FieldDef = {
+  id: "surface_style",
+  label: "Surface Style",
+  type: "select",
+  defaultValue: "standard",
+  options: SURFACE_STYLE_OPTIONS,
+};
+
+const SURFACE_SHADOW_FIELD: FieldDef = {
+  id: "surface_shadow",
+  label: "Surface Shadow",
+  type: "select",
+  defaultValue: "middle",
+  options: SURFACE_SHADOW_OPTIONS,
+};
+
+const BORDER_STYLE_FIELD: FieldDef = {
+  id: "border_style",
+  label: "Border Style",
+  type: "select",
+  defaultValue: "solid",
+  options: BORDER_STYLE_OPTIONS,
+};
+
+const BORDER_COLOR_SECONDARY_FIELD: FieldDef = {
+  id: "border_color_secondary",
+  label: "Border Color 2",
+  type: "color",
+  defaultValue: "",
+};
+
+const FOOTER_SIZE_FIELD: FieldDef = {
+  id: "footer_size",
+  label: "Footer Size",
+  type: "select",
+  defaultValue: "small",
+  options: SIZE_PRESET_OPTIONS,
+};
+
+const CAPSULE_TOGGLE_OPTIONS = [
+  { value: "true", label: "On" },
+  { value: "false", label: "Off" },
+];
+
+const CAPSULE_LEVEL_OPTIONS = [
+  { value: "beginner", label: "Beginner" },
+  { value: "intermediate", label: "Intermediate" },
+  { value: "advanced", label: "Advanced" },
+  { value: "expert", label: "Expert" },
+];
+
+const CAPSULE_SIZE_FIELD: FieldDef = {
+  id: "capsule_size",
+  label: "Capsule Size",
+  type: "select",
+  defaultValue: "small",
+  options: SIZE_PRESET_OPTIONS,
+};
+
+const CAPSULE_STYLE_FIELD: FieldDef = {
+  id: "capsule_style",
+  label: "Capsule Style",
+  type: "select",
+  defaultValue: "glass",
+  options: CAPSULE_STYLE_OPTIONS,
+};
+
+const CAPSULE_COLOR_FIELD: FieldDef = {
+  id: "capsule_color",
+  label: "Capsule Color",
+  type: "color",
+  defaultValue: "",
+};
+
+const CENTERED_CAPSULE_FIELDS: FieldDef[] = [
+  {
+    id: "show_duration_capsule",
+    label: "Show Duration Capsule",
+    type: "select",
+    defaultValue: "false",
+    options: CAPSULE_TOGGLE_OPTIONS,
+  },
+  {
+    id: "duration_capsule_text",
+    label: "Duration Text",
+    type: "text",
+    defaultValue: "10 min",
+  },
+  {
+    id: "show_level_capsule",
+    label: "Show Skill Capsule",
+    type: "select",
+    defaultValue: "false",
+    options: CAPSULE_TOGGLE_OPTIONS,
+  },
+  {
+    id: "level_capsule_value",
+    label: "Skill Level",
+    type: "select",
+    defaultValue: "beginner",
+    options: CAPSULE_LEVEL_OPTIONS,
+  },
+  {
+    id: "show_instructor_capsule",
+    label: "Show Instructor Capsule",
+    type: "select",
+    defaultValue: "false",
+    options: CAPSULE_TOGGLE_OPTIONS,
+  },
+  {
+    id: "instructor_capsule_text",
+    label: "Instructor Text",
+    type: "text",
+    defaultValue: "Instructor Led",
+  },
+  {
+    id: "show_hands_on_lab_capsule",
+    label: "Show Hands-On Lab Capsule",
+    type: "select",
+    defaultValue: "false",
+    options: CAPSULE_TOGGLE_OPTIONS,
+  },
+  {
+    id: "hands_on_lab_capsule_text",
+    label: "Hands-On Lab Text",
+    type: "text",
+    defaultValue: "Hands-On Lab",
+  },
+  CAPSULE_STYLE_FIELD,
+  CAPSULE_COLOR_FIELD,
+  CAPSULE_SIZE_FIELD,
+];
+
 export function textSizeToMultiplier(size: string): number {
   switch (size) {
     case "xs":
@@ -106,7 +277,13 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
         defaultValue: "lg",
         options: TEXT_SIZE_OPTIONS,
       },
+      SECONDARY_TEXT_SIZE_FIELD,
+      SURFACE_STYLE_FIELD,
+      SURFACE_SHADOW_FIELD,
+      BORDER_STYLE_FIELD,
+      BORDER_COLOR_SECONDARY_FIELD,
       ...gridPatternFields,
+      FOOTER_SIZE_FIELD,
     ],
   },
   {
@@ -145,7 +322,13 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
         defaultValue: "lg",
         options: TEXT_SIZE_OPTIONS,
       },
+      SECONDARY_TEXT_SIZE_FIELD,
+      SURFACE_STYLE_FIELD,
+      SURFACE_SHADOW_FIELD,
+      BORDER_STYLE_FIELD,
+      BORDER_COLOR_SECONDARY_FIELD,
       ...gridPatternFields,
+      FOOTER_SIZE_FIELD,
     ],
   },
   {
@@ -156,7 +339,12 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     tool: "thumbnail",
     hasPip: true,
     supportsTutorialImage: false,
-    fields: [...gridPatternFields],
+    fields: [
+      BORDER_STYLE_FIELD,
+      BORDER_COLOR_SECONDARY_FIELD,
+      ...gridPatternFields,
+      FOOTER_SIZE_FIELD,
+    ],
   },
   {
     id: "centered_thumbnail",
@@ -179,7 +367,13 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
         defaultValue: "lg",
         options: TEXT_SIZE_OPTIONS,
       },
+      ...CENTERED_CAPSULE_FIELDS,
+      SURFACE_STYLE_FIELD,
+      SURFACE_SHADOW_FIELD,
+      BORDER_STYLE_FIELD,
+      BORDER_COLOR_SECONDARY_FIELD,
       ...gridPatternFields,
+      FOOTER_SIZE_FIELD,
     ],
   },
   {
@@ -215,7 +409,14 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
         defaultValue: "lg",
         options: TEXT_SIZE_OPTIONS,
       },
+      ...CENTERED_CAPSULE_FIELDS,
+      SECONDARY_TEXT_SIZE_FIELD,
+      SURFACE_STYLE_FIELD,
+      SURFACE_SHADOW_FIELD,
+      BORDER_STYLE_FIELD,
+      BORDER_COLOR_SECONDARY_FIELD,
       ...gridPatternFields,
+      FOOTER_SIZE_FIELD,
     ],
   },
 ];

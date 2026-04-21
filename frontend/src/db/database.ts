@@ -1,9 +1,16 @@
-import { createRxDatabase, type RxDatabase, type RxCollection } from "rxdb";
+import {
+  addRxPlugin,
+  createRxDatabase,
+  type RxDatabase,
+  type RxCollection,
+} from "rxdb";
+import { RxDBMigrationSchemaPlugin } from "rxdb/plugins/migration-schema";
 import {
   settingsSchema,
   presetsSchema,
   bannersSchema,
   themesSchema,
+  appStateMigrationStrategies,
   appStateSchema,
 } from "./schemas";
 import { createAsyncSingleton } from "./asyncSingleton";
@@ -18,8 +25,21 @@ export type BannersDatabase = RxDatabase<{
 }>;
 
 let dbInstance: BannersDatabase | null = null;
+let pluginsRegistered = false;
+
+function ensureRxdbPlugins() {
+  if (pluginsRegistered) {
+    return;
+  }
+
+  addRxPlugin(RxDBMigrationSchemaPlugin);
+
+  pluginsRegistered = true;
+}
 
 const getDatabaseSingleton = createAsyncSingleton(async () => {
+  ensureRxdbPlugins();
+
   const db = await createRxDatabase<BannersDatabase>(
     getDatabaseOptions(import.meta.env.DEV),
   );
@@ -29,7 +49,10 @@ const getDatabaseSingleton = createAsyncSingleton(async () => {
     presets: { schema: presetsSchema },
     banners: { schema: bannersSchema },
     themes: { schema: themesSchema },
-    app_state: { schema: appStateSchema },
+    app_state: {
+      schema: appStateSchema,
+      migrationStrategies: appStateMigrationStrategies,
+    },
   });
 
   dbInstance = db;

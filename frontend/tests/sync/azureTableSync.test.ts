@@ -5,9 +5,15 @@ import {
   buildTableClientConfig,
   ensureTableExists,
   awaitReplicationsInSync,
+  deleteRemoteDocumentsMissingLocally,
+  refreshCollectionsFromAzure,
   SYNCABLE_COLLECTIONS,
   toRemoteEntity,
+  upsertRemoteDocument,
+  deleteRemoteDocument,
+  syncDatabaseOnce,
 } from "../../src/sync/azureTableSync";
+import { createAzureTableCrudAdapter } from "../../src/persistence/azureCollectionAdapters";
 
 test("azure sync includes dynamic themes alongside other replicated collections", () => {
   assert.deepEqual(SYNCABLE_COLLECTIONS, [
@@ -205,4 +211,336 @@ test("toRemoteEntity strips inline assets and stores blob paths", () => {
   assert.equal(data.brandLogoUrl, "logos/brand.png");
   assert.equal(data.tutorialImageUrl, null);
   assert.equal(data.currentDraft.tutorialImageUrl, null);
+});
+
+test("deleteRemoteDocumentsMissingLocally removes rows that no longer exist locally", async () => {
+  const deletedRows: Array<{ partitionKey: string; rowKey: string }> = [];
+  const localDocs = new Map<string, any>([["banner-2", { id: "banner-2" }]]);
+  const remoteDocs = new Map<string, any>([
+    ["banner-1", { id: "banner-1" }],
+    ["banner-2", { id: "banner-2" }],
+  ]);
+
+  await deleteRemoteDocumentsMissingLocally(
+    "banners",
+    localDocs,
+    remoteDocs,
+    {
+      mode: "sas-token",
+      sasToken: "sv=2025-01-05&sig=test",
+      connection: {
+        profile: "Dev",
+        storageAccountName: "satutslocalm",
+        tableEndpoint: "https://satutslocalm.table.core.windows.net/",
+        tableName: "BannersDev",
+        blobEndpoint: "https://satutslocalm.blob.core.windows.net/",
+        blobContainerName: "banner",
+      },
+    },
+    async () => ({
+      deleteEntity: async (partitionKey: string, rowKey: string) => {
+        deletedRows.push({ partitionKey, rowKey });
+      },
+    }),
+  );
+
+  assert.deepEqual(deletedRows, [
+    { partitionKey: "banners", rowKey: "banner-1" },
+  ]);
+  assert.equal(remoteDocs.has("banner-1"), false);
+});
+
+test("upsertRemoteDocument writes a banner row immediately without waiting for full sync", async () => {
+  const ensuredTables: string[] = [];
+  const upsertedRows: Array<{ mode: string; entity: any }> = [];
+
+  await upsertRemoteDocument(
+    "banners",
+    {
+      id: "banner-1",
+      updatedAt: 123,
+      name: "Realtime Banner",
+      brandLogoUrl:
+        "https://satutslocalm.blob.core.windows.net/banner/logos/brand.png",
+    },
+    {
+      mode: "sas-token",
+      sasToken: "sv=2025-01-05&sig=test",
+      connection: {
+        profile: "Dev",
+        storageAccountName: "satutslocalm",
+        tableEndpoint: "https://satutslocalm.table.core.windows.net/",
+        tableName: "BannersDev",
+        blobEndpoint: "https://satutslocalm.blob.core.windows.net/",
+        blobContainerName: "banner",
+      },
+    },
+    {
+      ensureTable: async () => {
+        ensuredTables.push("BannersDev");
+      },
+      createClient: async () => ({
+        upsertEntity: async (entity: any, mode?: string) => {
+          upsertedRows.push({ entity, mode: mode ?? "Replace" });
+          return {} as any;
+        },
+      }),
+    },
+  );
+
+  assert.deepEqual(ensuredTables, ["BannersDev"]);
+  assert.equal(upsertedRows.length, 1);
+  assert.equal(upsertedRows[0]?.mode, "Replace");
+  assert.equal(upsertedRows[0]?.entity.partitionKey, "banners");
+  assert.equal(upsertedRows[0]?.entity.rowKey, "banner-1");
+
+  const data = JSON.parse(String(upsertedRows[0]?.entity.data));
+  assert.equal(data.brandLogoUrl, "logos/brand.png");
+  assert.equal(data.name, "Realtime Banner");
+});
+
+test("deleteRemoteDocument removes a banner row immediately without waiting for full sync", async () => {
+  const ensuredTables: string[] = [];
+  const deletedRows: Array<{ partitionKey: string; rowKey: string }> = [];
+
+  await deleteRemoteDocument(
+    "banners",
+    "banner-1",
+    {
+      mode: "sas-token",
+      sasToken: "sv=2025-01-05&sig=test",
+      connection: {
+        profile: "Dev",
+        storageAccountName: "satutslocalm",
+        tableEndpoint: "https://satutslocalm.table.core.windows.net/",
+        tableName: "BannersDev",
+        blobEndpoint: "https://satutslocalm.blob.core.windows.net/",
+        blobContainerName: "banner",
+      },
+    },
+    {
+      ensureTable: async () => {
+        ensuredTables.push("BannersDev");
+      },
+      createClient: async () => ({
+        deleteEntity: async (partitionKey: string, rowKey: string) => {
+          deletedRows.push({ partitionKey, rowKey });
+          return {} as any;
+        },
+      }),
+    },
+  );
+
+  assert.deepEqual(ensuredTables, ["BannersDev"]);
+  assert.deepEqual(deletedRows, [
+    { partitionKey: "banners", rowKey: "banner-1" },
+  ]);
+});
+
+test("createAzureTableCrudAdapter lists records for a partition without mutating local state", async () => {
+  const adapter = createAzureTableCrudAdapter<{
+    id: string;
+    updatedAt: number;
+    name: string;
+  }>(
+    "themes",
+    {
+      mode: "sas-token",
+      sasToken: "sv=2025-01-05&sig=test",
+      connection: {
+        profile: "Dev",
+        storageAccountName: "satutslocalm",
+        tableEndpoint: "https://satutslocalm.table.core.windows.net/",
+        tableName: "BannersDev",
+        blobEndpoint: "https://satutslocalm.blob.core.windows.net/",
+        blobContainerName: "banner",
+      },
+    },
+    {
+      ensureTable: async () => {},
+      createClient: async () =>
+        ({
+          listEntities: async function* () {
+            yield {
+              rowKey: "theme-1",
+              data: JSON.stringify({ id: "theme-1", name: "Dark Duplicate" }),
+              updatedAt: 456,
+            };
+          },
+          upsertEntity: async () => ({}) as any,
+          deleteEntity: async () => ({}) as any,
+        }) as any,
+    },
+  );
+
+  const records = await adapter.list();
+
+  assert.equal(records[0]?.id, "theme-1");
+  assert.equal(records[0]?.updatedAt, 456);
+  assert.equal(records[0]?.name, "Dark Duplicate");
+});
+
+test("refreshCollectionsFromAzure pulls remote data into the cache without pushing local-only rows", async () => {
+  const removedIds: string[] = [];
+  const upsertedDocs: any[] = [];
+  const localOnlyDoc = {
+    toJSON: () => ({ id: "local-only", updatedAt: 1, name: "Local Only" }),
+    remove: async () => {
+      removedIds.push("local-only");
+    },
+  };
+  const collection = {
+    find: () => ({ exec: async () => [localOnlyDoc] }),
+    upsert: async (doc: any) => {
+      upsertedDocs.push(doc);
+      return doc;
+    },
+  };
+
+  await refreshCollectionsFromAzure(
+    {
+      settings: collection,
+      presets: collection,
+      banners: collection,
+      themes: collection,
+      app_state: collection,
+    } as any,
+    {
+      mode: "sas-token",
+      sasToken: "sv=2025-01-05&sig=test",
+      connection: {
+        profile: "Dev",
+        storageAccountName: "satutslocalm",
+        tableEndpoint: "https://satutslocalm.table.core.windows.net/",
+        tableName: "BannersDev",
+        blobEndpoint: "https://satutslocalm.blob.core.windows.net/",
+        blobContainerName: "banner",
+      },
+    },
+    {
+      collectionNames: ["themes"],
+      ensureTableExistsFn: async () => {},
+      getRemoteDocumentsFn: async () =>
+        new Map([
+          [
+            "theme-1",
+            {
+              id: "theme-1",
+              updatedAt: 456,
+              name: "Dark Duplicate",
+            },
+          ],
+        ]),
+    },
+  );
+
+  assert.deepEqual(upsertedDocs, [
+    {
+      id: "theme-1",
+      updatedAt: 456,
+      name: "Dark Duplicate",
+    },
+  ]);
+  assert.deepEqual(removedIds, ["local-only"]);
+});
+
+test("syncDatabaseOnce pulls remote-only banners instead of deleting them on another machine", async () => {
+  const deleteCalls: string[] = [];
+  const pulledDocs: any[] = [];
+  const emptyCollection = {
+    find: () => ({ exec: async () => [] }),
+    upsert: async (doc: any) => {
+      pulledDocs.push(doc);
+    },
+  };
+
+  await syncDatabaseOnce(
+    {
+      settings: emptyCollection,
+      presets: emptyCollection,
+      banners: emptyCollection,
+      themes: emptyCollection,
+      app_state: emptyCollection,
+    } as any,
+    {
+      mode: "sas-token",
+      sasToken: "sv=2025-01-05&sig=test",
+      connection: {
+        profile: "Dev",
+        storageAccountName: "satutslocalm",
+        tableEndpoint: "https://satutslocalm.table.core.windows.net/",
+        tableName: "BannersDev",
+        blobEndpoint: "https://satutslocalm.blob.core.windows.net/",
+        blobContainerName: "banner",
+      },
+    },
+    {
+      ensureTableExistsFn: async () => {},
+      getRemoteDocumentsFn: async (partitionKey: string) =>
+        partitionKey === "banners"
+          ? new Map([
+              [
+                "banner-1",
+                {
+                  id: "banner-1",
+                  updatedAt: 123,
+                  name: "Remote Banner",
+                },
+              ],
+            ])
+          : new Map(),
+      deleteRemoteDocumentsMissingLocallyFn: async (partitionKey: string) => {
+        deleteCalls.push(partitionKey);
+      },
+    },
+  );
+
+  assert.deepEqual(deleteCalls, []);
+  assert.deepEqual(pulledDocs, [
+    {
+      id: "banner-1",
+      updatedAt: 123,
+      name: "Remote Banner",
+    },
+  ]);
+});
+
+test("syncDatabaseOnce can limit work to selected collections", async () => {
+  const processedPartitions: string[] = [];
+  const collection = {
+    find: () => ({ exec: async () => [] }),
+    upsert: async () => {},
+  };
+
+  await syncDatabaseOnce(
+    {
+      settings: collection,
+      presets: collection,
+      banners: collection,
+      themes: collection,
+      app_state: collection,
+    } as any,
+    {
+      mode: "sas-token",
+      sasToken: "sv=2025-01-05&sig=test",
+      connection: {
+        profile: "Dev",
+        storageAccountName: "satutslocalm",
+        tableEndpoint: "https://satutslocalm.table.core.windows.net/",
+        tableName: "BannersDev",
+        blobEndpoint: "https://satutslocalm.blob.core.windows.net/",
+        blobContainerName: "banner",
+      },
+    },
+    {
+      collectionNames: ["themes"],
+      ensureTableExistsFn: async () => {},
+      getRemoteDocumentsFn: async (partitionKey: string) => {
+        processedPartitions.push(partitionKey);
+        return new Map();
+      },
+    },
+  );
+
+  assert.deepEqual(processedPartitions, ["themes"]);
 });

@@ -1,10 +1,11 @@
 import type { TemplateProps } from "./types";
 import {
+  buildTemplateFrameStyle,
   getGridPatternMetrics,
-  getScaledBorderWidth,
+  resolveTemplateBorderStyle,
   type GridPatternName,
 } from "./rendering";
-import { ThumbnailFooter } from "./ThumbnailFooter";
+import { ThumbnailFooter, resolveFooterSize } from "./ThumbnailFooter";
 
 function GridPattern({
   pattern,
@@ -220,24 +221,23 @@ export function BackgroundThumbnailTemplate({
   const primaryFont = primaryFontFamily ?? fontFamily ?? "'Outfit', sans-serif";
   const showGrid = values["show_grid"] !== "false";
   const gridPattern = values["grid_pattern"] ?? "dots";
+  const borderStyle = resolveTemplateBorderStyle(values["border_style"]);
+  const borderColorSecondary = values["border_color_secondary"]?.trim() || undefined;
+  const footerSize = resolveFooterSize(values["footer_size"]);
 
   return (
     <div
-      style={{
+      style={buildTemplateFrameStyle({
         width,
         height,
-        position: "relative",
-        overflow: "hidden",
         fontFamily: primaryFont,
-        background: transparentBackground
-          ? "none"
-          : (theme.backgroundImage ??
-            `linear-gradient(135deg, ${theme.gradientStart}, ${theme.gradientMid}, ${theme.gradientEnd})`),
-        border:
-          borderWidth > 0
-            ? `${getScaledBorderWidth(width, borderWidth)}px solid ${borderColor}`
-            : "none",
-      }}
+        transparentBackground,
+        theme,
+        borderWidth,
+        borderColor,
+        borderColorSecondary,
+        borderStyle,
+      })}
     >
       {showGrid && (
         <GridPattern
@@ -288,6 +288,7 @@ export function BackgroundThumbnailTemplate({
         color={theme.textSecondary}
         fontSize={fontSize}
         footerFontFamily={primaryFont}
+        size={footerSize}
         renderMode={socialRenderMode}
         text={copyrightText}
       />

@@ -1,13 +1,32 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import toast from "react-hot-toast";
+import {
+  createAzureCachedCollectionApi,
+  type CachedCrudCollection,
+} from "@common";
 import { useAuth } from "../auth";
+import { useDatabaseContext } from "../db";
 import { useAppState } from "./useAppState";
-import { useBanners } from "./useBanners";
+import {
+  createBannerRemoteAdapter,
+  prepareBannerForSave,
+  type BannerDoc,
+  type BannerSaveInput,
+} from "../persistence/bannerPersistence";
 
 export function useManagedLogoff() {
-  const { logoff } = useAuth();
+  const { authState, logoff } = useAuth();
+  const db = useDatabaseContext();
   const { appState, updateAppState } = useAppState();
-  const { saveBanner } = useBanners();
+  const bannerApi = useMemo(
+    () =>
+      createAzureCachedCollectionApi<BannerDoc, BannerSaveInput>({
+        collection: db.banners as unknown as CachedCrudCollection<BannerDoc>,
+        remote: authState ? createBannerRemoteAdapter(authState) : null,
+        prepareForSave: prepareBannerForSave,
+      }),
+    [authState, db],
+  );
 
   return useCallback(async () => {
     if (
@@ -18,7 +37,7 @@ export function useManagedLogoff() {
       const draft = appState.currentDraft;
       const name =
         draft.name.trim() || `Recovery Draft ${new Date().toISOString()}`;
-      const bannerId = await saveBanner({
+      const savedBanner = await bannerApi.save({
         id: draft.bannerId ?? undefined,
         name,
         templateId: draft.templateId,
@@ -40,6 +59,7 @@ export function useManagedLogoff() {
         tutorialImageBottomPadding: draft.tutorialImageBottomPadding,
         tutorialImageOpacity: draft.tutorialImageOpacity,
       });
+      const bannerId = savedBanner.id;
 
       await updateAppState({
         currentDraft: { ...draft, bannerId: bannerId ?? draft.bannerId, name },
@@ -49,5 +69,5 @@ export function useManagedLogoff() {
     }
 
     logoff();
-  }, [appState, logoff, saveBanner, updateAppState]);
+  }, [appState, bannerApi, logoff, updateAppState]);
 }

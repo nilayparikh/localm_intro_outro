@@ -2,15 +2,18 @@ import { useState } from "react";
 import Button from "@mui/material/Button";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
+import Divider from "@mui/material/Divider";
 import ListItemText from "@mui/material/ListItemText";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import SyncIcon from "@mui/icons-material/Sync";
 import CloudDoneIcon from "@mui/icons-material/CloudDone";
 import CloudOffIcon from "@mui/icons-material/CloudOff";
+import LogoutIcon from "@mui/icons-material/Logout";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { StatusChip } from "@common";
 import { useSync } from "../sync";
+import { useManagedLogoff } from "../hooks/useManagedLogoff";
 
 function formatSyncTime(value: number | null): string {
   if (!value) {
@@ -23,6 +26,7 @@ function formatSyncTime(value: number | null): string {
 export function SyncMenu() {
   const { isSyncing, lastSyncAt, lastSyncMessage, lastSyncStatus, manualSync } =
     useSync();
+  const logoff = useManagedLogoff();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const open = Boolean(anchorEl);
@@ -75,6 +79,18 @@ export function SyncMenu() {
             {lastSyncStatus === "error" ? <CloudOffIcon /> : <CloudDoneIcon />}
           </ListItemIcon>
           <ListItemText primary={isSyncing ? "Syncing..." : "Sync now"} />
+        </MenuItem>
+        <Divider />
+        <MenuItem
+          onClick={async () => {
+            setAnchorEl(null);
+            await logoff();
+          }}
+        >
+          <ListItemIcon>
+            <LogoutIcon />
+          </ListItemIcon>
+          <ListItemText primary="Log off" />
         </MenuItem>
       </Menu>
     </>

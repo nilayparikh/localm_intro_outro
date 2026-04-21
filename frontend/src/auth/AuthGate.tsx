@@ -128,8 +128,8 @@ export function AuthGate({ children }: AuthGateProps) {
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               Enter Azure Storage credentials to connect.
               <br />
-              This is stored only in your browser session and cleared on tab
-              close.
+              This stays in your browser until you use Log off, so the app can
+              reconnect automatically next time.
             </Typography>
           </Box>
 

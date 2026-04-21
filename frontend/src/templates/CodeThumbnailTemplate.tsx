@@ -1,11 +1,16 @@
 import type { TemplateProps } from "./types";
 import { textSizeToMultiplier } from "./index";
 import {
+  buildTemplateFrameStyle,
+  buildTemplatePanelStyle,
+  colorWithAlpha,
   getGridPatternMetrics,
-  getScaledBorderWidth,
+  resolveTemplateBorderStyle,
+  resolveTemplateSurfaceShadowStyle,
+  resolveTemplateSurfaceStyle,
   type GridPatternName,
 } from "./rendering";
-import { ThumbnailFooter } from "./ThumbnailFooter";
+import { ThumbnailFooter, resolveFooterSize } from "./ThumbnailFooter";
 
 function GridPattern({
   pattern,
@@ -231,11 +236,26 @@ export function CodeThumbnailTemplate({
     Math.round(fontSize * 1.2 * scale) *
     textSizeToMultiplier(values["title_size"] ?? "lg");
   const codeSize = Math.round(fontSize * 0.45 * scale);
+  const secondarySizeMultiplier = textSizeToMultiplier(
+    values["secondary_size"] ?? "md",
+  );
+  const metadataSize = Math.round(fontSize * 0.3 * scale * secondarySizeMultiplier);
   const showGrid = values["show_grid"] !== "false";
   const gridPattern = values["grid_pattern"] ?? "dots";
   const badge = values["badge"] ?? "";
   const language = values["language"] ?? "";
   const codeSnippet = values["code_snippet"] ?? "console.log('Hello');";
+  const surfaceStyle = resolveTemplateSurfaceStyle(values["surface_style"]);
+  const surfaceShadow = resolveTemplateSurfaceShadowStyle(values["surface_shadow"]);
+  const borderStyle = resolveTemplateBorderStyle(values["border_style"]);
+  const borderColorSecondary = values["border_color_secondary"]?.trim() || undefined;
+  const footerSize = resolveFooterSize(values["footer_size"]);
+  const panelStyle = buildTemplatePanelStyle({
+    surfaceStyle,
+    theme,
+    scale,
+    shadowStyle: surfaceShadow,
+  });
 
   if (socialRenderMode === "only") {
     return (
@@ -254,6 +274,7 @@ export function CodeThumbnailTemplate({
           color={theme.textSecondary}
           fontSize={fontSize}
           footerFontFamily={primaryFont}
+          size={footerSize}
           renderMode="only"
           text={copyrightText}
         />
@@ -263,20 +284,16 @@ export function CodeThumbnailTemplate({
 
   return (
     <div
-      style={{
+      style={buildTemplateFrameStyle({
         width,
         height,
-        position: "relative",
-        overflow: "hidden",
         fontFamily: primaryFont,
-        background:
-          theme.backgroundImage ??
-          `linear-gradient(135deg, ${theme.gradientStart}, ${theme.gradientMid}, ${theme.gradientEnd})`,
-        border:
-          borderWidth > 0
-            ? `${getScaledBorderWidth(width, borderWidth)}px solid ${borderColor}`
-            : "none",
-      }}
+        theme,
+        borderWidth,
+        borderColor,
+        borderColorSecondary,
+        borderStyle,
+      })}
     >
       {showGrid && (
         <GridPattern
@@ -312,10 +329,10 @@ export function CodeThumbnailTemplate({
               style={{
                 background: theme.accent,
                 color: theme.background,
-                fontSize: Math.round(fontSize * 0.3 * scale),
+                fontSize: metadataSize,
                 fontWeight: 800,
                 padding: `${Math.round(4 * scale)}px ${Math.round(12 * scale)}px`,
-                borderRadius: Math.round(4 * scale),
+                borderRadius: Math.round(999 * scale),
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
               }}
@@ -326,13 +343,16 @@ export function CodeThumbnailTemplate({
           {language && (
             <span
               style={{
-                background: `${theme.accent}30`,
+                background:
+                  surfaceStyle === "standard"
+                    ? `${theme.accent}30`
+                    : colorWithAlpha(theme.surface, 0.42),
                 color: theme.accent,
-                fontSize: Math.round(fontSize * 0.3 * scale),
+                fontSize: metadataSize,
                 fontWeight: 700,
                 padding: `${Math.round(4 * scale)}px ${Math.round(12 * scale)}px`,
-                borderRadius: Math.round(4 * scale),
-                border: `1px solid ${theme.accent}50`,
+                borderRadius: Math.round(999 * scale),
+                border: `1px solid ${colorWithAlpha(theme.accent, 0.35)}`,
               }}
             >
               {language}
@@ -356,14 +376,18 @@ export function CodeThumbnailTemplate({
 
         <div
           style={{
-            background: `${theme.surface}cc`,
+            background:
+              surfaceStyle === "standard"
+                ? `${theme.surface}cc`
+                : colorWithAlpha(theme.surface, 0.58),
             borderRadius: Math.round(12 * scale),
             padding: `${Math.round(16 * scale)}px ${Math.round(20 * scale)}px`,
-            border: `1px solid ${theme.accent}30`,
+            border: `1px solid ${colorWithAlpha(theme.accent, 0.28)}`,
             maxWidth: "70%",
             flex: 1,
             maxHeight: Math.round(height * 0.35),
             overflow: "hidden",
+            ...panelStyle,
           }}
         >
           <div
@@ -477,6 +501,7 @@ export function CodeThumbnailTemplate({
         color={theme.textSecondary}
         fontSize={fontSize}
         footerFontFamily={primaryFont}
+        size={footerSize}
         renderMode={socialRenderMode}
         text={copyrightText}
       />

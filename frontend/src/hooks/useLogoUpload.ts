@@ -17,6 +17,17 @@ const ALLOWED_TYPES = [
   "image/webp",
 ];
 
+export function buildUploadedLogoPath(
+  fileName: string,
+  timestamp: number = Date.now(),
+): string {
+  const extension = fileName.includes(".")
+    ? fileName.split(".").pop()?.toLowerCase() || "png"
+    : "png";
+
+  return `${LOGO_PATH}/logo-${timestamp}.${extension}`;
+}
+
 export function useLogoUpload() {
   const { authState } = useAuth();
   const { settings, updateSettings } = useSettings();
@@ -33,8 +44,15 @@ export function useLogoUpload() {
 
       setUploading(true);
       try {
-        const ext = file.name.split(".").pop() ?? "png";
-        const filePath = `${LOGO_PATH}/logo.${ext}`;
+        const previousPath = settings.logo_url
+          ? extractBlobPath(settings.logo_url, authState)
+          : null;
+        const filePath = buildUploadedLogoPath(file.name);
+
+        if (previousPath) {
+          await deleteBlob(previousPath, authState);
+        }
+
         await uploadBlob(filePath, file, authState);
         await updateSettings({ logo_url: filePath });
         toast.success("Logo uploaded");
@@ -44,7 +62,7 @@ export function useLogoUpload() {
         setUploading(false);
       }
     },
-    [authState, updateSettings],
+    [authState, settings.logo_url, updateSettings],
   );
 
   const remove = useCallback(async () => {

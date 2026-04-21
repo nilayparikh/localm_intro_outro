@@ -5,23 +5,19 @@
  * - Thumbnail Generator
  */
 
-import { useNavigate } from "react-router-dom";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
-import CardActionArea from "@mui/material/CardActionArea";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import PaletteIcon from "@mui/icons-material/Palette";
 import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
 import SettingsIcon from "@mui/icons-material/Settings";
-import LogoutIcon from "@mui/icons-material/Logout";
 
 import { PageLayout, AppBar } from "@common";
 import { SettingsDialog } from "../components/SettingsDialog";
 import { SyncMenu } from "../components/SyncMenu";
-import { useManagedLogoff } from "../hooks/useManagedLogoff";
 import { useState } from "react";
 
 interface ToolCardProps {
@@ -47,7 +43,27 @@ function ToolCard({ title, description, icon, onClick }: ToolCardProps) {
         },
       }}
     >
-      <CardActionArea onClick={onClick} sx={{ p: 3 }}>
+      <Box
+        component="button"
+        type="button"
+        onClick={onClick}
+        sx={{
+          width: "100%",
+          border: 0,
+          bgcolor: "transparent",
+          color: "inherit",
+          cursor: "pointer",
+          p: 3,
+          textAlign: "inherit",
+          font: "inherit",
+          display: "block",
+          "&:focus-visible": {
+            outline: "2px solid",
+            outlineColor: "primary.main",
+            outlineOffset: -2,
+          },
+        }}
+      >
         <CardContent sx={{ textAlign: "center", p: 0 }}>
           <Box
             sx={{
@@ -67,21 +83,23 @@ function ToolCard({ title, description, icon, onClick }: ToolCardProps) {
             {description}
           </Typography>
         </CardContent>
-      </CardActionArea>
+      </Box>
     </Card>
   );
 }
 
 export function LauncherPage() {
-  const navigate = useNavigate();
-  const logoff = useManagedLogoff();
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  function openTool(path: string) {
+    window.location.assign(path);
+  }
 
   return (
     <PageLayout
       header={
         <AppBar
-          title="LocalM™ Banners"
+          title="LocalM™ Intro Outro"
           rightContent={
             <Stack direction="row" spacing={0.5}>
               <SyncMenu />
@@ -91,14 +109,6 @@ export function LauncherPage() {
                 sx={{ color: "text.secondary" }}
               >
                 <SettingsIcon />
-              </IconButton>
-              <IconButton
-                onClick={logoff}
-                size="small"
-                sx={{ color: "text.secondary" }}
-                title="Log off"
-              >
-                <LogoutIcon />
               </IconButton>
             </Stack>
           }
@@ -137,13 +147,13 @@ export function LauncherPage() {
             title="Thumbnail Generator"
             description="Create eye-catching thumbnails with titles, code snippets, background patterns, and branded footer."
             icon={<PhotoLibraryIcon />}
-            onClick={() => navigate("/thumbnail")}
+            onClick={() => openTool("/thumbnail")}
           />
           <ToolCard
             title="Theme Generator"
             description="Design reusable theme backgrounds, gradients, text colors, and border defaults for the thumbnail generator."
             icon={<PaletteIcon />}
-            onClick={() => navigate("/themes")}
+            onClick={() => openTool("/themes")}
           />
         </Stack>
       </Box>

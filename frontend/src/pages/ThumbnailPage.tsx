@@ -7,8 +7,8 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import TextField from "@mui/material/TextField";
@@ -35,10 +35,16 @@ import {
 } from "@common";
 
 import {
+  BORDER_STYLE_OPTIONS,
+  CAPSULE_STYLE_OPTIONS,
   getTemplatesForTool,
   TEMPLATE_COMPONENTS,
   getDefaultValues,
+  SIZE_PRESET_OPTIONS,
+  SURFACE_SHADOW_OPTIONS,
+  SURFACE_STYLE_OPTIONS,
 } from "../templates/index";
+import type { FieldDef } from "../templates/types";
 import { DEFAULT_THEME_ID } from "../themes/themeDefinitions";
 import { useExport } from "../hooks/useExport";
 import { useBanners, type BannerDoc } from "../hooks/useBanners";
@@ -49,13 +55,17 @@ import { useThemes } from "../hooks/useThemes";
 import { BannerLibraryDialog } from "../components/BannerLibraryDialog";
 import { SettingsDialog } from "../components/SettingsDialog";
 import { SyncMenu } from "../components/SyncMenu";
-import { useSync } from "../sync";
 import {
   DEFAULT_COPYRIGHT_TEXT,
+  buildThumbnailTemplateRenderProps,
   buildBannerDialogState,
+  buildThumbnailContentFieldRows,
   clampBrandLogoSize,
   getThumbnailTemplateCapabilities,
   getThemeBorderColor,
+  resolveLoadedBrandLogoUrl,
+  resolveBrandLogoUrlFromSettings,
+  resolvePersistedBrandLogoUrl,
 } from "./thumbnailSettings";
 
 const THUMBNAIL_TEMPLATES = getTemplatesForTool("thumbnail");
@@ -158,6 +168,131 @@ const TEXT_INPUT_SX = {
   },
 } as const;
 
+const CONTROL_ROW_SX = {
+  direction: { xs: "column", lg: "row" },
+  alignItems: "flex-start",
+} as const;
+
+const CONTROL_CELL_SX = {
+  flex: 1,
+  minWidth: 0,
+} as const;
+
+const FIELD_LABEL_OVERRIDES: Record<string, string> = {
+  show_duration_capsule: "Duration Capsule",
+  show_level_capsule: "Skill Capsule",
+  show_instructor_capsule: "Instructor Capsule",
+  show_hands_on_lab_capsule: "Hands-On Lab Capsule",
+  title_size: "Title Style",
+  secondary_size: "Secondary Style",
+};
+
+function renderTemplateFieldControl({
+  field,
+  value,
+  onChange,
+}: {
+  field: FieldDef;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  if (field.type === "select") {
+    return (
+      <SelectControl
+        label={FIELD_LABEL_OVERRIDES[field.id] ?? field.label}
+        value={value}
+        onChange={onChange}
+        options={
+          field.options?.map((option) => ({
+            value: option.value,
+            label: option.label,
+          })) ?? []
+        }
+      />
+    );
+  }
+
+  if (field.type === "slider") {
+    return (
+      <SliderControl
+        label={field.label}
+        value={parseFloat(value || field.defaultValue || "0")}
+        onChange={(nextValue) => onChange(String(nextValue))}
+        min={field.min ?? 0}
+        max={field.max ?? 100}
+        step={field.step ?? 1}
+      />
+    );
+  }
+
+  return (
+    <Box sx={{ py: 1 }}>
+      <Typography sx={CONTROL_LABEL_SX}>
+        {FIELD_LABEL_OVERRIDES[field.id] ?? field.label}
+      </Typography>
+      <TextField
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        fullWidth
+        size="small"
+        multiline={field.multiline}
+        rows={field.multiline ? 3 : undefined}
+        sx={TEXT_INPUT_SX}
+      />
+    </Box>
+  );
+}
+
+function renderColorTextField({
+  label,
+  value,
+  onChange,
+  disabled = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Box sx={{ py: 1 }}>
+      <Typography sx={CONTROL_LABEL_SX}>{label}</Typography>
+      <TextField
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        size="small"
+        fullWidth
+        disabled={disabled}
+        sx={TEXT_INPUT_SX}
+        slotProps={{
+          input: {
+            startAdornment: (
+              <Box
+                component="input"
+                type="color"
+                value={value}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                  onChange(event.target.value)
+                }
+                disabled={disabled}
+                sx={{
+                  width: 24,
+                  height: 24,
+                  border: "none",
+                  background: "none",
+                  cursor: disabled ? "not-allowed" : "pointer",
+                  p: 0,
+                  mr: 1,
+                }}
+              />
+            ),
+          },
+        }}
+      />
+    </Box>
+  );
+}
+
 function clampTutorialImagePercent(value: number): number {
   return Math.min(250, Math.max(50, Math.round(value)));
 }
@@ -251,15 +386,16 @@ async function cropTransparentMargins(dataUrl: string): Promise<string> {
 }
 
 export function ThumbnailPage() {
-  const navigate = useNavigate();
   const canvasRef = useRef<HTMLDivElement>(null);
-  const canvasMainExportRef = useRef<HTMLDivElement>(null);
   const { exportPng, isExporting } = useExport();
   const { banners, saveBanner, deleteBanner, getBanner } = useBanners();
-  const { appState, updateAppState } = useAppState();
+  const {
+    appState,
+    updateAppState,
+    isHydrated: isAppStateHydrated,
+  } = useAppState();
   const { settings } = useSettings();
   const { themes, themeOptions, getTheme, getRenderableTheme } = useThemes();
-  const { syncOnSave } = useSync();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [bannerDialogMode, setBannerDialogMode] = useState<
     "load" | "save" | null
@@ -268,6 +404,7 @@ export function ThumbnailPage() {
   const [dialogSelectedBannerId, setDialogSelectedBannerId] = useState("");
   const hasLoadedDraftRef = useRef(false);
   const suppressDraftWriteRef = useRef(false);
+  const previousSettingsLogoUrlRef = useRef<string | null>(null);
 
   // State
   const [templateId, setTemplateId] = useState(
@@ -320,6 +457,44 @@ export function ThumbnailPage() {
   const currentPlatform =
     PLATFORM_PRESETS.find((p) => p.id === platformId) ?? PLATFORM_PRESETS[0]!;
   const currentTemplate = THUMBNAIL_TEMPLATES.find((t) => t.id === templateId);
+  const currentTemplateFields = currentTemplate?.fields ?? [];
+  const currentTemplateFieldMap = new Map(
+    currentTemplateFields.map((field) => [field.id, field]),
+  );
+  const selectedBorderStyle =
+    fieldValues["border_style"] ??
+    currentTemplateFieldMap.get("border_style")?.defaultValue ??
+    "solid";
+  const selectedSurfaceStyle =
+    fieldValues["surface_style"] ??
+    currentTemplateFieldMap.get("surface_style")?.defaultValue ??
+    "standard";
+  const selectedSurfaceShadow =
+    fieldValues["surface_shadow"] ??
+    currentTemplateFieldMap.get("surface_shadow")?.defaultValue ??
+    "middle";
+  const secondaryBorderColorValue =
+    fieldValues["border_color_secondary"]?.trim() || currentTheme.textSecondary;
+  const capsuleStyleValue =
+    fieldValues["capsule_style"] ??
+    currentTemplateFieldMap.get("capsule_style")?.defaultValue ??
+    "glass";
+  const capsuleColorValue =
+    fieldValues["capsule_color"]?.trim() || currentTheme.accent;
+  const capsuleSizeValue =
+    fieldValues["capsule_size"] ??
+    currentTemplateFieldMap.get("capsule_size")?.defaultValue ??
+    "small";
+  const hasCapsuleStyleControls = currentTemplateFieldMap.has("capsule_size");
+  const hasSurfaceControls = currentTemplateFieldMap.has("surface_style");
+  const hasBorderControls = currentTemplateFieldMap.has("border_style");
+  const contentFieldRows = buildThumbnailContentFieldRows(currentTemplateFields)
+    .map((row) =>
+      row
+        .map((fieldId) => currentTemplateFieldMap.get(fieldId))
+        .filter((field): field is FieldDef => !!field),
+    )
+    .filter((row) => row.length > 0);
   const templateCapabilities = getThumbnailTemplateCapabilities(templateId);
   const TemplateComponent = TEMPLATE_COMPONENTS[templateId];
   const activeBannerName = profileName.trim() || "Untitled";
@@ -419,7 +594,10 @@ export function ThumbnailPage() {
       secondaryFontFamily,
       primaryFontFamily,
       fontSize,
-      brandLogoUrl,
+      brandLogoUrl: resolvePersistedBrandLogoUrl({
+        currentBrandLogoUrl: brandLogoUrl,
+        settingsLogoUrl: settings.logo_url,
+      }),
       brandLogoSize,
       showCopyrightMessage,
       copyrightText,
@@ -444,6 +622,7 @@ export function ThumbnailPage() {
       brandLogoSize,
       showCopyrightMessage,
       copyrightText,
+      settings.logo_url,
       tutorialImageUrl,
       tutorialImageSize,
       tutorialImageBottomPadding,
@@ -507,12 +686,21 @@ export function ThumbnailPage() {
   }, [currentThemeDefinition.id, themeId, themeOptions]);
 
   useEffect(() => {
+    if (!isAppStateHydrated) {
+      return;
+    }
+
     if (hasLoadedDraftRef.current) {
       return;
     }
 
     if (appState.currentDraft) {
       const draft = appState.currentDraft;
+      const resolvedDraftBrandLogoUrl = resolveLoadedBrandLogoUrl({
+        storedBrandLogoUrl: draft.brandLogoUrl,
+        settingsLogoUrl: settings.logo_url,
+      });
+
       applyBannerPayload({
         id: draft.bannerId ?? "draft",
         name: draft.name,
@@ -527,7 +715,7 @@ export function ThumbnailPage() {
         primaryFontFamily: draft.primaryFontFamily,
         secondaryFontFamily: draft.secondaryFontFamily,
         fontSize: draft.fontSize,
-        brandLogoUrl: draft.brandLogoUrl,
+        brandLogoUrl: resolvedDraftBrandLogoUrl,
         brandLogoSize: clampBrandLogoSize(draft.brandLogoSize),
         showCopyrightMessage: draft.showCopyrightMessage ?? true,
         copyrightText: draft.copyrightText || DEFAULT_COPYRIGHT_TEXT,
@@ -537,11 +725,7 @@ export function ThumbnailPage() {
         tutorialImageOpacity: draft.tutorialImageOpacity,
         updatedAt: Date.now(),
       });
-      if (!draft.brandLogoUrl && settings.logo_url) {
-        setDraftWithSuppression(() => {
-          setBrandLogoUrl(settings.logo_url);
-        });
-      }
+      previousSettingsLogoUrlRef.current = settings.logo_url;
       hasLoadedDraftRef.current = true;
       return;
     }
@@ -551,10 +735,12 @@ export function ThumbnailPage() {
         setBrandLogoUrl(settings.logo_url);
       });
     }
+    previousSettingsLogoUrlRef.current = settings.logo_url;
     hasLoadedDraftRef.current = true;
   }, [
     appState.currentDraft,
     applyBannerPayload,
+    isAppStateHydrated,
     setDraftWithSuppression,
     settings.logo_url,
     themes,
@@ -565,12 +751,20 @@ export function ThumbnailPage() {
       return;
     }
 
-    if (brandLogoUrl || !settings.logo_url) {
+    const nextBrandLogoUrl = resolveBrandLogoUrlFromSettings({
+      currentBrandLogoUrl: brandLogoUrl,
+      previousSettingsLogoUrl: previousSettingsLogoUrlRef.current,
+      nextSettingsLogoUrl: settings.logo_url,
+    });
+
+    previousSettingsLogoUrlRef.current = settings.logo_url;
+
+    if (nextBrandLogoUrl === brandLogoUrl) {
       return;
     }
 
     setDraftWithSuppression(() => {
-      setBrandLogoUrl(settings.logo_url);
+      setBrandLogoUrl(nextBrandLogoUrl);
     });
   }, [brandLogoUrl, setDraftWithSuppression, settings.logo_url]);
 
@@ -613,7 +807,10 @@ export function ThumbnailPage() {
       secondaryFontFamily,
       primaryFontFamily,
       fontSize,
-      brandLogoUrl,
+      brandLogoUrl: resolvePersistedBrandLogoUrl({
+        currentBrandLogoUrl: brandLogoUrl,
+        settingsLogoUrl: settings.logo_url,
+      }),
       brandLogoSize,
       showCopyrightMessage,
       copyrightText,
@@ -637,6 +834,7 @@ export function ThumbnailPage() {
       selectedBannerId,
       selectedFontPairId,
       showCopyrightMessage,
+      settings.logo_url,
       templateId,
       themeId,
       tutorialImageBottomPadding,
@@ -699,7 +897,6 @@ export function ThumbnailPage() {
           },
           draftDirty: false,
         });
-        await syncOnSave();
         toast.success(
           resolvedBannerId ? `Updated "${name}"` : `Saved "${name}"`,
         );
@@ -716,7 +913,6 @@ export function ThumbnailPage() {
       profileName,
       saveBanner,
       selectedBannerId,
-      syncOnSave,
       updateAppState,
     ],
   );
@@ -730,12 +926,15 @@ export function ThumbnailPage() {
 
       const banner = await getBanner(bannerId);
       if (banner) {
-        applyBannerPayload(banner);
-        if (!banner.brandLogoUrl && settings.logo_url) {
-          setDraftWithSuppression(() => {
-            setBrandLogoUrl(settings.logo_url);
-          });
-        }
+        const resolvedBannerBrandLogoUrl = resolveLoadedBrandLogoUrl({
+          storedBrandLogoUrl: banner.brandLogoUrl,
+          settingsLogoUrl: settings.logo_url,
+        });
+
+        applyBannerPayload({
+          ...banner,
+          brandLogoUrl: resolvedBannerBrandLogoUrl,
+        });
         await updateAppState({
           currentDraft: {
             bannerId: banner.id,
@@ -750,7 +949,10 @@ export function ThumbnailPage() {
             primaryFontFamily: banner.primaryFontFamily,
             secondaryFontFamily: banner.secondaryFontFamily,
             fontSize: banner.fontSize,
-            brandLogoUrl: banner.brandLogoUrl,
+            brandLogoUrl: resolvePersistedBrandLogoUrl({
+              currentBrandLogoUrl: resolvedBannerBrandLogoUrl,
+              settingsLogoUrl: settings.logo_url,
+            }),
             brandLogoSize: clampBrandLogoSize(banner.brandLogoSize),
             showCopyrightMessage: banner.showCopyrightMessage ?? true,
             copyrightText: banner.copyrightText || DEFAULT_COPYRIGHT_TEXT,
@@ -782,19 +984,39 @@ export function ThumbnailPage() {
         return;
       }
 
-      await deleteBanner(bannerId);
+      try {
+        await deleteBanner(bannerId);
 
-      if (selectedBannerId === bannerId) {
-        setSelectedBannerId("");
+        const deletedCurrentBanner = selectedBannerId === bannerId;
+
+        if (deletedCurrentBanner) {
+          setSelectedBannerId("");
+          await updateAppState({
+            currentDraft: {
+              ...currentDraft(),
+              bannerId: null,
+            },
+            draftDirty: true,
+          });
+        }
+
+        if (dialogSelectedBannerId === bannerId) {
+          setDialogSelectedBannerId("");
+        }
+
+        toast.success("Deleted");
+      } catch (error) {
+        console.error("Failed to delete banner:", error);
+        toast.error("Failed to delete");
       }
-
-      if (dialogSelectedBannerId === bannerId) {
-        setDialogSelectedBannerId("");
-      }
-
-      toast.success("Deleted");
     },
-    [deleteBanner, dialogSelectedBannerId, selectedBannerId],
+    [
+      currentDraft,
+      deleteBanner,
+      dialogSelectedBannerId,
+      selectedBannerId,
+      updateAppState,
+    ],
   );
 
   const openBannerDialog = useCallback(
@@ -901,18 +1123,84 @@ export function ThumbnailPage() {
     }
   }, [bannerDialogMode, profileName]);
 
+  const goHome = useCallback(() => {
+    window.location.assign("/");
+  }, []);
+
+  const templateRenderProps = buildThumbnailTemplateRenderProps({
+    width: currentPlatform.width,
+    height: currentPlatform.height,
+    values: fieldValues,
+    theme: currentTheme,
+    primaryFontFamily,
+    secondaryFontFamily,
+    fontSize,
+    borderWidth,
+    borderColor,
+    brandLogoUrl: renderableBrandLogoUrl,
+    brandLogoSize,
+    tutorialImageUrl,
+    tutorialImageSize,
+    tutorialImageBottomPadding,
+    tutorialImageOpacity,
+    showCopyrightMessage,
+    copyrightText,
+  });
+
   // Export handlers
   const handleExportMain = useCallback(async () => {
-    if (!canvasMainExportRef.current) return;
+    if (!canvasRef.current) return;
     const name =
       fieldValues["title"]?.trim() || currentTemplate?.name || "thumbnail";
     const safeFilename = name.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
-    await exportPng(canvasMainExportRef.current, `${safeFilename}_main.png`);
+    await exportPng(canvasRef.current, `${safeFilename}_main.png`);
   }, [currentTemplate?.name, exportPng, fieldValues]);
 
   // Scale for preview
   const containerWidth = 720;
   const previewScale = containerWidth / currentPlatform.width;
+
+  if (!isAppStateHydrated || !hasLoadedDraftRef.current) {
+    return (
+      <PageLayout
+        header={
+          <AppBar
+            title="Thumbnail Generator"
+            showHomeButton
+            onHomeClick={goHome}
+            rightContent={
+              <Stack direction="row" spacing={1}>
+                <SyncMenu />
+                <IconButton
+                  onClick={() => setSettingsOpen(true)}
+                  size="small"
+                  sx={{ color: "text.secondary" }}
+                >
+                  <SettingsIcon />
+                </IconButton>
+              </Stack>
+            }
+          />
+        }
+      >
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            p: 4,
+          }}
+        >
+          <CircularProgress />
+        </Box>
+        <SettingsDialog
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+        />
+      </PageLayout>
+    );
+  }
 
   return (
     <PageLayout
@@ -920,7 +1208,7 @@ export function ThumbnailPage() {
         <AppBar
           title="Thumbnail Generator"
           showHomeButton
-          onHomeClick={() => navigate("/")}
+          onHomeClick={goHome}
           rightContent={
             <Stack direction="row" spacing={1}>
               <SyncMenu />
@@ -981,26 +1269,32 @@ export function ThumbnailPage() {
                       status={selectedBanner ? "info" : "default"}
                     />
                   </Stack>
-                  <SelectControl
-                    label="Template"
-                    value={templateId}
-                    onChange={handleTemplateChange}
-                    options={THUMBNAIL_TEMPLATES.map((t) => ({
-                      value: t.id,
-                      label: t.name,
-                    }))}
-                    tooltip="Choose the layout style for this thumbnail"
-                  />
-                  <SelectControl
-                    label="Resolution"
-                    value={platformId}
-                    onChange={setPlatformId}
-                    options={PLATFORM_PRESETS.map((p) => ({
-                      value: p.id,
-                      label: p.name,
-                    }))}
-                    tooltip="Output resolution for the thumbnail"
-                  />
+                  <Stack spacing={2} {...CONTROL_ROW_SX}>
+                    <Box sx={CONTROL_CELL_SX}>
+                      <SelectControl
+                        label="Template"
+                        value={templateId}
+                        onChange={handleTemplateChange}
+                        options={THUMBNAIL_TEMPLATES.map((t) => ({
+                          value: t.id,
+                          label: t.name,
+                        }))}
+                        tooltip="Choose the layout style for this thumbnail"
+                      />
+                    </Box>
+                    <Box sx={CONTROL_CELL_SX}>
+                      <SelectControl
+                        label="Resolution"
+                        value={platformId}
+                        onChange={setPlatformId}
+                        options={PLATFORM_PRESETS.map((p) => ({
+                          value: p.id,
+                          label: p.name,
+                        }))}
+                        tooltip="Output resolution for the thumbnail"
+                      />
+                    </Box>
+                  </Stack>
                   {currentTemplate && (
                     <Typography variant="caption" color="text.secondary">
                       {currentTemplate.description}
@@ -1017,63 +1311,53 @@ export function ThumbnailPage() {
                   defaultExpanded
                 >
                   <Stack spacing={2}>
-                    {currentTemplate.fields.map((field) => {
-                      if (field.type === "select") {
-                        return (
+                    {contentFieldRows.map((row) => (
+                      <Stack key={row.map((field) => field.id).join("-")} spacing={2} {...CONTROL_ROW_SX}>
+                        {row.map((field) => (
+                          <Box key={field.id} sx={CONTROL_CELL_SX}>
+                            {renderTemplateFieldControl({
+                              field,
+                              value:
+                                fieldValues[field.id] ?? field.defaultValue ?? "",
+                              onChange: (nextValue) =>
+                                handleFieldChange(field.id, nextValue),
+                            })}
+                          </Box>
+                        ))}
+                      </Stack>
+                    ))}
+                    {hasCapsuleStyleControls && (
+                      <Stack spacing={2} {...CONTROL_ROW_SX}>
+                        <Box sx={CONTROL_CELL_SX}>
                           <SelectControl
-                            key={field.id}
-                            label={field.label}
-                            value={
-                              fieldValues[field.id] ?? field.defaultValue ?? ""
+                            label="Capsule Style"
+                            value={capsuleStyleValue}
+                            onChange={(value) =>
+                              handleFieldChange("capsule_style", value)
                             }
-                            onChange={(v) => handleFieldChange(field.id, v)}
-                            options={
-                              field.options?.map((o) => ({
-                                value: o.value,
-                                label: o.label,
-                              })) ?? []
-                            }
-                          />
-                        );
-                      }
-                      if (field.type === "slider") {
-                        return (
-                          <SliderControl
-                            key={field.id}
-                            label={field.label}
-                            value={parseFloat(
-                              fieldValues[field.id] ??
-                                field.defaultValue ??
-                                "0",
-                            )}
-                            onChange={(v) =>
-                              handleFieldChange(field.id, String(v))
-                            }
-                            min={field.min ?? 0}
-                            max={field.max ?? 100}
-                            step={field.step ?? 1}
-                          />
-                        );
-                      }
-                      return (
-                        <Box key={field.id} sx={{ py: 1 }}>
-                          <Typography sx={CONTROL_LABEL_SX}>
-                            {field.label}
-                          </Typography>
-                          <TextField
-                            value={fieldValues[field.id] ?? ""}
-                            onChange={(e) =>
-                              handleFieldChange(field.id, e.target.value)
-                            }
-                            fullWidth
-                            size="small"
-                            multiline={field.multiline}
-                            rows={field.multiline ? 3 : undefined}
-                            sx={TEXT_INPUT_SX}
+                            options={CAPSULE_STYLE_OPTIONS}
                           />
                         </Box>
-                      );
-                    })}
+                        <Box sx={CONTROL_CELL_SX}>
+                          {renderColorTextField({
+                            label: "Capsule Color",
+                            value: capsuleColorValue,
+                            onChange: (value) =>
+                              handleFieldChange("capsule_color", value),
+                          })}
+                        </Box>
+                        <Box sx={CONTROL_CELL_SX}>
+                          <SelectControl
+                            label="Capsule Size"
+                            value={capsuleSizeValue}
+                            onChange={(value) =>
+                              handleFieldChange("capsule_size", value)
+                            }
+                            options={SIZE_PRESET_OPTIONS}
+                          />
+                        </Box>
+                      </Stack>
+                    )}
                   </Stack>
                 </SectionCard>
               )}
@@ -1092,36 +1376,98 @@ export function ThumbnailPage() {
                     options={themeOptions}
                     tooltip="Color scheme for the thumbnail"
                   />
-                  <SelectControl
-                    label="Font Pair Preset"
-                    value={selectedFontPairId}
-                    onChange={handleFontPairChange}
-                    options={FONT_PAIR_PRESETS.map((pair) => ({
-                      value: pair.id,
-                      label: pair.label,
-                    }))}
-                    tooltip="Curated combinations from common web typography pairings"
-                  />
-                  <SelectControl
-                    label="Title Font (Secondary)"
-                    value={secondaryFontFamily}
-                    onChange={(value) => {
-                      setSecondaryFontFamily(value);
-                      setSelectedFontPairId("");
-                    }}
-                    options={GOOGLE_FONTS}
-                    tooltip="Applied to main title/headline"
-                  />
-                  <SelectControl
-                    label="Description, Badge & Episode Font (Primary)"
-                    value={primaryFontFamily}
-                    onChange={(value) => {
-                      setPrimaryFontFamily(value);
-                      setSelectedFontPairId("");
-                    }}
-                    options={GOOGLE_FONTS}
-                    tooltip="Applied to description, badge, episode and supporting text"
-                  />
+                  {hasSurfaceControls && (
+                    <Stack spacing={2} {...CONTROL_ROW_SX}>
+                      <Box sx={CONTROL_CELL_SX}>
+                        <SelectControl
+                          label="Title Surface"
+                          value={selectedSurfaceStyle}
+                          onChange={(value) =>
+                            handleFieldChange("surface_style", value)
+                          }
+                          options={SURFACE_STYLE_OPTIONS}
+                        />
+                      </Box>
+                      <Box sx={CONTROL_CELL_SX}>
+                        <SelectControl
+                          label="Title Shadow"
+                          value={selectedSurfaceShadow}
+                          onChange={(value) =>
+                            handleFieldChange("surface_shadow", value)
+                          }
+                          options={SURFACE_SHADOW_OPTIONS}
+                        />
+                      </Box>
+                    </Stack>
+                  )}
+                  {hasBorderControls && (
+                    <Stack spacing={2} {...CONTROL_ROW_SX}>
+                      <Box sx={CONTROL_CELL_SX}>
+                        <SelectControl
+                          label="Border Style"
+                          value={selectedBorderStyle}
+                          onChange={(value) =>
+                            handleFieldChange("border_style", value)
+                          }
+                          options={BORDER_STYLE_OPTIONS}
+                        />
+                      </Box>
+                      <Box sx={CONTROL_CELL_SX}>
+                        {renderColorTextField({
+                          label: "Border Color 1",
+                          value: borderColor,
+                          onChange: handleBorderColorChange,
+                        })}
+                      </Box>
+                      <Box sx={CONTROL_CELL_SX}>
+                        {renderColorTextField({
+                          label: "Border Color 2",
+                          value: secondaryBorderColorValue,
+                          onChange: (value) =>
+                            handleFieldChange("border_color_secondary", value),
+                          disabled: selectedBorderStyle !== "gradient",
+                        })}
+                      </Box>
+                    </Stack>
+                  )}
+                  <Stack spacing={2} {...CONTROL_ROW_SX}>
+                    <Box sx={CONTROL_CELL_SX}>
+                      <SelectControl
+                        label="Font Pair"
+                        value={selectedFontPairId}
+                        onChange={handleFontPairChange}
+                        options={FONT_PAIR_PRESETS.map((pair) => ({
+                          value: pair.id,
+                          label: pair.label,
+                        }))}
+                        tooltip="Curated combinations from common web typography pairings"
+                      />
+                    </Box>
+                    <Box sx={CONTROL_CELL_SX}>
+                      <SelectControl
+                        label="Title Font"
+                        value={secondaryFontFamily}
+                        onChange={(value) => {
+                          setSecondaryFontFamily(value);
+                          setSelectedFontPairId("");
+                        }}
+                        options={GOOGLE_FONTS}
+                        tooltip="Applied to main title/headline"
+                      />
+                    </Box>
+                    <Box sx={CONTROL_CELL_SX}>
+                      <SelectControl
+                        label="Body Font"
+                        value={primaryFontFamily}
+                        onChange={(value) => {
+                          setPrimaryFontFamily(value);
+                          setSelectedFontPairId("");
+                        }}
+                        options={GOOGLE_FONTS}
+                        tooltip="Applied to description, badge, episode and supporting text"
+                      />
+                    </Box>
+                  </Stack>
                   <SliderControl
                     label="Font Size"
                     value={fontSize}
@@ -1142,46 +1488,6 @@ export function ThumbnailPage() {
                     formatValue={(v) => (v === 0 ? "None" : `${v}px`)}
                     tooltip="4K-reference border width that scales consistently across 1K, 2K, and 4K exports"
                   />
-                  {borderWidth > 0 && (
-                    <Box sx={{ py: 1 }}>
-                      <Typography sx={CONTROL_LABEL_SX}>
-                        Border Color
-                      </Typography>
-                      <TextField
-                        value={borderColor}
-                        onChange={(e) =>
-                          handleBorderColorChange(e.target.value)
-                        }
-                        size="small"
-                        fullWidth
-                        sx={TEXT_INPUT_SX}
-                        slotProps={{
-                          input: {
-                            startAdornment: (
-                              <Box
-                                component="input"
-                                type="color"
-                                value={borderColor}
-                                onChange={(
-                                  e: React.ChangeEvent<HTMLInputElement>,
-                                ) => handleBorderColorChange(e.target.value)}
-                                sx={{
-                                  width: 24,
-                                  height: 24,
-                                  border: "none",
-                                  background: "none",
-                                  cursor: "pointer",
-                                  p: 0,
-                                  mr: 1,
-                                }}
-                              />
-                            ),
-                          },
-                        }}
-                        helperText={`Default for ${currentThemeDefinition.name}: ${getThemeBorderColor(themeId, themes)}`}
-                      />
-                    </Box>
-                  )}
                 </Stack>
               </SectionCard>
 
@@ -1192,18 +1498,35 @@ export function ThumbnailPage() {
                 defaultExpanded
               >
                 <Stack spacing={2}>
-                  <SelectControl
-                    label="Show Copyright"
-                    value={showCopyrightMessage ? "true" : "false"}
-                    onChange={(value) => setShowCopyrightMessage(value === "true")}
-                    options={[
-                      { value: "true", label: "On" },
-                      { value: "false", label: "Off" },
-                    ]}
-                    tooltip="Show or hide the footer copyright message"
-                  />
+                  <Stack spacing={2} {...CONTROL_ROW_SX}>
+                    <Box sx={CONTROL_CELL_SX}>
+                      <SelectControl
+                        label="Show Copyright"
+                        value={showCopyrightMessage ? "true" : "false"}
+                        onChange={(value) =>
+                          setShowCopyrightMessage(value === "true")
+                        }
+                        options={[
+                          { value: "true", label: "On" },
+                          { value: "false", label: "Off" },
+                        ]}
+                        tooltip="Show or hide the footer copyright message"
+                      />
+                    </Box>
+                    <Box sx={CONTROL_CELL_SX}>
+                      <SelectControl
+                        label="Footer Size"
+                        value={fieldValues["footer_size"] ?? "small"}
+                        onChange={(value) => handleFieldChange("footer_size", value)}
+                        options={SIZE_PRESET_OPTIONS}
+                        tooltip="Scale the footer from the current small default up to medium or large"
+                      />
+                    </Box>
+                  </Stack>
                   <Box sx={{ py: 1 }}>
-                    <Typography sx={CONTROL_LABEL_SX}>Copyright Text</Typography>
+                    <Typography sx={CONTROL_LABEL_SX}>
+                      Copyright Text
+                    </Typography>
                     <TextField
                       value={copyrightText}
                       onChange={(event) => setCopyrightText(event.target.value)}
@@ -1452,31 +1775,7 @@ export function ThumbnailPage() {
             >
               <div ref={canvasRef}>
                 {TemplateComponent ? (
-                  <TemplateComponent
-                    width={currentPlatform.width}
-                    height={currentPlatform.height}
-                    values={fieldValues}
-                    theme={currentTheme}
-                    primaryFontFamily={primaryFontFamily}
-                    secondaryFontFamily={secondaryFontFamily}
-                    fontSize={fontSize}
-                    socialAccounts={{}}
-                    socialPosition="center"
-                    socialRenderMode={showCopyrightMessage ? "full" : "hidden"}
-                    borderWidth={borderWidth}
-                    borderColor={borderColor}
-                    overlayImageUrl={null}
-                    overlayImageSize={180}
-                    brandLogoUrl={renderableBrandLogoUrl}
-                    brandLogoSize={brandLogoSize}
-                    brandLogoPosition="top-right"
-                    instructorStyle="minimal"
-                    tutorialImageUrl={tutorialImageUrl}
-                    tutorialImageSize={tutorialImageSize}
-                    tutorialImageBottomPadding={tutorialImageBottomPadding}
-                    tutorialImageOpacity={tutorialImageOpacity}
-                    copyrightText={copyrightText}
-                  />
+                  <TemplateComponent {...templateRenderProps} />
                 ) : (
                   <Box
                     sx={{
@@ -1494,38 +1793,6 @@ export function ThumbnailPage() {
                   </Box>
                 )}
               </div>
-
-              {TemplateComponent && (
-                <Box sx={{ position: "absolute", left: -10000, top: -10000 }}>
-                  <div ref={canvasMainExportRef}>
-                    <TemplateComponent
-                      width={currentPlatform.width}
-                      height={currentPlatform.height}
-                      values={fieldValues}
-                      theme={currentTheme}
-                      primaryFontFamily={primaryFontFamily}
-                      secondaryFontFamily={secondaryFontFamily}
-                      fontSize={fontSize}
-                      socialAccounts={{}}
-                      socialPosition="center"
-                      socialRenderMode={showCopyrightMessage ? "full" : "hidden"}
-                      borderWidth={borderWidth}
-                      borderColor={borderColor}
-                      overlayImageUrl={null}
-                      overlayImageSize={180}
-                      brandLogoUrl={renderableBrandLogoUrl}
-                      brandLogoSize={brandLogoSize}
-                      brandLogoPosition="top-right"
-                      instructorStyle="minimal"
-                      tutorialImageUrl={tutorialImageUrl}
-                      tutorialImageSize={tutorialImageSize}
-                      tutorialImageBottomPadding={tutorialImageBottomPadding}
-                      tutorialImageOpacity={tutorialImageOpacity}
-                      copyrightText={copyrightText}
-                    />
-                  </div>
-                </Box>
-              )}
             </Box>
           </Box>
         }

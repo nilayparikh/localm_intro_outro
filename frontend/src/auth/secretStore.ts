@@ -6,6 +6,12 @@ import {
 } from "../azureProfiles";
 import type { StoredAuthState } from "./credentials";
 
+interface SecretStorageLike {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+  removeItem: (key: string) => void;
+}
+
 function normalizeConnection(connection: any) {
   const storedTableName = connection?.tableName?.trim();
   const profile = normalizeAzureProfile(
@@ -54,33 +60,111 @@ function isStoredAuthState(value: unknown): value is StoredAuthState {
   );
 }
 
+function getSessionSecretStorage(): SecretStorageLike | null {
+  if (typeof sessionStorage === "undefined") {
+    return null;
+  }
+
+  return sessionStorage;
+}
+
+function getPersistentSecretStorage(): SecretStorageLike | null {
+  if (typeof localStorage !== "undefined") {
+    return localStorage;
+  }
+
+  return getSessionSecretStorage();
+}
+
+function getAllSecretStorages(): SecretStorageLike[] {
+  const persistentStorage = getPersistentSecretStorage();
+  const sessionSecretStorage = getSessionSecretStorage();
+
+  return [persistentStorage, sessionSecretStorage].filter(
+    (storage, index, storages): storage is SecretStorageLike =>
+      storage !== null && storages.indexOf(storage) === index,
+  );
+}
+
+function removeSecretKeyEverywhere(key: string): void {
+  for (const storage of getAllSecretStorages()) {
+    storage.removeItem(key);
+  }
+}
+
+function parseStoredAuthState(raw: string | null): StoredAuthState | null {
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (isStoredAuthState(parsed)) {
+      return normalizeStoredAuthState(parsed);
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function migrateLegacyStateIfNeeded(value: StoredAuthState): StoredAuthState {
+  setStoredAuthState(value);
+  return value;
+}
+
 export function getSecret(key: string): string | null {
-  return sessionStorage.getItem(key);
-}
-
-export function setSecret(key: string, value: string): void {
-  sessionStorage.setItem(key, value);
-}
-
-export function getStoredAuthState(): StoredAuthState | null {
-  const raw = sessionStorage.getItem(SECRET_KEYS.AUTH_STATE);
-  if (raw) {
-    try {
-      const parsed: unknown = JSON.parse(raw);
-      if (isStoredAuthState(parsed)) {
-        return normalizeStoredAuthState(parsed);
-      }
-    } catch {
-      sessionStorage.removeItem(SECRET_KEYS.AUTH_STATE);
+  for (const storage of getAllSecretStorages()) {
+    const value = storage.getItem(key);
+    if (value !== null) {
+      return value;
     }
   }
 
-  const legacySasToken = sessionStorage.getItem(SECRET_KEYS.SAS_TOKEN);
+  return null;
+}
+
+export function setSecret(key: string, value: string): void {
+  const storage = getPersistentSecretStorage();
+  if (!storage) {
+    return;
+  }
+
+  storage.setItem(key, value);
+
+  const sessionSecretStorage = getSessionSecretStorage();
+  if (sessionSecretStorage && sessionSecretStorage !== storage) {
+    sessionSecretStorage.removeItem(key);
+  }
+}
+
+export function getStoredAuthState(): StoredAuthState | null {
+  const persistentStorage = getPersistentSecretStorage();
+  const persistentValue = parseStoredAuthState(
+    persistentStorage?.getItem(SECRET_KEYS.AUTH_STATE) ?? null,
+  );
+  if (persistentValue) {
+    return persistentValue;
+  }
+
+  const sessionSecretStorage = getSessionSecretStorage();
+  const sessionValue = parseStoredAuthState(
+    sessionSecretStorage?.getItem(SECRET_KEYS.AUTH_STATE) ?? null,
+  );
+  if (sessionValue) {
+    return migrateLegacyStateIfNeeded(sessionValue);
+  }
+
+  const legacySasToken =
+    persistentStorage?.getItem(SECRET_KEYS.SAS_TOKEN) ??
+    sessionSecretStorage?.getItem(SECRET_KEYS.SAS_TOKEN) ??
+    null;
   if (!legacySasToken) {
     return null;
   }
 
-  return {
+  return migrateLegacyStateIfNeeded({
     mode: "sas-token",
     connection: {
       profile: AZURE_CONFIG.profile,
@@ -91,24 +175,35 @@ export function getStoredAuthState(): StoredAuthState | null {
       blobContainerName: AZURE_CONFIG.blobContainerName,
     },
     sasToken: legacySasToken,
-  };
+  });
 }
 
 export function setStoredAuthState(value: StoredAuthState): void {
-  sessionStorage.setItem(SECRET_KEYS.AUTH_STATE, JSON.stringify(value));
+  const storage = getPersistentSecretStorage();
+  if (!storage) {
+    return;
+  }
+
+  storage.setItem(SECRET_KEYS.AUTH_STATE, JSON.stringify(value));
 
   if (value.mode === "sas-token") {
-    sessionStorage.setItem(SECRET_KEYS.SAS_TOKEN, value.sasToken);
+    storage.setItem(SECRET_KEYS.SAS_TOKEN, value.sasToken);
   } else if (value.mode === "connection-string") {
-    sessionStorage.setItem(SECRET_KEYS.SAS_TOKEN, value.sharedAccessSignature);
+    storage.setItem(SECRET_KEYS.SAS_TOKEN, value.sharedAccessSignature);
   } else {
-    sessionStorage.removeItem(SECRET_KEYS.SAS_TOKEN);
+    storage.removeItem(SECRET_KEYS.SAS_TOKEN);
+  }
+
+  const sessionSecretStorage = getSessionSecretStorage();
+  if (sessionSecretStorage && sessionSecretStorage !== storage) {
+    sessionSecretStorage.removeItem(SECRET_KEYS.AUTH_STATE);
+    sessionSecretStorage.removeItem(SECRET_KEYS.SAS_TOKEN);
   }
 }
 
 export function clearSecrets(): void {
   Object.values(SECRET_KEYS).forEach((key) => {
-    sessionStorage.removeItem(key);
+    removeSecretKeyEverywhere(key);
   });
 }
 

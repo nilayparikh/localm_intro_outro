@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
 import Box from "@mui/material/Box";
@@ -31,14 +30,11 @@ import { SettingsDialog } from "../components/SettingsDialog";
 import { SyncMenu } from "../components/SyncMenu";
 import { useThemes } from "../hooks/useThemes";
 import type { ThemeDefinition, ThemeGradientLayer } from "../templates/types";
-import {
-  buildThemeExportData,
-  buildThemeReactPageSource,
-  toRenderableTheme,
-} from "../themes/themeDefinitions";
+import { toRenderableTheme } from "../themes/themeDefinitions";
 import {
   buildThemeEditorState,
-  buildThemeExportFileName,
+  buildThemeExportBundleEntries,
+  buildThemeLibraryExportBundleEntries,
   duplicateThemeDefinition,
   shouldHydrateThemeDraft,
 } from "./themeGenerator";
@@ -124,14 +120,7 @@ function updateLayer(
 }
 
 export function ThemeGeneratorPage() {
-  const navigate = useNavigate();
-  const {
-    themes,
-    themeOptions,
-    saveTheme,
-    deleteTheme,
-    exportThemes,
-  } = useThemes();
+  const { themes, themeOptions, saveTheme, deleteTheme } = useThemes();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [selectedThemeId, setSelectedThemeId] = useState("");
   const [draft, setDraft] = useState<ThemeDefinition | null>(null);
@@ -241,23 +230,28 @@ export function ThemeGeneratorPage() {
     }
 
     const zip = new JSZip();
-    const jsonFileName = buildThemeExportFileName(draft.name);
-    const baseName = jsonFileName.replace(/\.json$/i, "");
+    const entries = buildThemeExportBundleEntries(draft);
+    const baseName = entries[0]?.fileName.replace(/\.json$/i, "") ?? "theme";
 
-    zip.file(jsonFileName, buildThemeExportData(draft));
-    zip.file(`${baseName}_page.tsx`, buildThemeReactPageSource(draft));
+    for (const entry of entries) {
+      zip.file(entry.fileName, entry.content);
+    }
 
     saveAs(await zip.generateAsync({ type: "blob" }), `${baseName}.zip`);
   }, [draft]);
 
-  const handleExportAllThemes = useCallback(() => {
+  const handleExportAllThemes = useCallback(async () => {
+    const zip = new JSZip();
+
+    for (const entry of buildThemeLibraryExportBundleEntries(themes)) {
+      zip.file(entry.fileName, entry.content);
+    }
+
     saveAs(
-      new Blob([exportThemes()], {
-        type: "application/json;charset=utf-8",
-      }),
-      "localm_theme_library.json",
+      await zip.generateAsync({ type: "blob" }),
+      "localm_theme_library.zip",
     );
-  }, [exportThemes]);
+  }, [themes]);
 
   const handleAddLayer = useCallback(() => {
     setDraft((current) => {
@@ -337,6 +331,10 @@ export function ThemeGeneratorPage() {
     [],
   );
 
+  const goHome = useCallback(() => {
+    window.location.assign("/");
+  }, []);
+
   const isSavedTheme = themes.some((theme) => theme.id === draft?.id);
 
   return (
@@ -345,7 +343,7 @@ export function ThemeGeneratorPage() {
         <AppBar
           title="Theme Generator"
           showHomeButton
-          onHomeClick={() => navigate("/")}
+          onHomeClick={goHome}
           rightContent={
             <Stack direction="row" spacing={1}>
               <SyncMenu />
