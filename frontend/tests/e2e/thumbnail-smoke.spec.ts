@@ -423,3 +423,35 @@ test("thumbnail route keeps saved template field updates after refresh", async (
     page.locator('input[value="Persisted Source Video"]'),
   ).toBeVisible();
 });
+
+test("thumbnail keyboard shortcuts undo, redo, and save with sync", async ({
+  page,
+}) => {
+  await mockAzureTableReads(page);
+  await seedApp(page);
+
+  await page.goto("/thumbnail", { waitUntil: "domcontentloaded" });
+
+  const titleInput = page.locator('input[value="Release Ready Thumbnail"]');
+  await titleInput.fill("Shortcut Saved Title");
+  await page.getByText("Thumbnail Generator").click();
+
+  await page.keyboard.press("Control+Z");
+  await expect(
+    page.locator('input[value="Release Ready Thumbnail"]'),
+  ).toBeVisible();
+
+  await page.keyboard.press("Control+Y");
+  await expect(
+    page.locator('input[value="Shortcut Saved Title"]'),
+  ).toBeVisible();
+
+  await page.keyboard.press("Control+S");
+  await expect(
+    page.getByText(/Updated "Release Smoke Draft"|Saved "Release Smoke Draft"/),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Sync" }).click();
+  await expect(page.getByText("Sync completed successfully.")).toBeVisible();
+  await expect(page.getByText(/Last sync: (?!Never)/)).toBeVisible();
+});

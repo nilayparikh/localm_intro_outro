@@ -121,14 +121,14 @@ test("resolveSupportedWebmMimeType returns null when WEBM recording is unavailab
   );
 });
 
-test("resolveSupportedMotionMimeType prefers MP4 before WEBM when both are available", () => {
+test("resolveSupportedMotionMimeType prefers WEBM for browser fallback recording when multiple formats are available", () => {
   assert.equal(
     resolveSupportedMotionMimeType(
       (type) =>
         type === "video/mp4;codecs=avc1.42E01E,mp4a.40.2" ||
         type === "video/webm;codecs=vp9",
     ),
-    "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+    "video/webm;codecs=vp9",
   );
 });
 
@@ -194,7 +194,7 @@ test("buildStillFrameMp4Args creates a deterministic still-frame MP4 command wit
   );
 });
 
-test("buildStillFrameMp4Args muxes selected audio into the still-frame MP4 export", () => {
+test("buildStillFrameMp4Args maps a front-aligned padded audio track to the full motion duration", () => {
   assert.deepEqual(
     buildStillFrameMp4Args({
       imageInputName: "frame.png",
@@ -242,8 +242,12 @@ test("buildStillFrameMp4Args muxes selected audio into the still-frame MP4 expor
       "bt709",
       "-color_trc",
       "bt709",
-      "-af",
-      "apad=whole_dur=5",
+      "-filter_complex",
+      "[1:a]apad=pad_dur=5,atrim=duration=5[padded_audio]",
+      "-map",
+      "0:v:0",
+      "-map",
+      "[padded_audio]",
       "-c:a",
       "aac",
       "-b:a",

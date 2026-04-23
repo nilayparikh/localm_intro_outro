@@ -28,28 +28,39 @@ const draft = {
 
 test("runManagedLogoff always clears the session even when auto-save fails", async () => {
   const events: string[] = [];
+  const consoleError = console.error;
+  const loggedErrors: unknown[][] = [];
 
-  await runManagedLogoff({
-    autoSaveOnLogout: true,
-    draftDirty: true,
-    currentDraft: draft as any,
-    saveDraft: async () => {
-      events.push("save");
-      throw new Error("AuthenticationFailed");
-    },
-    updateDraftAfterSave: async () => {
-      events.push("update");
-    },
-    logoff: () => {
-      events.push("logoff");
-    },
-    notifySaved: () => {
-      events.push("saved-toast");
-    },
-    notifySaveFailed: () => {
-      events.push("failed-toast");
-    },
-  });
+  console.error = (...args: unknown[]) => {
+    loggedErrors.push(args);
+  };
+
+  try {
+    await runManagedLogoff({
+      autoSaveOnLogout: true,
+      draftDirty: true,
+      currentDraft: draft as any,
+      saveDraft: async () => {
+        events.push("save");
+        throw new Error("AuthenticationFailed");
+      },
+      updateDraftAfterSave: async () => {
+        events.push("update");
+      },
+      logoff: () => {
+        events.push("logoff");
+      },
+      notifySaved: () => {
+        events.push("saved-toast");
+      },
+      notifySaveFailed: () => {
+        events.push("failed-toast");
+      },
+    });
+  } finally {
+    console.error = consoleError;
+  }
 
   assert.deepEqual(events, ["save", "failed-toast", "logoff"]);
+  assert.equal(loggedErrors.length, 1);
 });

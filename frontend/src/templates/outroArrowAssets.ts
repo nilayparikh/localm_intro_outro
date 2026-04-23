@@ -4,8 +4,6 @@ export type OutroArrowAssetType =
   | "next_bite_size"
   | "course";
 
-export type OutroArrowThickness = "thin" | "regular" | "thick";
-
 export interface OutroArrowOverlay {
   id: string;
   type: OutroArrowAssetType;
@@ -15,10 +13,8 @@ export interface OutroArrowOverlay {
   degree: number;
   isInverse: boolean;
   textSize: number;
-  arrowSize: number;
-  isBold: boolean;
-  isItalic: boolean;
-  thickness: OutroArrowThickness;
+  arrowWidth: number;
+  arrowHeight: number;
 }
 
 export interface OutroArrowVariantResource {
@@ -27,7 +23,6 @@ export interface OutroArrowVariantResource {
   referenceHeight: number;
   arrowPathD: string;
   textPathD: string;
-  textLength: number;
   fontSize: number;
 }
 
@@ -47,8 +42,8 @@ const DEFAULT_OUTRO_ARROW_TYPE: OutroArrowAssetType = "subscribe";
 const DEFAULT_OUTRO_ARROW_X = 72;
 const DEFAULT_OUTRO_ARROW_Y = 68;
 const DEFAULT_OUTRO_ARROW_TEXT_SIZE = 100;
-const DEFAULT_OUTRO_ARROW_SIZE = 100;
-const DEFAULT_OUTRO_ARROW_THICKNESS: OutroArrowThickness = "regular";
+const DEFAULT_OUTRO_ARROW_WIDTH = 100;
+const DEFAULT_OUTRO_ARROW_HEIGHT = 100;
 let outroArrowOverlayCounter = 0;
 
 export const OUTRO_ARROW_ASSET_RESOURCES: Record<
@@ -70,7 +65,6 @@ export const OUTRO_ARROW_ASSET_RESOURCES: Record<
       arrowPathD:
         "M 140 225 L 140 190 L 50 250 L 140 310 L 140 275 Q 200 275 225 350 L 275 350 Q 250 225 140 225 Z",
       textPathD: "M 140 250 Q 225 250 250 350",
-      textLength: 110,
       fontSize: 40,
     },
     inverse: {
@@ -80,7 +74,6 @@ export const OUTRO_ARROW_ASSET_RESOURCES: Record<
       arrowPathD:
         "M 190 575 L 190 610 L 280 550 L 190 490 L 190 525 Q 130 525 105 450 L 55 450 Q 80 575 190 575 Z",
       textPathD: "M 80 450 Q 105 550 180 550",
-      textLength: 110,
       fontSize: 40,
     },
   },
@@ -99,7 +92,6 @@ export const OUTRO_ARROW_ASSET_RESOURCES: Record<
       arrowPathD:
         "M 310 225 L 520 225 L 520 190 L 600 250 L 520 310 L 520 275 L 310 275 Z",
       textPathD: "M 320 250 L 510 250",
-      textLength: 170,
       fontSize: 40,
     },
     inverse: {
@@ -109,7 +101,6 @@ export const OUTRO_ARROW_ASSET_RESOURCES: Record<
       arrowPathD:
         "M 560 575 L 350 575 L 350 610 L 270 550 L 350 490 L 350 525 L 560 525 Z",
       textPathD: "M 360 550 L 550 550",
-      textLength: 170,
       fontSize: 40,
     },
   },
@@ -128,7 +119,6 @@ export const OUTRO_ARROW_ASSET_RESOURCES: Record<
       arrowPathD:
         "M 630 225 L 880 225 L 880 190 L 960 250 L 880 310 L 880 275 L 630 275 Z",
       textPathD: "M 640 250 L 870 250",
-      textLength: 210,
       fontSize: 40,
     },
     inverse: {
@@ -138,7 +128,6 @@ export const OUTRO_ARROW_ASSET_RESOURCES: Record<
       arrowPathD:
         "M 920 575 L 670 575 L 670 610 L 590 550 L 670 490 L 670 525 L 920 525 Z",
       textPathD: "M 680 550 L 910 550",
-      textLength: 210,
       fontSize: 40,
     },
   },
@@ -157,7 +146,6 @@ export const OUTRO_ARROW_ASSET_RESOURCES: Record<
       arrowPathD:
         "M 1030 350 Q 1055 225 1160 225 L 1160 190 L 1250 250 L 1160 310 L 1160 275 Q 1100 275 1090 350 Z",
       textPathD: "M 1060 350 Q 1077 250 1150 250",
-      textLength: 110,
       fontSize: 40,
     },
     inverse: {
@@ -167,7 +155,6 @@ export const OUTRO_ARROW_ASSET_RESOURCES: Record<
       arrowPathD:
         "M 1250 450 Q 1225 575 1120 575 L 1120 610 L 1030 550 L 1120 490 L 1120 525 Q 1180 525 1190 450 Z",
       textPathD: "M 1130 550 Q 1203 550 1220 450",
-      textLength: 110,
       fontSize: 40,
     },
   },
@@ -180,18 +167,8 @@ export const OUTRO_ARROW_TYPE_OPTIONS = Object.values(
   label: asset.label,
 }));
 
-export const OUTRO_ARROW_THICKNESS_OPTIONS = [
-  { value: "thin", label: "Thin" },
-  { value: "regular", label: "Regular" },
-  { value: "thick", label: "Thick" },
-] as const;
-
 function isOutroArrowAssetType(value: unknown): value is OutroArrowAssetType {
   return typeof value === "string" && value in OUTRO_ARROW_ASSET_RESOURCES;
-}
-
-function isOutroArrowThickness(value: unknown): value is OutroArrowThickness {
-  return value === "thin" || value === "regular" || value === "thick";
 }
 
 function clampNumber(
@@ -230,10 +207,8 @@ export function createDefaultOutroArrowOverlay(
     degree: 0,
     isInverse: false,
     textSize: DEFAULT_OUTRO_ARROW_TEXT_SIZE,
-    arrowSize: DEFAULT_OUTRO_ARROW_SIZE,
-    isBold: false,
-    isItalic: false,
-    thickness: DEFAULT_OUTRO_ARROW_THICKNESS,
+    arrowWidth: DEFAULT_OUTRO_ARROW_WIDTH,
+    arrowHeight: DEFAULT_OUTRO_ARROW_HEIGHT,
   };
 }
 
@@ -254,6 +229,12 @@ export function normalizeOutroArrowOverlays(
       ? candidate.type
       : DEFAULT_OUTRO_ARROW_TYPE;
     const asset = OUTRO_ARROW_ASSET_RESOURCES[type];
+    const legacyArrowSize = clampNumber(
+      (overlay as { arrowSize?: unknown }).arrowSize,
+      25,
+      250,
+      DEFAULT_OUTRO_ARROW_WIDTH,
+    );
 
     normalized.push({
       id:
@@ -271,21 +252,12 @@ export function normalizeOutroArrowOverlays(
       isInverse: candidate.isInverse === true,
       textSize: clampNumber(
         candidate.textSize,
-        50,
-        200,
+        25,
+        300,
         DEFAULT_OUTRO_ARROW_TEXT_SIZE,
       ),
-      arrowSize: clampNumber(
-        candidate.arrowSize,
-        50,
-        200,
-        DEFAULT_OUTRO_ARROW_SIZE,
-      ),
-      isBold: candidate.isBold === true,
-      isItalic: candidate.isItalic === true,
-      thickness: isOutroArrowThickness(candidate.thickness)
-        ? candidate.thickness
-        : DEFAULT_OUTRO_ARROW_THICKNESS,
+      arrowWidth: clampNumber(candidate.arrowWidth, 25, 250, legacyArrowSize),
+      arrowHeight: clampNumber(candidate.arrowHeight, 25, 250, legacyArrowSize),
     });
 
     return normalized;

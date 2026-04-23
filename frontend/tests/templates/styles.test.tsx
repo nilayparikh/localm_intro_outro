@@ -421,10 +421,8 @@ test("outro can render multiple persisted arrow overlays from the shared arrow a
         degree: 12,
         isInverse: false,
         textSize: 124,
-        arrowSize: 142,
-        isBold: true,
-        isItalic: false,
-        thickness: "thick",
+        arrowWidth: 142,
+        arrowHeight: 120,
       },
       {
         id: "arrow-2",
@@ -435,10 +433,8 @@ test("outro can render multiple persisted arrow overlays from the shared arrow a
         degree: 318,
         isInverse: true,
         textSize: 92,
-        arrowSize: 110,
-        isBold: false,
-        isItalic: true,
-        thickness: "thin",
+        arrowWidth: 110,
+        arrowHeight: 138,
       },
     ],
   } as any;
@@ -464,10 +460,8 @@ test("outro can render multiple persisted arrow overlays from the shared arrow a
   assert.match(html, /data-overlay-id="arrow-1"/);
   assert.match(html, /data-overlay-id="arrow-2"/);
   assert.match(html, /data-overlay-text-size="124"/);
-  assert.match(html, /data-overlay-arrow-size="142"/);
-  assert.match(html, /data-overlay-thickness="thick"/);
-  assert.match(html, /font-style="italic"/);
-  assert.match(html, /font-weight="700"/);
+  assert.match(html, /data-overlay-arrow-width="142"/);
+  assert.match(html, /data-overlay-arrow-height="120"/);
   assert.match(html, />SUBSCRIBE</);
   assert.match(html, />COURSE</);
   assert.match(html, /alt="Suggested Course Preview"/);

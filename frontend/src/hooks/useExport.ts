@@ -188,7 +188,14 @@ export function resolveSupportedMotionMimeType(
     return null;
   }
 
-  return MOTION_MIME_TYPES.find((type) => isTypeSupported(type)) ?? null;
+  const browserFallbackPreferenceOrder = [
+    ...WEBM_MIME_TYPES,
+    ...MP4_MIME_TYPES,
+  ] as const;
+
+  return (
+    browserFallbackPreferenceOrder.find((type) => isTypeSupported(type)) ?? null
+  );
 }
 
 export function resolveMotionFileExtension(
@@ -425,7 +432,18 @@ export function buildStillFrameMp4Args({
     "-color_trc",
     "bt709",
     ...(audioInputName
-      ? ["-af", `apad=whole_dur=${durationArg}`, "-c:a", "aac", "-b:a", "192k"]
+      ? [
+          "-filter_complex",
+          `[1:a]apad=pad_dur=${durationArg},atrim=duration=${durationArg}[padded_audio]`,
+          "-map",
+          "0:v:0",
+          "-map",
+          "[padded_audio]",
+          "-c:a",
+          "aac",
+          "-b:a",
+          "192k",
+        ]
       : []),
     "-movflags",
     "+faststart",

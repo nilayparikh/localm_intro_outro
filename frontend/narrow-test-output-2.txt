@@ -1,0 +1,549 @@
+TAP version 13
+# Subtest: prepareBannerForSave preserves an existing id and stamps updatedAt
+ok 1 - prepareBannerForSave preserves an existing id and stamps updatedAt
+  ---
+  duration_ms: 1.6125
+  type: 'test'
+  ...
+# Subtest: prepareBannerForSave keeps one full entry per template type
+ok 2 - prepareBannerForSave keeps one full entry per template type
+  ---
+  duration_ms: 1.0908
+  type: 'test'
+  ...
+# Subtest: prepareBannerForSave lifts a legacy single-template payload into templateEntries
+ok 3 - prepareBannerForSave lifts a legacy single-template payload into templateEntries
+  ---
+  duration_ms: 0.2134
+  type: 'test'
+  ...
+# Subtest: prepareBannerForSave preserves outro arrow overlays in the saved template entry
+not ok 4 - prepareBannerForSave preserves outro arrow overlays in the saved template entry
+  ---
+  duration_ms: 3.61
+  type: 'test'
+  location: 'D:\\.sources\\utils\\audio\\voice_clone_translate\\apps\\localm_intro_outro\\frontend\\tests\\hooks\\useBanners.test.ts:1:3055'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+        {
+    +     arrowSize: 100,
+    -     arrowHeight: 128,
+    -     arrowWidth: 144,
+          degree: 0,
+          id: 'saved-arrow',
+    +     isBold: false,
+          isInverse: false,
+    +     isItalic: false,
+          text: 'FULL VIDEO',
+          textSize: 126,
+    +     thickness: 'regular',
+          type: 'full_video',
+          x: 18,
+          y: 32
+        }
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0:
+      id: 'saved-arrow'
+      type: 'full_video'
+      text: 'FULL VIDEO'
+      x: 18
+      y: 32
+      degree: 0
+      isInverse: false
+      textSize: 126
+      arrowWidth: 144
+      arrowHeight: 128
+  actual:
+    0:
+      id: 'saved-arrow'
+      type: 'full_video'
+      text: 'FULL VIDEO'
+      x: 18
+      y: 32
+      degree: 0
+      isInverse: false
+      textSize: 126
+      arrowSize: 100
+      isBold: false
+      isItalic: false
+      thickness: 'regular'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (D:\.sources\utils\audio\voice_clone_translate\apps\localm_intro_outro\frontend\tests\hooks\useBanners.test.ts:166:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: banner schema version increments when outro arrow size controls change
+not ok 5 - banner schema version increments when outro arrow size controls change
+  ---
+  duration_ms: 0.4882
+  type: 'test'
+  location: 'D:\\.sources\\utils\\audio\\voice_clone_translate\\apps\\localm_intro_outro\\frontend\\tests\\hooks\\useBanners.test.ts:1:4072'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    3 !== 4
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 4
+  actual: 3
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (D:\.sources\utils\audio\voice_clone_translate\apps\localm_intro_outro\frontend\tests\hooks\useBanners.test.ts:183:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: banner migration lifts legacy cached banners into templateEntries
+ok 6 - banner migration lifts legacy cached banners into templateEntries
+  ---
+  duration_ms: 0.3686
+  type: 'test'
+  ...
+# node:internal/modules/run_main:123
+#     triggerUncaughtException(
+#     ^
+# Error [ERR_MODULE_NOT_FOUND]: Cannot find module 'D:\\.sources\\utils\\audio\\voice_clone_translate\\apps\\localm_intro_outro\\frontend\\src\\pages\\thumbnailHistory' imported from D:\\.sources\\utils\\audio\\voice_clone_translate\\apps\\localm_intro_outro\\frontend\\tests\\pages\\thumbnailHistory.test.ts
+#     at finalizeResolution (node:internal/modules/esm/resolve:274:11)
+#     at moduleResolve (node:internal/modules/esm/resolve:859:10)
+#     at defaultResolve (node:internal/modules/esm/resolve:983:11)
+#     at nextResolve (node:internal/modules/esm/hooks:748:28)
+#     at resolveBase (file:///D:/.sources/utils/audio/voice_clone_translate/apps/localm_intro_outro/frontend/node_modules/tsx/dist/esm/index.mjs?1776958048402:2:3744)
+#     at async resolveDirectory (file:///D:/.sources/utils/audio/voice_clone_translate/apps/localm_intro_outro/frontend/node_modules/tsx/dist/esm/index.mjs?1776958048402:2:4237)
+#     at async resolve (file:///D:/.sources/utils/audio/voice_clone_translate/apps/localm_intro_outro/frontend/node_modules/tsx/dist/esm/index.mjs?1776958048402:2:5355)
+#     at async nextResolve (node:internal/modules/esm/hooks:748:22)
+#     at async Hooks.resolve (node:internal/modules/esm/hooks:240:24)
+#     at async handleMessage (node:internal/modules/esm/worker:199:18) {
+#   code: 'ERR_MODULE_NOT_FOUND',
+#   url: 'file:///D:/.sources/utils/audio/voice_clone_translate/apps/localm_intro_outro/frontend/src/pages/thumbnailHistory'
+# }
+# Node.js v22.20.0
+# Subtest: tests\\pages\\thumbnailHistory.test.ts
+not ok 2 - tests\\pages\\thumbnailHistory.test.ts
+  ---
+  duration_ms: 473.0426
+  type: 'test'
+  location: 'D:\\.sources\\utils\\audio\\voice_clone_translate\\apps\\localm_intro_outro\\frontend\\tests\\pages\\thumbnailHistory.test.ts:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: buildThumbnailTemplateRenderProps preserves export-sensitive asset and typography settings
+ok 8 - buildThumbnailTemplateRenderProps preserves export-sensitive asset and typography settings
+  ---
+  duration_ms: 4.3266
+  type: 'test'
+  ...
+# Subtest: buildThumbnailTemplateRenderProps hides footer social rendering when copyright is off
+ok 9 - buildThumbnailTemplateRenderProps hides footer social rendering when copyright is off
+  ---
+  duration_ms: 0.7168
+  type: 'test'
+  ...
+# Subtest: buildThumbnailTemplateRenderProps preserves intro and outro static field values for exports
+ok 10 - buildThumbnailTemplateRenderProps preserves intro and outro static field values for exports
+  ---
+  duration_ms: 0.3848
+  type: 'test'
+  ...
+# Subtest: buildThumbnailTemplateRenderProps preserves structured outro arrow overlays for rendering
+ok 11 - buildThumbnailTemplateRenderProps preserves structured outro arrow overlays for rendering
+  ---
+  duration_ms: 0.4214
+  type: 'test'
+  ...
+# node:internal/modules/run_main:123
+#     triggerUncaughtException(
+#     ^
+# Error [ERR_MODULE_NOT_FOUND]: Cannot find module 'D:\\.sources\\utils\\audio\\voice_clone_translate\\apps\\localm_intro_outro\\frontend\\src\\pages\\thumbnailShortcuts' imported from D:\\.sources\\utils\\audio\\voice_clone_translate\\apps\\localm_intro_outro\\frontend\\tests\\pages\\thumbnailShortcuts.test.ts
+#     at finalizeResolution (node:internal/modules/esm/resolve:274:11)
+#     at moduleResolve (node:internal/modules/esm/resolve:859:10)
+#     at defaultResolve (node:internal/modules/esm/resolve:983:11)
+#     at nextResolve (node:internal/modules/esm/hooks:748:28)
+#     at resolveBase (file:///D:/.sources/utils/audio/voice_clone_translate/apps/localm_intro_outro/frontend/node_modules/tsx/dist/esm/index.mjs?1776958048442:2:3744)
+#     at async resolveDirectory (file:///D:/.sources/utils/audio/voice_clone_translate/apps/localm_intro_outro/frontend/node_modules/tsx/dist/esm/index.mjs?1776958048442:2:4237)
+#     at async resolve (file:///D:/.sources/utils/audio/voice_clone_translate/apps/localm_intro_outro/frontend/node_modules/tsx/dist/esm/index.mjs?1776958048442:2:5355)
+#     at async nextResolve (node:internal/modules/esm/hooks:748:22)
+#     at async Hooks.resolve (node:internal/modules/esm/hooks:240:24)
+#     at async handleMessage (node:internal/modules/esm/worker:199:18) {
+#   code: 'ERR_MODULE_NOT_FOUND',
+#   url: 'file:///D:/.sources/utils/audio/voice_clone_translate/apps/localm_intro_outro/frontend/src/pages/thumbnailShortcuts'
+# }
+# Node.js v22.20.0
+# Subtest: tests\\pages\\thumbnailShortcuts.test.ts
+not ok 4 - tests\\pages\\thumbnailShortcuts.test.ts
+  ---
+  duration_ms: 482.5724
+  type: 'test'
+  location: 'D:\\.sources\\utils\\audio\\voice_clone_translate\\apps\\localm_intro_outro\\frontend\\tests\\pages\\thumbnailShortcuts.test.ts:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: resolveTemplateSelection restores an existing template entry without duplicating it
+ok 13 - resolveTemplateSelection restores an existing template entry without duplicating it
+  ---
+  duration_ms: 1.7904
+  type: 'test'
+  ...
+# Subtest: resolveTemplateSelection seeds a new template entry when the banner does not have that template yet
+ok 14 - resolveTemplateSelection seeds a new template entry when the banner does not have that template yet
+  ---
+  duration_ms: 1.2924
+  type: 'test'
+  ...
+# Subtest: normalizeTemplateEntries replaces an existing template entry with the latest active values
+ok 15 - normalizeTemplateEntries replaces an existing template entry with the latest active values
+  ---
+  duration_ms: 0.5648
+  type: 'test'
+  ...
+# Subtest: normalizeTemplateEntries preserves persisted outro arrow overlays on the latest outro entry
+not ok 16 - normalizeTemplateEntries preserves persisted outro arrow overlays on the latest outro entry
+  ---
+  duration_ms: 5.1392
+  type: 'test'
+  location: 'D:\\.sources\\utils\\audio\\voice_clone_translate\\apps\\localm_intro_outro\\frontend\\tests\\persistence\\bannerTemplateEntries.test.ts:1:3453'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+        {
+    +     arrowSize: 100,
+    -     arrowHeight: 126,
+    -     arrowWidth: 118,
+          degree: 12,
+          id: 'arrow-1',
+    +     isBold: false,
+          isInverse: false,
+    +     isItalic: false,
+          text: 'NEXT BITE-SIZE',
+          textSize: 132,
+    +     thickness: 'regular',
+          type: 'next_bite_size',
+          x: 58,
+          y: 70
+        },
+        {
+    +     arrowSize: 100,
+    -     arrowHeight: 108,
+    -     arrowWidth: 96,
+          degree: 318,
+          id: 'arrow-2',
+    +     isBold: false,
+          isInverse: true,
+    +     isItalic: false,
+          text: 'COURSE',
+          textSize: 88,
+    +     thickness: 'regular',
+          type: 'course',
+          x: 84,
+          y: 76
+        }
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0:
+      id: 'arrow-1'
+      type: 'next_bite_size'
+      text: 'NEXT BITE-SIZE'
+      x: 58
+      y: 70
+      degree: 12
+      isInverse: false
+      textSize: 132
+      arrowWidth: 118
+      arrowHeight: 126
+    1:
+      id: 'arrow-2'
+      type: 'course'
+      text: 'COURSE'
+      x: 84
+      y: 76
+      degree: 318
+      isInverse: true
+      textSize: 88
+      arrowWidth: 96
+      arrowHeight: 108
+  actual:
+    0:
+      id: 'arrow-1'
+      type: 'next_bite_size'
+      text: 'NEXT BITE-SIZE'
+      x: 58
+      y: 70
+      degree: 12
+      isInverse: false
+      textSize: 132
+      arrowSize: 100
+      isBold: false
+      isItalic: false
+      thickness: 'regular'
+    1:
+      id: 'arrow-2'
+      type: 'course'
+      text: 'COURSE'
+      x: 84
+      y: 76
+      degree: 318
+      isInverse: true
+      textSize: 88
+      arrowSize: 100
+      isBold: false
+      isItalic: false
+      thickness: 'regular'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (D:\.sources\utils\audio\voice_clone_translate\apps\localm_intro_outro\frontend\tests\persistence\bannerTemplateEntries.test.ts:205:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: default outro arrows use separate width and height controls
+not ok 17 - default outro arrows use separate width and height controls
+  ---
+  duration_ms: 4.9909
+  type: 'test'
+  location: 'D:\\.sources\\utils\\audio\\voice_clone_translate\\apps\\localm_intro_outro\\frontend\\tests\\templates\\outroArrowAssets.test.ts:1:177'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    undefined !== 100
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 100
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (D:\.sources\utils\audio\voice_clone_translate\apps\localm_intro_outro\frontend\tests\templates\outroArrowAssets.test.ts:11:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: normalizeOutroArrowOverlays migrates legacy size and style fields to width and height
+not ok 18 - normalizeOutroArrowOverlays migrates legacy size and style fields to width and height
+  ---
+  duration_ms: 2.9997
+  type: 'test'
+  location: 'D:\\.sources\\utils\\audio\\voice_clone_translate\\apps\\localm_intro_outro\\frontend\\tests\\templates\\outroArrowAssets.test.ts:1:548'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+        {
+    +     arrowSize: 136,
+    -     arrowHeight: 136,
+    -     arrowWidth: 136,
+          degree: 318,
+          id: 'legacy-arrow',
+    +     isBold: true,
+          isInverse: true,
+    +     isItalic: true,
+          text: 'COURSE',
+          textSize: 188,
+    +     thickness: 'thick',
+          type: 'course',
+          x: 84,
+          y: 76
+        }
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0:
+      id: 'legacy-arrow'
+      type: 'course'
+      text: 'COURSE'
+      x: 84
+      y: 76
+      degree: 318
+      isInverse: true
+      textSize: 188
+      arrowWidth: 136
+      arrowHeight: 136
+  actual:
+    0:
+      id: 'legacy-arrow'
+      type: 'course'
+      text: 'COURSE'
+      x: 84
+      y: 76
+      degree: 318
+      isInverse: true
+      textSize: 188
+      arrowSize: 136
+      isBold: true
+      isItalic: true
+      thickness: 'thick'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (D:\.sources\utils\audio\voice_clone_translate\apps\localm_intro_outro\frontend\tests\templates\outroArrowAssets.test.ts:38:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Received NaN for the `width` attribute. If this is expected, cast the value to a string.
+# Received NaN for the `height` attribute. If this is expected, cast the value to a string.
+# Received NaN for the `strokeWidth` attribute. If this is expected, cast the value to a string.
+# Received NaN for the `fontSize` attribute. If this is expected, cast the value to a string.
+# Subtest: tutorial template supports larger secondary text and glass styling
+ok 19 - tutorial template supports larger secondary text and glass styling
+  ---
+  duration_ms: 17.5571
+  type: 'test'
+  ...
+# Subtest: gradient borders stay inside the frame and use both configured border colors
+ok 20 - gradient borders stay inside the frame and use both configured border colors
+  ---
+  duration_ms: 0.3259
+  type: 'test'
+  ...
+# Subtest: frame backgrounds use the configured theme background without adding extra overlay layers
+ok 21 - frame backgrounds use the configured theme background without adding extra overlay layers
+  ---
+  duration_ms: 0.1718
+  type: 'test'
+  ...
+# Subtest: panel shadows can be pushed farther from the title surface
+ok 22 - panel shadows can be pushed farther from the title surface
+  ---
+  duration_ms: 0.3766
+  type: 'test'
+  ...
+# Subtest: centered course metadata honors secondary text size scaling
+ok 23 - centered course metadata honors secondary text size scaling
+  ---
+  duration_ms: 2.9931
+  type: 'test'
+  ...
+# Subtest: centered course renders a faded separator line using the selected border styling
+ok 24 - centered course renders a faded separator line using the selected border styling
+  ---
+  duration_ms: 1.5073
+  type: 'test'
+  ...
+# Subtest: centered course skips the background image when the source is blank
+ok 25 - centered course skips the background image when the source is blank
+  ---
+  duration_ms: 1.414
+  type: 'test'
+  ...
+# Subtest: centered templates render top-left and top-right capsules only when enabled
+ok 26 - centered templates render top-left and top-right capsules only when enabled
+  ---
+  duration_ms: 3.9507
+  type: 'test'
+  ...
+# Subtest: centered templates apply capsule style and color overrides
+ok 27 - centered templates apply capsule style and color overrides
+  ---
+  duration_ms: 1.9395
+  type: 'test'
+  ...
+# Subtest: centered templates keep capsules hidden when their toggles stay off
+ok 28 - centered templates keep capsules hidden when their toggles stay off
+  ---
+  duration_ms: 2.0076
+  type: 'test'
+  ...
+# Subtest: footer size can be increased for centered templates
+ok 29 - footer size can be increased for centered templates
+  ---
+  duration_ms: 1.1422
+  type: 'test'
+  ...
+# Subtest: intro bite template renders source attribution with bite, duration, and speed capsules
+ok 30 - intro bite template renders source attribution with bite, duration, and speed capsules
+  ---
+  duration_ms: 4.1008
+  type: 'test'
+  ...
+# Subtest: outro template keeps the CTA band clean for the audio-only outro flow
+ok 31 - outro template keeps the CTA band clean for the audio-only outro flow
+  ---
+  duration_ms: 3.1439
+  type: 'test'
+  ...
+# Subtest: outro template ignores social handles and keeps only headline and support line
+ok 32 - outro template ignores social handles and keeps only headline and support line
+  ---
+  duration_ms: 1.0934
+  type: 'test'
+  ...
+# Subtest: outro support line stays at 80% of headline size
+ok 33 - outro support line stays at 80% of headline size
+  ---
+  duration_ms: 0.9899
+  type: 'test'
+  ...
+# Subtest: outro can render multiple persisted arrow overlays from the shared arrow assets
+not ok 34 - outro can render multiple persisted arrow overlays from the shared arrow assets
+  ---
+  duration_ms: 7.8086
+  type: 'test'
+  location: 'D:\\.sources\\utils\\audio\\voice_clone_translate\\apps\\localm_intro_outro\\frontend\\tests\\templates\\styles.test.tsx:1:11281'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /data-overlay-arrow-width="142"/. Input:
+    
+    '<div style="width:3840px;height:2160px;box-sizing:border-box;position:relative;overflow:hidden;font-family:&#x27;Outfit&#x27;, sans-serif;background:linear-gradient(135deg, #0b1120, #111827, #1e293b);border-width:24px;border-style:solid;border-color:#22d3ee"><svg width="3840" height="2160" style="position:absolute;top:0;left:0;opacity:0.24"><defs><pattern id="outro-dots" x="0" y="0" width="113" height="113" patternUnits="userSpaceOnUse"><circle cx="56" cy="56" r="8" fill="#22d3ee"></circle></pattern></defs><rect width="100%" height="100%" fill="url(#outro-dots)"></rect></svg><div data-template-region="outro-suggested-image" style="position:absolute;right:216px;bottom:414px;width:1223px;padding:54px;border-radius:90px;background:linear-gradient(180deg, rgba(17, 24, 39, 0.560), rgba(11, 17, 32, 0.340));border:1px solid rgba(248, 250, 252, 0.180);box-shadow:0 54px 132px rgba(11, 17, 32, 0.340);backdrop-filter:blur(78px);-webkit-backdrop-filter:blur(78px);z-index:1"><img src="data:image/png;base64,preview-image" alt="Suggested Course Preview" style="width:100%;height:auto;display:block;border-radius:60px;object-fit:cover;opacity:0.88"/></div><div data-template-region="outro-cta" style="position:absolute;top:204px;left:50%;transform:translateX(-50%);width:88%;max-width:3240px;min-height:648px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:72px;padding:72px 48px;text-align:center;z-index:2"><div style="font-size:100px;font-weight:900;color:#f8fafc;line-height:1.04;font-family:&#x27;Share Tech Mono&#x27;, monospace;text-transform:uppercase;max-width:92%">Thank You for Watching</div><div style="font-size:80px;font-weight:600;color:#94a3b8;line-height:1.24;font-family:&#x27;Outfit&#x27;, sans-serif;max-width:74%">Want more? Subscribe and press the bell</div></div><div data-template-region="outro-arrow-overlay" data-overlay-id="arrow-1" data-overlay-text-size="124" style="position:absolute;left:40%;top:66%;width:NaNpx;height:NaNpx;transform:translate(-50%, -50%) rotate(12deg);transform-origin:center center;pointer-events:none;z-index:3"><svg width="NaN" height="NaN" viewBox="300 180 310 140" fill="none" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;filter:drop-shadow(0 30px 53px rgba(11, 17, 32, 0.550))"><defs><linearGradient id="outro-arrow-fill-arrow-1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="rgba(236, 72, 153, 0.35)"></stop><stop offset="100%" stop-color="rgba(244, 63, 94, 0.35)"></stop></linearGradient><linearGradient id="outro-arrow-stroke-arrow-1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#ec4899"></stop><stop offset="100%" stop-color="#f43f5e"></stop></linearGradient><path id="outro-arrow-text-arrow-1" d="M 320 250 L 510 250"></path></defs><path d="M 310 225 L 520 225 L 520 190 L 600 250 L 520 310 L 520 275 L 310 275 Z" fill="url(#outro-arrow-fill-arrow-1)" stroke="url(#outro-arrow-stroke-arrow-1)" stroke-width="NaN"></path><text font-family="&#x27;Share Tech Mono&#x27;, monospace" font-size="NaN" font-weight="300" font-style="normal" fill="#ffffff" letter-spacing="0.06em"><textPath href="#outro-arrow-text-arrow-1" startOffset="50%" text-anchor="middle" dominant-baseline="central">SUBSCRIBE</textPath></text></svg></div><div data-template-region="outro-arrow-overlay" data-overlay-id="arrow-2" data-overlay-text-size="92" style="position:absolute;left:80%;top:76%;width:NaNpx;height:NaNpx;transform:translate(-50%, -50%) rotate(318deg);transform-origin:center center;pointer-events:none;z-index:3"><svg width="NaN" height="NaN" viewBox="1010 440 250 180" fill="none" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;filter:drop-shadow(0 30px 53px rgba(11, 17, 32, 0.550))"><defs><linearGradient id="outro-arrow-fill-arrow-2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="rgba(245, 158, 11, 0.35)"></stop><stop offset="100%" stop-color="rgba(239, 68, 68, 0.35)"></stop></linearGradient><linearGradient id="outro-arrow-stroke-arrow-2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#f59e0b"></stop><stop offset="100%" stop-color="#ef4444"></stop></linearGradient><path id="outro-arrow-text-arrow-2" d="M 1130 550 Q 1203 550 1220 450"></path></defs><path d="M 1250 450 Q 1225 575 1120 575 L 1120 610 L 1030 550 L 1120 490 L 1120 525 Q 1180 525 1190 450 Z" fill="url(#outro-arrow-fill-arrow-2)" stroke="url(#outro-arrow-stroke-arrow-2)" stroke-width="NaN"></path><text font-family="&#x27;Share Tech Mono&#x27;, monospace" font-size="NaN" font-weight="300" font-style="normal" fill="#ffffff" letter-spacing="0.06em"><textPath href="#outro-arrow-text-arrow-2" startOffset="50%" text-anchor="middle" dominant-baseline="central">COURSE</textPath></text></svg></div><div style="position:absolute;bottom:36px;left:72px;right:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:4"><div style="margin-top:24px;color:#94a3b8;font-family:&#x27;Outfit&#x27;, sans-serif;font-size:81px;opacity:0.72;text-align:center">┬® 2026 LocalMÔäó</div></div></div>'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: '<div style="width:3840px;height:2160px;box-sizing:border-box;position:relative;overflow:hidden;font-family:&#x27;Outfit&#x27;, sans-serif;background:linear-gradient(135deg, #0b1120, #111827, #1e293b);border-width:24px;border-style:solid;border-color:#22d3ee"><svg width="3840" height="2160" style="position:absolute;top:0;left:0;opacity:0.24"><defs><pattern id="outro-dots" x="0" y="0" width="113" height="113" patternUnits="userSpaceOnUse"><circle cx="56" cy="56" r="8" fill="#22d3ee"></circle></pattern></defs><rect width="100%" height="100%" fill="url(#outro-dots)"></rect></svg><div data-template-region="outro-suggested-image" style="position:absolute;right:216px;bottom:414px;width:1223px;padding:54px;border-radius:90px;background:linear-gradient(180deg, rgba(17, 24, 39, 0.560), rgba(11, 17, 32, 0.340));border:1px solid rgba(248, 250, 252, 0.180);box-shadow:0 54px 132px rgba(11, 17, 32, 0.340);backdrop-filter:blur(78px);-webkit-backdrop-filter:blur(78px);z-index:1"><img src="data:image/png;base64,preview-image" alt="Suggested Course Preview" style="width:100%;height:auto;display:block;border-radius:60px;object-fit:cover;opacity:0.88"/></div><div data-template-region="outro-cta" style="position:absolute;top:204px;left:50%;transform:translateX(-50%);width:88%;max-width:3240px;min-height:648px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:72px;padding:72px 48px;text-align:center;z-index:2"><div style="font-size:100px;font-weight:900;color:#f8fafc;line-height:1.04;font-family:&#x27;Share Tech Mono&#x27;, monospace;text-transform:uppercase;max-width:92%">Thank You for Watching</div><div style="font-size:80px;font-weight:600;color:#94a3b8;line-height:1.24;font-family:&#x27;Outfit&#x27;, sans-serif;max-width:74%">Want more? Subscribe and press the bell</div></div><div data-template-region="outro-arrow-overlay" data-overlay-id="arrow-1" data-overlay-text-size="124" style="position:absolute;left:40%;top:66%;width:NaNpx;height:NaNpx;transform:translate(-50%, -50%) rotate(12deg);transform-origin:center center;pointer-events:none;z-index:3"><svg width="NaN" height="NaN" viewBox="300 180 310 140" fill="none" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;filter:drop-shadow(0 30px 53px rgba(11, 17, 32, 0.550))"><defs><linearGradient id="outro-arrow-fill-arrow-1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="rgba(236, 72, 153, 0.35)"></stop><stop offset="100%" stop-color="rgba(244, 63, 94, 0.35)"></stop></linearGradient><linearGradient id="outro-arrow-stroke-arrow-1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#ec4899"></stop><stop offset="100%" stop-color="#f43f5e"></stop></linearGradient><path id="outro-arrow-text-arrow-1" d="M 320 250 L 510 250"></path></defs><path d="M 310 225 L 520 225 L 520 190 L 600 250 L 520 310 L 520 275 L 310 275 Z" fill="url(#outro-arrow-fill-arrow-1)" stroke="url(#outro-arrow-stroke-arrow-1)" stroke-width="NaN"></path><text font-family="&#x27;Share Tech Mono&#x27;, monospace" font-size="NaN" font-weight="300" font-style="normal" fill="#ffffff" letter-spacing="0.06em"><textPath href="#outro-arrow-text-arrow-1" startOffset="50%" text-anchor="middle" dominant-baseline="central">SUBSCRIBE</textPath></text></svg></div><div data-template-region="outro-arrow-overlay" data-overlay-id="arrow-2" data-overlay-text-size="92" style="position:absolute;left:80%;top:76%;width:NaNpx;height:NaNpx;transform:translate(-50%, -50%) rotate(318deg);transform-origin:center center;pointer-events:none;z-index:3"><svg width="NaN" height="NaN" viewBox="1010 440 250 180" fill="none" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;filter:drop-shadow(0 30px 53px rgba(11, 17, 32, 0.550))"><defs><linearGradient id="outro-arrow-fill-arrow-2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="rgba(245, 158, 11, 0.35)"></stop><stop offset="100%" stop-color="rgba(239, 68, 68, 0.35)"></stop></linearGradient><linearGradient id="outro-arrow-stroke-arrow-2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#f59e0b"></stop><stop offset="100%" stop-color="#ef4444"></stop></linearGradient><path id="outro-arrow-text-arrow-2" d="M 1130 550 Q 1203 550 1220 450"></path></defs><path d="M 1250 450 Q 1225 575 1120 575 L 1120 610 L 1030 550 L 1120 490 L 1120 525 Q 1180 525 1190 450 Z" fill="url(#outro-arrow-fill-arrow-2)" stroke="url(#outro-arrow-stroke-arrow-2)" stroke-width="NaN"></path><text font-family="&#x27;Share Tech Mono&#x27;, monospace" font-size="NaN" font-weight="300" font-style="normal" fill="#ffffff" letter-spacing="0.06em"><textPath href="#outro-arrow-text-arrow-2" startOffset="50%" text-anchor="middle" dominant-baseline="central">COURSE</textPath></text></svg></div><div style="position:absolute;bottom:36px;left:72px;right:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:4"><div style="margin-top:24px;color:#94a3b8;font-family:&#x27;Outfit&#x27;, sans-serif;font-size:81px;opacity:0.72;text-align:center">┬® 2026 LocalMÔäó</div></div></div>'
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (D:\.sources\utils\audio\voice_clone_translate\apps\localm_intro_outro\frontend\tests\templates\styles.test.tsx:463:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..34
+# tests 34
+# suites 0
+# pass 26
+# fail 8
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2091.4056

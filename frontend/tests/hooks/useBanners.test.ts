@@ -156,10 +156,8 @@ test("prepareBannerForSave preserves outro arrow overlays in the saved template 
           degree: 0,
           isInverse: false,
           textSize: 126,
-          arrowSize: 144,
-          isBold: true,
-          isItalic: true,
-          thickness: "thick",
+          arrowWidth: 144,
+          arrowHeight: 128,
         },
       ],
     } as any),
@@ -175,16 +173,14 @@ test("prepareBannerForSave preserves outro arrow overlays in the saved template 
       degree: 0,
       isInverse: false,
       textSize: 126,
-      arrowSize: 144,
-      isBold: true,
-      isItalic: true,
-      thickness: "thick",
+      arrowWidth: 144,
+      arrowHeight: 128,
     },
   ]);
 });
 
-test("banner schema version increments when outro arrow typography settings are added", () => {
-  assert.equal(bannersSchema.version, 3);
+test("banner schema version increments when outro arrow size controls change", () => {
+  assert.equal(bannersSchema.version, 4);
 });
 
 test("banner migration lifts legacy cached banners into templateEntries", async () => {

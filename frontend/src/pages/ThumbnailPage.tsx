@@ -47,7 +47,6 @@ import {
 import type { FieldDef } from "../templates/types";
 import {
   OUTRO_ARROW_ASSET_RESOURCES,
-  OUTRO_ARROW_THICKNESS_OPTIONS,
   OUTRO_ARROW_TYPE_OPTIONS,
   createDefaultOutroArrowOverlay,
   type OutroArrowAssetType,
@@ -64,6 +63,7 @@ import { useThemes } from "../hooks/useThemes";
 import { BannerLibraryDialog } from "../components/BannerLibraryDialog";
 import { SettingsDialog } from "../components/SettingsDialog";
 import { SyncMenu } from "../components/SyncMenu";
+import { useSync } from "../sync";
 import {
   createTemplateEntryFromLegacySource,
   findTemplateEntry,
@@ -71,6 +71,14 @@ import {
   resolveTemplateSelection,
   type BannerTemplateEntry,
 } from "../persistence/bannerTemplateEntries";
+import {
+  createThumbnailHistory,
+  pushThumbnailHistory,
+  redoThumbnailHistory,
+  type ThumbnailHistory,
+  undoThumbnailHistory,
+} from "./thumbnailHistory";
+import { resolveThumbnailShortcutAction } from "./thumbnailShortcuts";
 import {
   DEFAULT_COPYRIGHT_TEXT,
   buildThumbnailTemplateRenderProps,
@@ -429,6 +437,7 @@ export function ThumbnailPage() {
   } = useAppState();
   const { settings } = useSettings();
   const { themes, themeOptions, getTheme, getRenderableTheme } = useThemes();
+  const { syncOnSave } = useSync();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [bannerDialogMode, setBannerDialogMode] = useState<
     "load" | "save" | null
@@ -438,6 +447,7 @@ export function ThumbnailPage() {
   const hasLoadedDraftRef = useRef(false);
   const suppressDraftWriteRef = useRef(false);
   const previousSettingsLogoUrlRef = useRef<string | null>(null);
+  const historyRef = useRef<ThumbnailHistory | null>(null);
 
   // State
   const [templateId, setTemplateId] = useState(
@@ -903,6 +913,20 @@ export function ThumbnailPage() {
     [applyTemplateEntryState, resolveTemplateState, setDraftWithSuppression],
   );
 
+  const applyDraftState = useCallback(
+    (draft: DraftBannerState) => {
+      const nextTemplateState = resolveTemplateState(draft);
+
+      setDraftWithSuppression(() => {
+        setTemplateEntries(nextTemplateState.templateEntries);
+        applyTemplateEntryState(nextTemplateState.activeEntry);
+        setProfileName(draft.name);
+        setSelectedBannerId(draft.bannerId ?? "");
+      });
+    },
+    [applyTemplateEntryState, resolveTemplateState, setDraftWithSuppression],
+  );
+
   useEffect(() => {
     if (!hasCustomBorderColor) {
       setBorderColor(getThemeBorderColor(themeId, themes));
@@ -1020,6 +1044,8 @@ export function ThumbnailPage() {
     ],
   );
 
+  const currentDraftSnapshot = useMemo(() => currentDraft(), [currentDraft]);
+
   useEffect(() => {
     if (!hasLoadedDraftRef.current || suppressDraftWriteRef.current) {
       return;
@@ -1027,13 +1053,57 @@ export function ThumbnailPage() {
 
     const timer = window.setTimeout(() => {
       void updateAppState({
-        currentDraft: currentDraft(),
+        currentDraft: currentDraftSnapshot,
         draftDirty: true,
       });
     }, 350);
 
     return () => window.clearTimeout(timer);
-  }, [currentDraft, updateAppState]);
+  }, [currentDraftSnapshot, updateAppState]);
+
+  useEffect(() => {
+    if (!isAppStateHydrated || !hasLoadedDraftRef.current) {
+      return;
+    }
+
+    if (!historyRef.current) {
+      historyRef.current = createThumbnailHistory(currentDraftSnapshot);
+      return;
+    }
+
+    historyRef.current = pushThumbnailHistory(
+      historyRef.current,
+      currentDraftSnapshot,
+    );
+  }, [currentDraftSnapshot, isAppStateHydrated]);
+
+  const handleUndo = useCallback(() => {
+    if (!historyRef.current) {
+      return;
+    }
+
+    const nextHistory = undoThumbnailHistory(historyRef.current);
+    if (nextHistory.index === historyRef.current.index) {
+      return;
+    }
+
+    historyRef.current = nextHistory;
+    applyDraftState(nextHistory.snapshot);
+  }, [applyDraftState]);
+
+  const handleRedo = useCallback(() => {
+    if (!historyRef.current) {
+      return;
+    }
+
+    const nextHistory = redoThumbnailHistory(historyRef.current);
+    if (nextHistory.index === historyRef.current.index) {
+      return;
+    }
+
+    historyRef.current = nextHistory;
+    applyDraftState(nextHistory.snapshot);
+  }, [applyDraftState]);
 
   const handleSaveProfile = useCallback(
     async ({
@@ -1236,6 +1306,39 @@ export function ThumbnailPage() {
     handleLoadProfile,
     handleSaveProfile,
   ]);
+
+  const handleSaveShortcut = useCallback(async () => {
+    const saved = await handleSaveProfile();
+    if (saved) {
+      await syncOnSave();
+    }
+  }, [handleSaveProfile, syncOnSave]);
+
+  useEffect(() => {
+    function handleShortcut(event: KeyboardEvent) {
+      const action = resolveThumbnailShortcutAction(event);
+      if (!action) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (action === "save") {
+        void handleSaveShortcut();
+        return;
+      }
+
+      if (action === "undo") {
+        handleUndo();
+        return;
+      }
+
+      handleRedo();
+    }
+
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, [handleRedo, handleSaveShortcut, handleUndo]);
 
   const handleDeleteFromDialog = useCallback(async () => {
     if (!dialogSelectedBannerId) {
@@ -2132,15 +2235,30 @@ export function ThumbnailPage() {
                             <Stack spacing={2} {...CONTROL_ROW_SX}>
                               <Box sx={CONTROL_CELL_SX}>
                                 <SliderControl
-                                  label="Arrow Size"
-                                  value={overlay.arrowSize}
+                                  label="Arrow Width"
+                                  value={overlay.arrowWidth}
                                   onChange={(value) =>
                                     handleOutroArrowOverlayChange(overlay.id, {
-                                      arrowSize: value,
+                                      arrowWidth: value,
                                     })
                                   }
-                                  min={50}
-                                  max={200}
+                                  min={25}
+                                  max={250}
+                                  step={1}
+                                  formatValue={(value) => `${value}%`}
+                                />
+                              </Box>
+                              <Box sx={CONTROL_CELL_SX}>
+                                <SliderControl
+                                  label="Arrow Height"
+                                  value={overlay.arrowHeight}
+                                  onChange={(value) =>
+                                    handleOutroArrowOverlayChange(overlay.id, {
+                                      arrowHeight: value,
+                                    })
+                                  }
+                                  min={25}
+                                  max={250}
                                   step={1}
                                   formatValue={(value) => `${value}%`}
                                 />
@@ -2154,65 +2272,10 @@ export function ThumbnailPage() {
                                       textSize: value,
                                     })
                                   }
-                                  min={50}
-                                  max={200}
+                                  min={25}
+                                  max={300}
                                   step={1}
                                   formatValue={(value) => `${value}%`}
-                                />
-                              </Box>
-                              <Box sx={{ ...CONTROL_CELL_SX, minWidth: 0 }}>
-                                <Typography sx={CONTROL_LABEL_SX}>
-                                  Text Style
-                                </Typography>
-                                <Stack direction="row" spacing={1}>
-                                  <ActionButton
-                                    label="Bold"
-                                    variant={
-                                      overlay.isBold ? "primary" : "secondary"
-                                    }
-                                    onClick={() =>
-                                      handleOutroArrowOverlayChange(
-                                        overlay.id,
-                                        {
-                                          isBold: !overlay.isBold,
-                                        },
-                                      )
-                                    }
-                                    sx={{ flex: 1, minWidth: 0 }}
-                                  />
-                                  <ActionButton
-                                    label="Italic"
-                                    variant={
-                                      overlay.isItalic ? "primary" : "secondary"
-                                    }
-                                    onClick={() =>
-                                      handleOutroArrowOverlayChange(
-                                        overlay.id,
-                                        {
-                                          isItalic: !overlay.isItalic,
-                                        },
-                                      )
-                                    }
-                                    sx={{ flex: 1, minWidth: 0 }}
-                                  />
-                                </Stack>
-                              </Box>
-                              <Box sx={CONTROL_CELL_SX}>
-                                <SelectControl
-                                  label="Thickness"
-                                  value={overlay.thickness}
-                                  onChange={(value) =>
-                                    handleOutroArrowOverlayChange(overlay.id, {
-                                      thickness:
-                                        value as OutroArrowOverlay["thickness"],
-                                    })
-                                  }
-                                  options={OUTRO_ARROW_THICKNESS_OPTIONS.map(
-                                    (option) => ({
-                                      value: option.value,
-                                      label: option.label,
-                                    }),
-                                  )}
                                 />
                               </Box>
                             </Stack>

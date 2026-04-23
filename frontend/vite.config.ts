@@ -30,5 +30,45 @@ export default defineConfig({
   build: {
     outDir: "dist",
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) {
+            return undefined;
+          }
+
+          if (id.includes("@ffmpeg/")) {
+            return "ffmpeg";
+          }
+
+          if (
+            id.includes("rxdb") ||
+            id.includes("dexie") ||
+            id.includes("rxjs")
+          ) {
+            return "data";
+          }
+
+          if (id.includes("@azure/")) {
+            return "azure";
+          }
+
+          if (id.includes("@mui/") || id.includes("@emotion/")) {
+            return "mui";
+          }
+
+          if (
+            id.includes("html-to-image") ||
+            id.includes("file-saver") ||
+            id.includes("jszip") ||
+            id.includes("crypto-js")
+          ) {
+            return "export-utils";
+          }
+
+          return "vendor";
+        },
+      },
+    },
   },
 });

@@ -215,19 +215,6 @@ function sanitizeSvgId(value: string): string {
   return value.replace(/[^a-zA-Z0-9_-]/g, "-");
 }
 
-function resolveArrowThicknessMultiplier(
-  thickness: "thin" | "regular" | "thick",
-): number {
-  switch (thickness) {
-    case "thin":
-      return 0.72;
-    case "thick":
-      return 1.45;
-    default:
-      return 1;
-  }
-}
-
 function OutroArrowOverlays({
   width,
   overlays,
@@ -254,24 +241,23 @@ function OutroArrowOverlays({
         const textPathId = `outro-arrow-text-${overlayId}`;
         const strokeGradientId = `outro-arrow-stroke-${overlayId}`;
         const fillGradientId = `outro-arrow-fill-${overlayId}`;
-        const sizeScale = overlay.arrowSize / 100;
+        const widthScale = overlay.arrowWidth / 100;
+        const heightScale = overlay.arrowHeight / 100;
+        const averageScale = (widthScale + heightScale) / 2;
         const textScale = overlay.textSize / 100;
-        const thicknessScale = resolveArrowThicknessMultiplier(
-          overlay.thickness,
-        );
         const svgWidth = Math.round(
-          variant.referenceWidth * svgScale * sizeScale,
+          variant.referenceWidth * svgScale * widthScale,
         );
         const svgHeight = Math.round(
-          variant.referenceHeight * svgScale * sizeScale,
+          variant.referenceHeight * svgScale * heightScale,
         );
         const fontSize = Math.max(
           16,
-          Math.round(variant.fontSize * svgScale * sizeScale * textScale),
+          Math.round(variant.fontSize * svgScale * averageScale * textScale),
         );
         const strokeWidth = Math.max(
           2,
-          Number((2 * svgScale * sizeScale * thicknessScale).toFixed(2)),
+          Number((2.4 * svgScale * averageScale).toFixed(2)),
         );
 
         return (
@@ -280,8 +266,8 @@ function OutroArrowOverlays({
             data-template-region="outro-arrow-overlay"
             data-overlay-id={overlay.id}
             data-overlay-text-size={overlay.textSize}
-            data-overlay-arrow-size={overlay.arrowSize}
-            data-overlay-thickness={overlay.thickness}
+            data-overlay-arrow-width={overlay.arrowWidth}
+            data-overlay-arrow-height={overlay.arrowHeight}
             style={{
               position: "absolute",
               left: `${overlay.x}%`,
@@ -337,8 +323,7 @@ function OutroArrowOverlays({
               <text
                 fontFamily={textFontFamily}
                 fontSize={fontSize}
-                fontWeight={overlay.isBold ? 700 : 300}
-                fontStyle={overlay.isItalic ? "italic" : "normal"}
+                fontWeight={600}
                 fill="#ffffff"
                 letterSpacing="0.06em"
               >

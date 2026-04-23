@@ -18,10 +18,8 @@ const outroArrowOverlayArrayProperty = {
       degree: { type: "number" },
       isInverse: { type: "boolean" },
       textSize: { type: "number" },
-      arrowSize: { type: "number" },
-      isBold: { type: "boolean" },
-      isItalic: { type: "boolean" },
-      thickness: { type: "string" },
+      arrowWidth: { type: "number" },
+      arrowHeight: { type: "number" },
     },
     required: [
       "id",
@@ -32,10 +30,8 @@ const outroArrowOverlayArrayProperty = {
       "degree",
       "isInverse",
       "textSize",
-      "arrowSize",
-      "isBold",
-      "isItalic",
-      "thickness",
+      "arrowWidth",
+      "arrowHeight",
     ],
   },
 } as const;
@@ -195,7 +191,7 @@ export const assetsMigrationStrategies = {
 };
 
 export const bannersSchema: RxJsonSchema<any> = {
-  version: 3,
+  version: 4,
   primaryKey: "id",
   type: "object",
   properties: {
@@ -257,6 +253,16 @@ export const bannersMigrationStrategies = {
     ),
   }),
   3: async (documentData: Record<string, unknown>) => ({
+    ...documentData,
+    templateEntries: normalizeTemplateEntries(
+      documentData.templateEntries as any,
+      createLegacyBannerTemplateEntry(documentData),
+    ),
+    outroArrowOverlays: normalizeOutroArrowOverlays(
+      documentData.outroArrowOverlays,
+    ),
+  }),
+  4: async (documentData: Record<string, unknown>) => ({
     ...documentData,
     templateEntries: normalizeTemplateEntries(
       documentData.templateEntries as any,
