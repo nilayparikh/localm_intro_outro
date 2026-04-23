@@ -8,6 +8,9 @@ import { RxDBMigrationSchemaPlugin } from "rxdb/plugins/migration-schema";
 import {
   settingsSchema,
   presetsSchema,
+  assetsMigrationStrategies,
+  assetsSchema,
+  bannersMigrationStrategies,
   bannersSchema,
   themesSchema,
   appStateMigrationStrategies,
@@ -19,6 +22,7 @@ import { getDatabaseOptions } from "./databaseOptions";
 export type BannersDatabase = RxDatabase<{
   settings: RxCollection;
   presets: RxCollection;
+  assets: RxCollection;
   banners: RxCollection;
   themes: RxCollection;
   app_state: RxCollection;
@@ -47,7 +51,14 @@ const getDatabaseSingleton = createAsyncSingleton(async () => {
   await db.addCollections({
     settings: { schema: settingsSchema },
     presets: { schema: presetsSchema },
-    banners: { schema: bannersSchema },
+    assets: {
+      schema: assetsSchema,
+      migrationStrategies: assetsMigrationStrategies,
+    },
+    banners: {
+      schema: bannersSchema,
+      migrationStrategies: bannersMigrationStrategies,
+    },
     themes: { schema: themesSchema },
     app_state: {
       schema: appStateSchema,

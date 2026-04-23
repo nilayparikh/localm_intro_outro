@@ -222,7 +222,8 @@ export function BackgroundThumbnailTemplate({
   const showGrid = values["show_grid"] !== "false";
   const gridPattern = values["grid_pattern"] ?? "dots";
   const borderStyle = resolveTemplateBorderStyle(values["border_style"]);
-  const borderColorSecondary = values["border_color_secondary"]?.trim() || undefined;
+  const borderColorSecondary =
+    values["border_color_secondary"]?.trim() || undefined;
   const footerSize = resolveFooterSize(values["footer_size"]);
 
   return (
@@ -247,18 +248,6 @@ export function BackgroundThumbnailTemplate({
           height={height}
         />
       )}
-
-      <div
-        style={{
-          position: "absolute",
-          top: "-20%",
-          right: "-10%",
-          width: "60%",
-          height: "60%",
-          background: `radial-gradient(circle, ${theme.accent}15, transparent 70%)`,
-          pointerEvents: "none",
-        }}
-      />
 
       {brandLogoUrl && (
         <div

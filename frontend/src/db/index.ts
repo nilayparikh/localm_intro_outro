@@ -2,6 +2,7 @@ export { initDatabase, getDatabase, type BannersDatabase } from "./database";
 export {
   settingsSchema,
   presetsSchema,
+  assetsSchema,
   bannersSchema,
   themesSchema,
   appStateSchema,

@@ -16,6 +16,19 @@ Stores reusable editor presets.
 
 Stores saved banner documents, including template, theme, typography, image, field content, footer visibility, footer text, and logo sizing.
 
+Intro Bite and Outro banner records now persist only the selected shared audio asset id inside `fieldValues` rather than embedding the uploaded file.
+
+### `assets`
+
+Stores shared uploaded asset metadata, including:
+
+- display metadata (`id`, `name`, `fileName`)
+- asset classification (`kind`, `mimeType`)
+- Azure blob reference (`blobPath`)
+- file size and optional duration metadata (`sizeBytes`, `durationMs`)
+- optional preview geometry (`width`, `height`)
+- cache/sync timestamp (`updatedAt`)
+
 ### `themes`
 
 Stores editable theme documents, including:
@@ -63,6 +76,7 @@ Supported credential modes:
 Best practices:
 
 - Keep blob assets as relative paths like `logos/logo.svg`, not temporary signed URLs.
+- Keep shared asset blob references as relative paths like `assets/audio/1710000000000-intro-sting.mp3`.
 - Provision the target Azure table and blob container up front, or ensure they are created before the first sync or upload attempt.
 - Use profile-based tables instead of creating timestamped test tables for normal app operation.
-- Sync includes `themes` alongside `settings`, `presets`, `banners`, and `app_state`.
+- Sync includes `assets` and `themes` alongside `settings`, `presets`, `banners`, and `app_state`.

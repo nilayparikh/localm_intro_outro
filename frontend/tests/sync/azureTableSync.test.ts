@@ -19,6 +19,7 @@ test("azure sync includes dynamic themes alongside other replicated collections"
   assert.deepEqual(SYNCABLE_COLLECTIONS, [
     "settings",
     "presets",
+    "assets",
     "banners",
     "themes",
     "app_state",
@@ -458,6 +459,7 @@ test("syncDatabaseOnce pulls remote-only banners instead of deleting them on ano
     {
       settings: emptyCollection,
       presets: emptyCollection,
+      assets: emptyCollection,
       banners: emptyCollection,
       themes: emptyCollection,
       app_state: emptyCollection,
@@ -516,6 +518,7 @@ test("syncDatabaseOnce can limit work to selected collections", async () => {
     {
       settings: collection,
       presets: collection,
+      assets: collection,
       banners: collection,
       themes: collection,
       app_state: collection,

@@ -1,3 +1,5 @@
+import type { OutroArrowOverlay } from "./outroArrowAssets";
+
 /**
  * LocalM™ Banners - Template Types & Theme Definitions
  */
@@ -25,6 +27,7 @@ export interface TemplateProps {
   tutorialImageSize?: number;
   tutorialImageBottomPadding?: number;
   tutorialImageOpacity?: number;
+  outroArrowOverlays?: OutroArrowOverlay[];
   instructorStyle?: "minimal" | "card" | "pill" | "framed";
   socialIconSize?: number;
   tutorialCtaText?: string;

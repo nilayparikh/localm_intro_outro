@@ -241,16 +241,23 @@ export function TutorialThumbnailTemplate({
   const secondarySizeMultiplier = textSizeToMultiplier(
     values["secondary_size"] ?? "md",
   );
-  const subtitleSize = Math.round(fontSize * 0.6 * scale * secondarySizeMultiplier);
-  const metadataSize = Math.round(fontSize * 0.35 * scale * secondarySizeMultiplier);
+  const subtitleSize = Math.round(
+    fontSize * 0.6 * scale * secondarySizeMultiplier,
+  );
+  const metadataSize = Math.round(
+    fontSize * 0.35 * scale * secondarySizeMultiplier,
+  );
   const showGrid = values["show_grid"] !== "false";
   const gridPattern = values["grid_pattern"] ?? "dots";
   const badge = values["badge"] ?? "";
   const episode = values["episode"] ?? "";
   const surfaceStyle = resolveTemplateSurfaceStyle(values["surface_style"]);
-  const surfaceShadow = resolveTemplateSurfaceShadowStyle(values["surface_shadow"]);
+  const surfaceShadow = resolveTemplateSurfaceShadowStyle(
+    values["surface_shadow"],
+  );
   const borderStyle = resolveTemplateBorderStyle(values["border_style"]);
-  const borderColorSecondary = values["border_color_secondary"]?.trim() || undefined;
+  const borderColorSecondary =
+    values["border_color_secondary"]?.trim() || undefined;
   const footerSize = resolveFooterSize(values["footer_size"]);
   const contentPanelStyle = buildTemplatePanelStyle({
     surfaceStyle,
@@ -310,18 +317,6 @@ export function TutorialThumbnailTemplate({
       <div
         style={{
           position: "absolute",
-          top: "-20%",
-          right: "-10%",
-          width: "60%",
-          height: "60%",
-          background: `radial-gradient(circle, ${theme.accent}15, transparent 70%)`,
-          pointerEvents: "none",
-        }}
-      />
-
-      <div
-        style={{
-          position: "absolute",
           top: 0,
           left: 0,
           right: 0,
@@ -349,61 +344,61 @@ export function TutorialThumbnailTemplate({
             ...contentPanelStyle,
           }}
         >
-            {badge && (
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignSelf: "flex-start",
-                  background:
-                    surfaceStyle === "standard"
-                      ? `${theme.surface}cc`
-                      : colorWithAlpha(theme.surface, 0.46),
-                  color: theme.textSecondary,
-                  border: `1px solid ${colorWithAlpha(theme.accent, 0.35)}`,
-                  fontSize: metadataSize,
-                  fontWeight: 800,
-                  padding: `${Math.round(6 * scale)}px ${Math.round(16 * scale)}px`,
-                  borderRadius: Math.round(999 * scale),
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  marginBottom: Math.round(16 * scale),
-                }}
-              >
-                {badge}
-                {episode && ` • ${episode}`}
-              </div>
-            )}
-
+          {badge && (
             <div
               style={{
-                fontSize: titleSize,
-                fontWeight: 900,
-                color: theme.textPrimary,
-                lineHeight: 1.1,
-                maxWidth: "100%",
-                wordWrap: "break-word",
-                fontFamily: secondaryFont,
+                display: "inline-flex",
+                alignSelf: "flex-start",
+                background:
+                  surfaceStyle === "standard"
+                    ? `${theme.surface}cc`
+                    : colorWithAlpha(theme.surface, 0.46),
+                color: theme.textSecondary,
+                border: `1px solid ${colorWithAlpha(theme.accent, 0.35)}`,
+                fontSize: metadataSize,
+                fontWeight: 800,
+                padding: `${Math.round(6 * scale)}px ${Math.round(16 * scale)}px`,
+                borderRadius: Math.round(999 * scale),
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                marginBottom: Math.round(16 * scale),
               }}
             >
-              {values["title"] ?? "Tutorial Title"}
+              {badge}
+              {episode && ` • ${episode}`}
             </div>
+          )}
 
-            {values["subtitle"] && (
-              <div
-                style={{
-                  fontSize: subtitleSize,
-                  color: theme.textSecondary,
-                  marginTop: Math.round(12 * scale),
-                  maxWidth: "100%",
-                  lineHeight: 1.4,
-                  fontFamily: primaryFont,
-                }}
-              >
-                {values["subtitle"]}
-              </div>
-            )}
+          <div
+            style={{
+              fontSize: titleSize,
+              fontWeight: 900,
+              color: theme.textPrimary,
+              lineHeight: 1.1,
+              maxWidth: "100%",
+              wordWrap: "break-word",
+              fontFamily: secondaryFont,
+            }}
+          >
+            {values["title"] ?? "Tutorial Title"}
           </div>
+
+          {values["subtitle"] && (
+            <div
+              style={{
+                fontSize: subtitleSize,
+                color: theme.textSecondary,
+                marginTop: Math.round(12 * scale),
+                maxWidth: "100%",
+                lineHeight: 1.4,
+                fontFamily: primaryFont,
+              }}
+            >
+              {values["subtitle"]}
+            </div>
+          )}
         </div>
+      </div>
 
       {brandLogoUrl && (
         <div

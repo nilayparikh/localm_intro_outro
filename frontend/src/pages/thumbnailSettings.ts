@@ -1,4 +1,5 @@
 import { getTemplateDef } from "../templates";
+import type { OutroArrowOverlay } from "../templates/outroArrowAssets";
 import type {
   TemplateProps,
   ThemeColors,
@@ -10,12 +11,24 @@ import {
 } from "../themes/themeDefinitions";
 
 export const DEFAULT_COPYRIGHT_TEXT = "© 2026 LocalM™. All rights reserved.";
+const DEFAULT_MOTION_DURATION_SECONDS = 3;
+const MIN_MOTION_DURATION_SECONDS = 1;
+const MAX_MOTION_DURATION_SECONDS = 15;
+
+export type ThumbnailExportAction = "png" | "zip" | "motion";
+export type ThumbnailExportActivityState = Record<
+  ThumbnailExportAction,
+  number
+>;
 
 const CONTENT_FIELD_GROUPS: ReadonlyArray<readonly string[]> = [
   ["show_duration_capsule", "duration_capsule_text"],
   ["show_level_capsule", "level_capsule_value"],
   ["show_instructor_capsule", "instructor_capsule_text"],
   ["show_hands_on_lab_capsule", "hands_on_lab_capsule_text"],
+  ["source_label", "source_title"],
+  ["show_bite_capsule", "bite_capsule_text"],
+  ["show_speed_capsule", "speed_capsule_text"],
   ["title_size", "secondary_size"],
   ["show_grid", "grid_pattern"],
 ];
@@ -33,6 +46,37 @@ const CONTENT_FIELD_EXCLUSIONS = new Set([
 
 export function clampBrandLogoSize(value: number): number {
   return Math.min(120, Math.max(60, Math.round(value)));
+}
+
+export function resolveMotionDurationSeconds(
+  values: Record<string, string>,
+): number {
+  const rawValue = values["motion_duration_seconds"];
+  const parsedValue = Number.parseInt(rawValue ?? "", 10);
+
+  if (!Number.isFinite(parsedValue)) {
+    return DEFAULT_MOTION_DURATION_SECONDS;
+  }
+
+  return Math.min(
+    MAX_MOTION_DURATION_SECONDS,
+    Math.max(MIN_MOTION_DURATION_SECONDS, parsedValue),
+  );
+}
+
+export function resolveExportActionLoadingState(
+  activeExportActions: ThumbnailExportActivityState | null | undefined,
+): { isImageExporting: boolean; isMotionExporting: boolean } {
+  const activityState = activeExportActions ?? {
+    png: 0,
+    zip: 0,
+    motion: 0,
+  };
+
+  return {
+    isImageExporting: activityState.png > 0,
+    isMotionExporting: activityState.motion > 0,
+  };
 }
 
 export function buildThumbnailContentFieldRows<T extends { id: string }>(
@@ -84,6 +128,8 @@ export interface ThumbnailTemplateCapabilities {
   showsTutorialImage: boolean;
   showsTutorialImageBottomPadding: boolean;
   showsTutorialImageOpacity: boolean;
+  showsYoutubeOverlayAsset: boolean;
+  showsSharedAudioAsset: boolean;
 }
 
 export interface ThumbnailTemplateRenderInput {
@@ -102,6 +148,8 @@ export interface ThumbnailTemplateRenderInput {
   tutorialImageSize: number;
   tutorialImageBottomPadding: number;
   tutorialImageOpacity: number;
+  outroArrowOverlays?: OutroArrowOverlay[];
+  socialAccounts?: Record<string, string>;
   showCopyrightMessage: boolean;
   copyrightText: string;
 }
@@ -116,6 +164,17 @@ export interface BannerDialogState {
   bannerName: string;
 }
 
+const TEMPLATE_AUDIO_ASSET_FIELD_IDS: Record<string, string> = {
+  intro_bite_thumbnail: "intro_audio_asset_id",
+  outro_thumbnail: "outro_audio_asset_id",
+};
+
+export function getTemplateAudioAssetFieldId(
+  templateId: string,
+): string | null {
+  return TEMPLATE_AUDIO_ASSET_FIELD_IDS[templateId] ?? null;
+}
+
 export function getThumbnailTemplateCapabilities(
   templateId: string,
 ): ThumbnailTemplateCapabilities {
@@ -128,6 +187,8 @@ export function getThumbnailTemplateCapabilities(
     showsTutorialImage,
     showsTutorialImageBottomPadding: showsTutorialImage && showsBrandLogo,
     showsTutorialImageOpacity: showsTutorialImage && !showsBrandLogo,
+    showsYoutubeOverlayAsset: false,
+    showsSharedAudioAsset: getTemplateAudioAssetFieldId(templateId) !== null,
   };
 }
 
@@ -179,7 +240,7 @@ export function buildThumbnailTemplateRenderProps(
     primaryFontFamily: input.primaryFontFamily,
     secondaryFontFamily: input.secondaryFontFamily,
     fontSize: input.fontSize,
-    socialAccounts: {},
+    socialAccounts: input.socialAccounts ?? {},
     socialPosition: "center",
     socialRenderMode: input.showCopyrightMessage ? "full" : "hidden",
     borderWidth: input.borderWidth,
@@ -194,6 +255,7 @@ export function buildThumbnailTemplateRenderProps(
     tutorialImageSize: input.tutorialImageSize,
     tutorialImageBottomPadding: input.tutorialImageBottomPadding,
     tutorialImageOpacity: input.tutorialImageOpacity,
+    outroArrowOverlays: input.outroArrowOverlays,
     copyrightText: input.copyrightText,
   };
 }

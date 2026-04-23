@@ -21,6 +21,7 @@ import { AuthGate } from "./auth/AuthGate";
 import { DatabaseProvider } from "./db";
 import { SyncProvider } from "./sync";
 import { LauncherPage } from "./pages/LauncherPage";
+import { AssetsPage } from "./pages/AssetsPage";
 import { ThumbnailPage } from "./pages/ThumbnailPage";
 import { ThemeGeneratorPage } from "./pages/ThemeGeneratorPage";
 
@@ -36,6 +37,7 @@ export default function App() {
               <BrowserRouter>
                 <Routes>
                   <Route path="/" element={<LauncherPage />} />
+                  <Route path="/assets" element={<AssetsPage />} />
                   <Route path="/thumbnail" element={<ThumbnailPage />} />
                   <Route path="/themes" element={<ThemeGeneratorPage />} />
                   <Route

@@ -9,6 +9,10 @@ import {
 } from "react";
 import toast from "react-hot-toast";
 import { useAuth } from "../auth";
+import {
+  AUTH_REAUTH_MESSAGE,
+  isAuthenticationFailure,
+} from "../auth/sessionValidation";
 import { useDatabaseContext } from "../db";
 import { useAppState } from "../hooks/useAppState";
 import {
@@ -31,7 +35,7 @@ interface SyncContextValue {
 const SyncContext = createContext<SyncContextValue | null>(null);
 
 export function SyncProvider({ children }: { children: ReactNode }) {
-  const { authState } = useAuth();
+  const { authState, invalidateAuth } = useAuth();
   const db = useDatabaseContext();
   const { appState, updateAppState } = useAppState();
   const [isSyncing, setIsSyncing] = useState(false);
@@ -80,11 +84,16 @@ export function SyncProvider({ children }: { children: ReactNode }) {
             toast.success("Sync complete");
           }
         } catch (error: any) {
-          const message = error?.message ?? "Sync failed.";
+          const message = isAuthenticationFailure(error)
+            ? AUTH_REAUTH_MESSAGE
+            : (error?.message ?? "Sync failed.");
           await updateAppState({
             lastSyncStatus: "error",
             lastSyncMessage: message,
           });
+          if (isAuthenticationFailure(error)) {
+            invalidateAuth(message);
+          }
           if (showErrorToast) {
             toast.error(message);
           }
@@ -102,7 +111,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         }
       }
     },
-    [authState, db, updateAppState],
+    [authState, db, invalidateAuth, updateAppState],
   );
 
   const value = useMemo<SyncContextValue>(

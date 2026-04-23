@@ -11,6 +11,19 @@ test("background template is registered for thumbnail exports", () => {
   assert.equal(template?.hasPip, true);
 });
 
+test("intro bite and outro templates are registered for thumbnail exports", () => {
+  const introTemplate = getTemplateDef("intro_bite_thumbnail");
+  const outroTemplate = getTemplateDef("outro_thumbnail");
+
+  assert.ok(introTemplate);
+  assert.equal(introTemplate?.tool, "thumbnail");
+  assert.equal(introTemplate?.name, "Intro Bite");
+
+  assert.ok(outroTemplate);
+  assert.equal(outroTemplate?.tool, "thumbnail");
+  assert.equal(outroTemplate?.name, "Outro");
+});
+
 test("background template defaults keep only background-specific controls", () => {
   const defaults = getDefaultValues("background_thumbnail");
 
@@ -120,8 +133,7 @@ test("tutorial and centered course templates expose secondary size and advanced 
         .show_hands_on_lab_capsule,
       hands_on_lab_capsule_text: getDefaultValues("centered_course_thumbnail")
         .hands_on_lab_capsule_text,
-      capsule_size: getDefaultValues("centered_course_thumbnail")
-        .capsule_size,
+      capsule_size: getDefaultValues("centered_course_thumbnail").capsule_size,
       capsule_style: getDefaultValues("centered_course_thumbnail")
         .capsule_style,
       capsule_color: getDefaultValues("centered_course_thumbnail")
@@ -143,4 +155,92 @@ test("tutorial and centered course templates expose secondary size and advanced 
       footer_size: "small",
     },
   );
+});
+
+test("intro bite and outro templates expose specialized banner defaults", () => {
+  assert.deepEqual(
+    {
+      title: getDefaultValues("intro_bite_thumbnail").title,
+      source_label: getDefaultValues("intro_bite_thumbnail").source_label,
+      source_title: getDefaultValues("intro_bite_thumbnail").source_title,
+      show_bite_capsule: getDefaultValues("intro_bite_thumbnail")
+        .show_bite_capsule,
+      bite_capsule_text: getDefaultValues("intro_bite_thumbnail")
+        .bite_capsule_text,
+      show_duration_capsule: getDefaultValues("intro_bite_thumbnail")
+        .show_duration_capsule,
+      duration_capsule_text: getDefaultValues("intro_bite_thumbnail")
+        .duration_capsule_text,
+      show_speed_capsule: getDefaultValues("intro_bite_thumbnail")
+        .show_speed_capsule,
+      speed_capsule_text: getDefaultValues("intro_bite_thumbnail")
+        .speed_capsule_text,
+      title_size: getDefaultValues("intro_bite_thumbnail").title_size,
+      secondary_size: getDefaultValues("intro_bite_thumbnail").secondary_size,
+      capsule_size: getDefaultValues("intro_bite_thumbnail").capsule_size,
+      capsule_style: getDefaultValues("intro_bite_thumbnail").capsule_style,
+      capsule_color: getDefaultValues("intro_bite_thumbnail").capsule_color,
+      surface_style: getDefaultValues("intro_bite_thumbnail").surface_style,
+      surface_shadow: getDefaultValues("intro_bite_thumbnail").surface_shadow,
+      border_style: getDefaultValues("intro_bite_thumbnail").border_style,
+      border_color_secondary: getDefaultValues("intro_bite_thumbnail")
+        .border_color_secondary,
+      show_grid: getDefaultValues("intro_bite_thumbnail").show_grid,
+      grid_pattern: getDefaultValues("intro_bite_thumbnail").grid_pattern,
+      footer_size: getDefaultValues("intro_bite_thumbnail").footer_size,
+    },
+    {
+      title: "5 Copilot Prompts That Save Time",
+      source_label: "BITE FROM",
+      source_title: "Context Engineering for GitHub Copilot",
+      show_bite_capsule: "true",
+      bite_capsule_text: "BITE",
+      show_duration_capsule: "true",
+      duration_capsule_text: "45 sec",
+      show_speed_capsule: "true",
+      speed_capsule_text: "Fast",
+      title_size: "lg",
+      secondary_size: "md",
+      capsule_size: "small",
+      capsule_style: "glass",
+      capsule_color: "",
+      surface_style: "standard",
+      surface_shadow: "middle",
+      border_style: "solid",
+      border_color_secondary: "",
+      show_grid: "true",
+      grid_pattern: "dots",
+      footer_size: "small",
+    },
+  );
+
+  assert.deepEqual(getDefaultValues("outro_thumbnail"), {
+    title: "Thank You for Watching",
+    subtitle: "Want more? Subscribe and press the bell",
+    title_size: "lg",
+    secondary_size: "md",
+    show_outro_image: "true",
+    surface_style: "standard",
+    surface_shadow: "middle",
+    border_style: "solid",
+    border_color_secondary: "",
+    show_grid: "true",
+    grid_pattern: "dots",
+    footer_size: "small",
+  });
+
+  assert.deepEqual(Object.keys(getDefaultValues("outro_thumbnail")).sort(), [
+    "border_color_secondary",
+    "border_style",
+    "footer_size",
+    "grid_pattern",
+    "secondary_size",
+    "show_grid",
+    "show_outro_image",
+    "subtitle",
+    "surface_shadow",
+    "surface_style",
+    "title",
+    "title_size",
+  ]);
 });

@@ -5,7 +5,7 @@ import {
 } from "@azure/data-tables";
 import { firstValueFrom, merge } from "rxjs";
 import { map, take } from "rxjs/operators";
-import { resolveStorageAuth, type StoredAuthState } from "../auth";
+import { resolveStorageAuth, type StoredAuthState } from "../auth/credentials";
 import type { BannersDatabase } from "../db";
 import { extractBlobPath } from "../services/blobStorage";
 
@@ -35,6 +35,7 @@ type DeleteRemoteClientLike = Pick<TableClientLike, "deleteEntity">;
 export type SyncableCollectionName =
   | "settings"
   | "presets"
+  | "assets"
   | "banners"
   | "themes"
   | "app_state";
@@ -42,6 +43,7 @@ export type SyncableCollectionName =
 export const SYNCABLE_COLLECTIONS: SyncableCollectionName[] = [
   "settings",
   "presets",
+  "assets",
   "banners",
   "themes",
   "app_state",
@@ -55,6 +57,8 @@ interface ReplicationLike {
 }
 
 const SYNCED_ASSET_FIELDS = new Set([
+  "blobPath",
+  "previewImagePath",
   "brandLogoUrl",
   "tutorialImageUrl",
   "logo_url",
@@ -113,6 +117,31 @@ export function getTableClient(authState: StoredAuthState): TableClientLike {
       expiresOnTimestamp: Date.now() + 60 * 60 * 1000,
     }),
   });
+}
+
+export async function probeTableAccess(
+  authState: StoredAuthState,
+  createClient: (
+    authState: StoredAuthState,
+  ) => Promise<TableClientLike> | TableClientLike = getTableClient,
+): Promise<void> {
+  const client = await createClient(authState);
+  const entities = client.listEntities({
+    queryOptions: { filter: "PartitionKey eq 'settings'" },
+  }) as AsyncIterable<unknown> & {
+    byPage?: (settings?: { maxPageSize?: number }) => AsyncIterable<unknown>;
+  };
+
+  if (typeof entities.byPage === "function") {
+    const pageIterator = entities
+      .byPage({ maxPageSize: 1 })
+      [Symbol.asyncIterator]();
+    await pageIterator.next();
+    return;
+  }
+
+  const iterator = entities[Symbol.asyncIterator]();
+  await iterator.next();
 }
 
 function getTableServiceClient(

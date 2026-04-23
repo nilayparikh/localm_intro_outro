@@ -92,10 +92,10 @@ test("New Banner created on machine A appears on machine B after refresh", async
 
   await machineAApi.save({
     name: "New Banner",
-    templateId: "tutorial_thumbnail",
+    templateId: "outro_thumbnail",
     themeId: "dark",
     platformId: "landscape_4k",
-    fieldValues: { title: "Shared Banner" },
+    fieldValues: { title: "Final Outro" },
     borderWidth: 0,
     borderColor: "#ffffff",
     fontPairId: "pair-1",
@@ -110,12 +110,86 @@ test("New Banner created on machine A appears on machine B after refresh", async
     tutorialImageSize: 100,
     tutorialImageBottomPadding: 0,
     tutorialImageOpacity: 100,
+    templateEntries: [
+      {
+        templateId: "tutorial_thumbnail",
+        themeId: "dark",
+        platformId: "landscape_4k",
+        fieldValues: { title: "Shared Tutorial Banner" },
+        borderWidth: 0,
+        borderColor: "#ffffff",
+        fontPairId: "pair-1",
+        primaryFontFamily: "Inter",
+        secondaryFontFamily: "Roboto",
+        fontSize: 48,
+        brandLogoUrl: null,
+        brandLogoSize: 80,
+        showCopyrightMessage: true,
+        copyrightText: "Copyright",
+        tutorialImageUrl: null,
+        tutorialImageSize: 100,
+        tutorialImageBottomPadding: 0,
+        tutorialImageOpacity: 100,
+      },
+      {
+        templateId: "outro_thumbnail",
+        themeId: "dark",
+        platformId: "landscape_4k",
+        fieldValues: { title: "First Outro" },
+        borderWidth: 0,
+        borderColor: "#ffffff",
+        fontPairId: "pair-1",
+        primaryFontFamily: "Inter",
+        secondaryFontFamily: "Roboto",
+        fontSize: 48,
+        brandLogoUrl: null,
+        brandLogoSize: 80,
+        showCopyrightMessage: true,
+        copyrightText: "Copyright",
+        tutorialImageUrl: null,
+        tutorialImageSize: 100,
+        tutorialImageBottomPadding: 0,
+        tutorialImageOpacity: 100,
+      },
+      {
+        templateId: "outro_thumbnail",
+        themeId: "dark",
+        platformId: "landscape_4k",
+        fieldValues: { title: "Final Outro" },
+        borderWidth: 0,
+        borderColor: "#ffffff",
+        fontPairId: "pair-1",
+        primaryFontFamily: "Inter",
+        secondaryFontFamily: "Roboto",
+        fontSize: 48,
+        brandLogoUrl: null,
+        brandLogoSize: 80,
+        showCopyrightMessage: true,
+        copyrightText: "Copyright",
+        tutorialImageUrl: null,
+        tutorialImageSize: 100,
+        tutorialImageBottomPadding: 0,
+        tutorialImageOpacity: 100,
+      },
+    ],
   });
 
   await machineBApi.refresh();
 
   assert.equal(remote.snapshot()[0]?.name, "New Banner");
   assert.equal(machineBCollection.snapshot()[0]?.name, "New Banner");
+  assert.deepEqual(
+    machineBCollection.snapshot()[0]?.templateEntries?.map(
+      (entry) => entry.templateId,
+    ),
+    ["tutorial_thumbnail", "outro_thumbnail"],
+  );
+  assert.equal(
+    machineBCollection.snapshot()[0]?.templateEntries?.find(
+      (entry) => entry.templateId === "outro_thumbnail",
+    )?.fieldValues.title,
+    "Final Outro",
+  );
 });
 
 test("Dark Duplicate theme created on machine A appears on machine B after refresh", async () => {

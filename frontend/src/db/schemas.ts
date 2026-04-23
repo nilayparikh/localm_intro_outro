@@ -1,4 +1,117 @@
 import type { RxJsonSchema } from "rxdb";
+import {
+  createTemplateEntryFromLegacySource,
+  normalizeTemplateEntries,
+} from "../persistence/bannerTemplateEntries";
+import { normalizeOutroArrowOverlays } from "../templates/outroArrowAssets";
+
+const outroArrowOverlayArrayProperty = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: {
+      id: { type: "string" },
+      type: { type: "string" },
+      text: { type: "string" },
+      x: { type: "number" },
+      y: { type: "number" },
+      degree: { type: "number" },
+      isInverse: { type: "boolean" },
+      textSize: { type: "number" },
+      arrowSize: { type: "number" },
+      isBold: { type: "boolean" },
+      isItalic: { type: "boolean" },
+      thickness: { type: "string" },
+    },
+    required: [
+      "id",
+      "type",
+      "text",
+      "x",
+      "y",
+      "degree",
+      "isInverse",
+      "textSize",
+      "arrowSize",
+      "isBold",
+      "isItalic",
+      "thickness",
+    ],
+  },
+} as const;
+
+const bannerTemplateEntryProperties = {
+  templateId: { type: "string" },
+  themeId: { type: "string" },
+  platformId: { type: "string" },
+  fieldValues: { type: "object" },
+  borderWidth: { type: "number" },
+  borderColor: { type: "string" },
+  fontPairId: { type: "string" },
+  primaryFontFamily: { type: "string" },
+  secondaryFontFamily: { type: "string" },
+  fontSize: { type: "number" },
+  brandLogoUrl: { type: ["string", "null"] },
+  brandLogoSize: { type: "number" },
+  showCopyrightMessage: { type: "boolean" },
+  copyrightText: { type: "string" },
+  tutorialImageUrl: { type: ["string", "null"] },
+  tutorialImageSize: { type: "number" },
+  tutorialImageBottomPadding: { type: "number" },
+  tutorialImageOpacity: { type: "number" },
+  outroArrowOverlays: outroArrowOverlayArrayProperty,
+} as const;
+
+function createLegacyBannerTemplateEntry(
+  documentData: Record<string, unknown>,
+) {
+  return createTemplateEntryFromLegacySource({
+    templateId: String(documentData.templateId ?? "tutorial_thumbnail"),
+    themeId: String(documentData.themeId ?? "dark"),
+    platformId: String(documentData.platformId ?? "landscape_4k"),
+    fieldValues: (documentData.fieldValues as Record<string, string>) ?? {},
+    borderWidth: Number(documentData.borderWidth ?? 0),
+    borderColor: String(documentData.borderColor ?? "#ffffff"),
+    fontPairId: String(documentData.fontPairId ?? ""),
+    primaryFontFamily: String(documentData.primaryFontFamily ?? ""),
+    secondaryFontFamily: String(documentData.secondaryFontFamily ?? ""),
+    fontSize: Number(documentData.fontSize ?? 48),
+    brandLogoUrl: (documentData.brandLogoUrl as string | null) ?? null,
+    brandLogoSize: Number(documentData.brandLogoSize ?? 90),
+    showCopyrightMessage: Boolean(documentData.showCopyrightMessage ?? true),
+    copyrightText: String(documentData.copyrightText ?? ""),
+    tutorialImageUrl: (documentData.tutorialImageUrl as string | null) ?? null,
+    tutorialImageSize: Number(documentData.tutorialImageSize ?? 100),
+    tutorialImageBottomPadding: Number(
+      documentData.tutorialImageBottomPadding ?? 24,
+    ),
+    tutorialImageOpacity: Number(documentData.tutorialImageOpacity ?? 100),
+    outroArrowOverlays: normalizeOutroArrowOverlays(
+      documentData.outroArrowOverlays,
+    ),
+  });
+}
+
+const bannerTemplateEntryRequired = [
+  "templateId",
+  "themeId",
+  "platformId",
+  "fieldValues",
+  "borderWidth",
+  "borderColor",
+  "fontPairId",
+  "primaryFontFamily",
+  "secondaryFontFamily",
+  "fontSize",
+  "brandLogoUrl",
+  "brandLogoSize",
+  "showCopyrightMessage",
+  "copyrightText",
+  "tutorialImageUrl",
+  "tutorialImageSize",
+  "tutorialImageBottomPadding",
+  "tutorialImageOpacity",
+] as const;
 
 export const settingsSchema: RxJsonSchema<any> = {
   version: 0,
@@ -35,14 +148,68 @@ export const presetsSchema: RxJsonSchema<any> = {
   required: ["id", "name", "updatedAt"],
 };
 
-export const bannersSchema: RxJsonSchema<any> = {
+export const assetsSchema: RxJsonSchema<any> = {
   version: 0,
+  primaryKey: "id",
+  type: "object",
+  properties: {
+    id: { type: "string", maxLength: 120 },
+    name: { type: "string" },
+    fileName: { type: "string" },
+    kind: { type: "string" },
+    mimeType: { type: "string" },
+    blobPath: { type: "string" },
+    sizeBytes: { type: "number" },
+    durationMs: { type: ["number", "null"] },
+    previewImagePath: { type: ["string", "null"] },
+    width: { type: ["number", "null"] },
+    height: { type: ["number", "null"] },
+    updatedAt: { type: "number" },
+  },
+  required: [
+    "id",
+    "name",
+    "fileName",
+    "kind",
+    "mimeType",
+    "blobPath",
+    "sizeBytes",
+    "durationMs",
+    "previewImagePath",
+    "width",
+    "height",
+    "updatedAt",
+  ],
+  indexes: ["updatedAt"],
+};
+
+export const assetsMigrationStrategies = {
+  1: async (documentData: Record<string, unknown>) => ({
+    sizeBytes: 0,
+    durationMs: null,
+    previewImagePath: null,
+    width: null,
+    height: null,
+    ...documentData,
+  }),
+};
+
+export const bannersSchema: RxJsonSchema<any> = {
+  version: 3,
   primaryKey: "id",
   type: "object",
   properties: {
     id: { type: "string", maxLength: 100 },
     name: { type: "string" },
     templateId: { type: "string" },
+    templateEntries: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: bannerTemplateEntryProperties,
+        required: bannerTemplateEntryRequired as unknown as string[],
+      },
+    },
     themeId: { type: "string" },
     platformId: { type: "string" },
     fieldValues: { type: "object" },
@@ -60,10 +227,45 @@ export const bannersSchema: RxJsonSchema<any> = {
     tutorialImageSize: { type: "number" },
     tutorialImageBottomPadding: { type: "number" },
     tutorialImageOpacity: { type: "number" },
+    outroArrowOverlays: outroArrowOverlayArrayProperty,
     updatedAt: { type: "number" },
   },
   required: ["id", "name", "updatedAt"],
   indexes: ["updatedAt"],
+};
+
+export const bannersMigrationStrategies = {
+  1: async (documentData: Record<string, unknown>) => {
+    const templateEntries = normalizeTemplateEntries(
+      documentData.templateEntries as any,
+      createLegacyBannerTemplateEntry(documentData),
+    );
+
+    return {
+      ...documentData,
+      templateEntries,
+    };
+  },
+  2: async (documentData: Record<string, unknown>) => ({
+    ...documentData,
+    templateEntries: normalizeTemplateEntries(
+      documentData.templateEntries as any,
+      createLegacyBannerTemplateEntry(documentData),
+    ),
+    outroArrowOverlays: normalizeOutroArrowOverlays(
+      documentData.outroArrowOverlays,
+    ),
+  }),
+  3: async (documentData: Record<string, unknown>) => ({
+    ...documentData,
+    templateEntries: normalizeTemplateEntries(
+      documentData.templateEntries as any,
+      createLegacyBannerTemplateEntry(documentData),
+    ),
+    outroArrowOverlays: normalizeOutroArrowOverlays(
+      documentData.outroArrowOverlays,
+    ),
+  }),
 };
 
 export const themesSchema: RxJsonSchema<any> = {

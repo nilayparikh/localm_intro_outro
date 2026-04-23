@@ -4,6 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { CenteredThumbnailTemplate } from "../../src/templates/CenteredThumbnailTemplate";
 import { TutorialThumbnailTemplate } from "../../src/templates/TutorialThumbnailTemplate";
 import { CenteredCourseThumbnailTemplate } from "../../src/templates/CenteredCourseThumbnailTemplate";
+import { IntroBiteThumbnailTemplate } from "../../src/templates/IntroBiteThumbnailTemplate";
+import { OutroThumbnailTemplate } from "../../src/templates/OutroThumbnailTemplate";
 import {
   buildTemplateFrameStyle,
   buildTemplatePanelStyle,
@@ -55,6 +57,12 @@ const baseProps: TemplateProps = {
   copyrightText: "© 2026 LocalM™",
 };
 
+function extractFontSize(snippet: string): number {
+  const match = snippet.match(/font-size:([0-9.]+)px/);
+  assert.ok(match, `Expected font-size in snippet: ${snippet}`);
+  return Number(match[1]);
+}
+
 test("tutorial template supports larger secondary text and glass styling", () => {
   const html = renderToStaticMarkup(
     <TutorialThumbnailTemplate
@@ -94,6 +102,22 @@ test("gradient borders stay inside the frame and use both configured border colo
     "linear-gradient(135deg, #22d3ee, #f59e0b)",
   );
   assert.equal(style.borderImageSlice, 1);
+});
+
+test("frame backgrounds use the configured theme background without adding extra overlay layers", () => {
+  const style = buildTemplateFrameStyle({
+    width: 3840,
+    height: 2160,
+    fontFamily: "'Outfit', sans-serif",
+    theme: baseTheme,
+    borderWidth: 0,
+    borderColor: "#22d3ee",
+  });
+
+  assert.equal(
+    style.background,
+    "linear-gradient(135deg, #0b1120, #111827, #1e293b)",
+  );
 });
 
 test("panel shadows can be pushed farther from the title surface", () => {
@@ -227,7 +251,230 @@ test("footer size can be increased for centered templates", () => {
   );
 
   const footerSnippet =
-    html.match(/<div style="[^"]*opacity:0\.72[^"]*">© 2026 LocalM™<\/div>/)?.[0] ?? "";
+    html.match(
+      /<div style="[^"]*opacity:0\.72[^"]*">© 2026 LocalM™<\/div>/,
+    )?.[0] ?? "";
 
   assert.match(footerSnippet, /font-size:115px/);
+});
+
+test("intro bite template renders source attribution with bite, duration, and speed capsules", () => {
+  const html = renderToStaticMarkup(
+    <IntroBiteThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        title: "5 Copilot Prompts That Save Time",
+        source_label: "BITE FROM",
+        source_title: "Context Engineering for GitHub Copilot",
+        show_bite_capsule: "true",
+        bite_capsule_text: "BITE",
+        show_duration_capsule: "true",
+        duration_capsule_text: "45 sec",
+        show_speed_capsule: "true",
+        speed_capsule_text: "Fast",
+      }}
+    />,
+  );
+
+  assert.match(html, /data-template-region="bite-source"/);
+  assert.match(html, />BITE FROM</);
+  assert.match(html, />Context Engineering for GitHub Copilot</);
+  assert.doesNotMatch(html, /radial-gradient\(circle/);
+  assert.doesNotMatch(html, /top:-44%;right:-18%;width:76%;height:148%/);
+  assert.doesNotMatch(html, /left:-18%;bottom:-36%;width:72%;height:118%/);
+  assert.match(html, /data-capsule-kind="bite"/);
+  assert.match(html, /data-capsule-kind="duration"/);
+  assert.match(html, /data-capsule-kind="speed"/);
+  assert.match(html, /data-capsule-position="top-left"/);
+  assert.match(html, /data-capsule-position="top-right"/);
+
+  const biteTitleSnippet =
+    html.match(
+      /<div style="[^"]*">5 Copilot Prompts That Save Time<\/div>/,
+    )?.[0] ?? "";
+  const sourceLabelSnippet =
+    html.match(/<div style="[^"]*">BITE FROM<\/div>/)?.[0] ?? "";
+  const sourceTitleSnippet =
+    html.match(
+      /<div style="[^"]*">Context Engineering for GitHub Copilot<\/div>/,
+    )?.[0] ?? "";
+
+  assert.match(sourceLabelSnippet, /border-radius:/);
+  assert.match(sourceLabelSnippet, /padding:42px 93px/);
+  assert.match(sourceLabelSnippet, /text-transform:uppercase/);
+  assert.match(sourceLabelSnippet, /color:#f8fafc/);
+  assert.match(sourceLabelSnippet, /white-space:nowrap/);
+  assert.match(sourceLabelSnippet, /font-size:48px/);
+
+  const biteTitleSize = extractFontSize(biteTitleSnippet);
+  const sourceTitleSize = extractFontSize(sourceTitleSnippet);
+  const titleRatio = sourceTitleSize / biteTitleSize;
+
+  assert.equal(biteTitleSize, 185);
+  assert.equal(sourceTitleSize, 148);
+
+  assert.ok(
+    Math.abs(titleRatio - 0.8) < 0.03,
+    `Expected source title to be about 80% of bite title size, got ${titleRatio.toFixed(3)}`,
+  );
+});
+
+test("outro template keeps the CTA band clean for the audio-only outro flow", () => {
+  const html = renderToStaticMarkup(
+    <OutroThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        title: "Thank You for Watching",
+        subtitle: "Want more? Subscribe and press the bell",
+      }}
+    />,
+  );
+
+  assert.match(html, /data-template-region="outro-cta"/);
+  assert.match(html, />Thank You for Watching</);
+  assert.match(html, />Want more\? Subscribe and press the bell</);
+  assert.doesNotMatch(html, /data-template-region="outro-subscribe-cta"/);
+  assert.doesNotMatch(html, /data-template-region="outro-social-strip"/);
+  assert.doesNotMatch(html, /data-template-region="outro-youtube-card"/);
+  assert.doesNotMatch(html, /data-template-region="outro-x-card"/);
+  assert.doesNotMatch(html, /data-cta-icon=/);
+  assert.doesNotMatch(html, />@localm_tuts</);
+  assert.doesNotMatch(html, />Learn AI with LocalM Tuts</);
+  assert.doesNotMatch(html, />Follow on X for live Spaces</);
+});
+
+test("outro template ignores social handles and keeps only headline and support line", () => {
+  const html = renderToStaticMarkup(
+    <OutroThumbnailTemplate
+      {...baseProps}
+      socialAccounts={{
+        x_twitter: "@localm_live",
+        youtube: "AI Build Lab",
+      }}
+      values={{
+        ...baseProps.values,
+        title: "Thank You for Watching",
+        subtitle: "Want more? Subscribe and press the bell",
+      }}
+    />,
+  );
+
+  assert.match(html, />Thank You for Watching</);
+  assert.match(html, />Want more\? Subscribe and press the bell</);
+  assert.doesNotMatch(html, /data-template-region="outro-subscribe-cta"/);
+  assert.doesNotMatch(html, /data-template-region="outro-social-strip"/);
+  assert.doesNotMatch(html, /data-template-region="outro-youtube-card"/);
+  assert.doesNotMatch(html, /data-template-region="outro-x-card"/);
+  assert.doesNotMatch(html, /data-cta-icon=/);
+  assert.doesNotMatch(html, />@localm_live</);
+  assert.doesNotMatch(html, />Learn AI with AI Build Lab</);
+  assert.doesNotMatch(html, />Follow on X for live Spaces</);
+});
+
+test("outro support line stays at 80% of headline size", () => {
+  const html = renderToStaticMarkup(
+    <OutroThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        title: "Thank You for Watching",
+        subtitle: "Want more? Subscribe and press the bell",
+      }}
+    />,
+  );
+
+  const titleSnippet =
+    html.match(/<div style="[^"]*">Thank You for Watching<\/div>/)?.[0] ?? "";
+  const subtitleSnippet =
+    html.match(
+      /<div style="[^"]*">Want more\? Subscribe and press the bell<\/div>/,
+    )?.[0] ?? "";
+
+  const titleFontSize = extractFontSize(titleSnippet);
+  const subtitleFontSize = extractFontSize(subtitleSnippet);
+  const ratio = subtitleFontSize / titleFontSize;
+
+  assert.equal(titleFontSize, 100);
+  assert.equal(subtitleFontSize, 80);
+
+  assert.ok(
+    Math.abs(ratio - 0.8) < 0.02,
+    `Expected support line to be about 80% of headline size, got ${ratio.toFixed(3)}`,
+  );
+});
+
+test("outro can render multiple persisted arrow overlays from the shared arrow assets", () => {
+  const outroProps = {
+    ...baseProps,
+    tutorialImageUrl: "data:image/png;base64,preview-image",
+    tutorialImageSize: 118,
+    tutorialImageOpacity: 88,
+    outroArrowOverlays: [
+      {
+        id: "arrow-1",
+        type: "subscribe",
+        text: "SUBSCRIBE",
+        x: 40,
+        y: 66,
+        degree: 12,
+        isInverse: false,
+        textSize: 124,
+        arrowSize: 142,
+        isBold: true,
+        isItalic: false,
+        thickness: "thick",
+      },
+      {
+        id: "arrow-2",
+        type: "course",
+        text: "COURSE",
+        x: 80,
+        y: 76,
+        degree: 318,
+        isInverse: true,
+        textSize: 92,
+        arrowSize: 110,
+        isBold: false,
+        isItalic: true,
+        thickness: "thin",
+      },
+    ],
+  } as any;
+
+  const html = renderToStaticMarkup(
+    <OutroThumbnailTemplate
+      {...outroProps}
+      values={{
+        ...baseProps.values,
+        title: "Thank You for Watching",
+        subtitle: "Want more? Subscribe and press the bell",
+        show_outro_image: "true",
+      }}
+    />,
+  );
+
+  assert.match(html, /data-template-region="outro-suggested-image"/);
+  assert.equal(
+    Array.from(html.matchAll(/data-template-region="outro-arrow-overlay"/g))
+      .length,
+    2,
+  );
+  assert.match(html, /data-overlay-id="arrow-1"/);
+  assert.match(html, /data-overlay-id="arrow-2"/);
+  assert.match(html, /data-overlay-text-size="124"/);
+  assert.match(html, /data-overlay-arrow-size="142"/);
+  assert.match(html, /data-overlay-thickness="thick"/);
+  assert.match(html, /font-style="italic"/);
+  assert.match(html, /font-weight="700"/);
+  assert.match(html, />SUBSCRIBE</);
+  assert.match(html, />COURSE</);
+  assert.match(html, /alt="Suggested Course Preview"/);
+  assert.doesNotMatch(html, /lengthAdjust="spacingAndGlyphs"/);
+  assert.doesNotMatch(html, /textLength="/);
+  assert.doesNotMatch(
+    html,
+    /data-template-region="outro-keep-learning-callout"/,
+  );
 });

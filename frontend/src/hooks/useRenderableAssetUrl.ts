@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../auth";
-import { resolveBlobAssetUrl } from "../services";
+import {
+  downloadBlobAsset,
+  extractBlobPath,
+  getCachedAssetBlob,
+  setCachedAssetBlob,
+} from "../services";
 
 function isInlineAsset(reference: string): boolean {
   return reference.startsWith("data:") || reference.startsWith("blob:");
@@ -31,7 +36,28 @@ export function useRenderableAssetUrl(reference: string | null): string | null {
       }
 
       try {
-        const nextUrl = await resolveBlobAssetUrl(reference, authState);
+        const blobPath = extractBlobPath(reference, authState);
+        if (!blobPath) {
+          setAssetUrl(reference);
+          return;
+        }
+
+        const cachedBlob = await getCachedAssetBlob(blobPath);
+        const blob =
+          cachedBlob ??
+          (await downloadBlobAsset(reference, authState))?.blob ??
+          null;
+
+        if (!blob) {
+          setAssetUrl(null);
+          return;
+        }
+
+        if (!cachedBlob) {
+          await setCachedAssetBlob(blobPath, blob);
+        }
+
+        const nextUrl = URL.createObjectURL(blob);
         if (disposed) {
           if (nextUrl.startsWith("blob:")) {
             URL.revokeObjectURL(nextUrl);

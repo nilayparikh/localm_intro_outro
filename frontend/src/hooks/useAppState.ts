@@ -1,10 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useDatabaseContext } from "../db";
+import {
+  normalizeOutroArrowOverlays,
+  type OutroArrowOverlay,
+} from "../templates/outroArrowAssets";
+import {
+  createTemplateEntryFromLegacySource,
+  normalizeTemplateEntries,
+  type BannerTemplateEntry,
+} from "../persistence/bannerTemplateEntries";
 
 export interface DraftBannerState {
   bannerId: string | null;
   name: string;
   templateId: string;
+  templateEntries?: BannerTemplateEntry[];
   themeId: string;
   platformId: string;
   fieldValues: Record<string, string>;
@@ -22,6 +32,7 @@ export interface DraftBannerState {
   tutorialImageSize: number;
   tutorialImageBottomPadding: number;
   tutorialImageOpacity: number;
+  outroArrowOverlays?: OutroArrowOverlay[];
 }
 
 export interface AppState {
@@ -46,6 +57,25 @@ export const DEFAULT_APP_STATE: AppState = {
 
 const APP_STATE_ID = "ui_state";
 
+export function normalizeDraftBannerState(
+  draft: DraftBannerState | null | undefined,
+): DraftBannerState | null {
+  if (!draft) {
+    return null;
+  }
+
+  const templateEntries = normalizeTemplateEntries(
+    draft.templateEntries,
+    createTemplateEntryFromLegacySource(draft),
+  );
+
+  return {
+    ...draft,
+    outroArrowOverlays: normalizeOutroArrowOverlays(draft.outroArrowOverlays),
+    templateEntries,
+  };
+}
+
 export function useAppState() {
   const db = useDatabaseContext();
   const [appState, setAppState] = useState<AppState>(DEFAULT_APP_STATE);
@@ -67,7 +97,7 @@ export function useAppState() {
       setAppState({
         autoSaveOnLogout: doc.autoSaveOnLogout ?? true,
         autoStartSync: doc.autoStartSync ?? false,
-        currentDraft: doc.currentDraft ?? null,
+        currentDraft: normalizeDraftBannerState(doc.currentDraft ?? null),
         draftDirty: doc.draftDirty ?? false,
         lastSyncAt: doc.lastSyncAt ?? null,
         lastSyncStatus: doc.lastSyncStatus ?? "idle",

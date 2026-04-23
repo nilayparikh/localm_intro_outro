@@ -6,7 +6,7 @@
  * Profiles are stored in RxDB via useBanners hook (replaces localStorage).
  */
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
@@ -45,8 +45,17 @@ import {
   SURFACE_STYLE_OPTIONS,
 } from "../templates/index";
 import type { FieldDef } from "../templates/types";
+import {
+  OUTRO_ARROW_ASSET_RESOURCES,
+  OUTRO_ARROW_THICKNESS_OPTIONS,
+  OUTRO_ARROW_TYPE_OPTIONS,
+  createDefaultOutroArrowOverlay,
+  type OutroArrowAssetType,
+  type OutroArrowOverlay,
+} from "../templates/outroArrowAssets";
 import { DEFAULT_THEME_ID } from "../themes/themeDefinitions";
 import { useExport } from "../hooks/useExport";
+import { useAssets } from "../hooks/useAssets";
 import { useBanners, type BannerDoc } from "../hooks/useBanners";
 import { useAppState, type DraftBannerState } from "../hooks/useAppState";
 import { useRenderableAssetUrl } from "../hooks/useRenderableAssetUrl";
@@ -56,13 +65,23 @@ import { BannerLibraryDialog } from "../components/BannerLibraryDialog";
 import { SettingsDialog } from "../components/SettingsDialog";
 import { SyncMenu } from "../components/SyncMenu";
 import {
+  createTemplateEntryFromLegacySource,
+  findTemplateEntry,
+  normalizeTemplateEntries,
+  resolveTemplateSelection,
+  type BannerTemplateEntry,
+} from "../persistence/bannerTemplateEntries";
+import {
   DEFAULT_COPYRIGHT_TEXT,
   buildThumbnailTemplateRenderProps,
   buildBannerDialogState,
   buildThumbnailContentFieldRows,
   clampBrandLogoSize,
+  getTemplateAudioAssetFieldId,
   getThumbnailTemplateCapabilities,
   getThemeBorderColor,
+  resolveExportActionLoadingState,
+  resolveMotionDurationSeconds,
   resolveLoadedBrandLogoUrl,
   resolveBrandLogoUrlFromSettings,
   resolvePersistedBrandLogoUrl,
@@ -178,11 +197,21 @@ const CONTROL_CELL_SX = {
   minWidth: 0,
 } as const;
 
+const OUTRO_ARROW_ORIENTATION_OPTIONS = [
+  { value: "false", label: "Regular" },
+  { value: "true", label: "Inverse" },
+];
+
 const FIELD_LABEL_OVERRIDES: Record<string, string> = {
   show_duration_capsule: "Duration Capsule",
   show_level_capsule: "Skill Capsule",
   show_instructor_capsule: "Instructor Capsule",
   show_hands_on_lab_capsule: "Hands-On Lab Capsule",
+  show_bite_capsule: "Bite Capsule",
+  show_speed_capsule: "Speed Capsule",
+  source_label: "Bite From",
+  source_title: "Original Video Title",
+  show_outro_image: "Suggested Preview Image",
   title_size: "Title Style",
   secondary_size: "Secondary Style",
 };
@@ -387,7 +416,11 @@ async function cropTransparentMargins(dataUrl: string): Promise<string> {
 
 export function ThumbnailPage() {
   const canvasRef = useRef<HTMLDivElement>(null);
-  const { exportPng, isExporting } = useExport();
+  const { exportMotion, exportPng, activeExportActions } = useExport();
+  const { isImageExporting, isMotionExporting } = useMemo(
+    () => resolveExportActionLoadingState(activeExportActions),
+    [activeExportActions],
+  );
   const { banners, saveBanner, deleteBanner, getBanner } = useBanners();
   const {
     appState,
@@ -439,8 +472,15 @@ export function ThumbnailPage() {
   const [tutorialImageBottomPadding, setTutorialImageBottomPadding] =
     useState(24);
   const [tutorialImageOpacity, setTutorialImageOpacity] = useState(100);
+  const [outroArrowOverlays, setOutroArrowOverlays] = useState<
+    OutroArrowOverlay[]
+  >([]);
+  const [templateEntries, setTemplateEntries] = useState<BannerTemplateEntry[]>(
+    [],
+  );
   const [profileName, setProfileName] = useState("default");
   const [selectedBannerId, setSelectedBannerId] = useState("");
+  const { assets, audioAssetOptions } = useAssets();
   const renderableBrandLogoUrl = useRenderableAssetUrl(brandLogoUrl);
 
   const setDraftWithSuppression = useCallback((callback: () => void) => {
@@ -457,6 +497,7 @@ export function ThumbnailPage() {
   const currentPlatform =
     PLATFORM_PRESETS.find((p) => p.id === platformId) ?? PLATFORM_PRESETS[0]!;
   const currentTemplate = THUMBNAIL_TEMPLATES.find((t) => t.id === templateId);
+  const isOutroTemplate = templateId === "outro_thumbnail";
   const currentTemplateFields = currentTemplate?.fields ?? [];
   const currentTemplateFieldMap = new Map(
     currentTemplateFields.map((field) => [field.id, field]),
@@ -496,21 +537,279 @@ export function ThumbnailPage() {
     )
     .filter((row) => row.length > 0);
   const templateCapabilities = getThumbnailTemplateCapabilities(templateId);
+  const tutorialImageSectionTitle = isOutroTemplate
+    ? "Suggested Preview Image"
+    : "Tutorial Image";
+  const tutorialImageUploadLabel = tutorialImageUrl
+    ? `Change ${tutorialImageSectionTitle}`
+    : `Upload ${tutorialImageSectionTitle}`;
+  const audioAssetFieldId = getTemplateAudioAssetFieldId(templateId);
+  const selectedAudioAssetId = audioAssetFieldId
+    ? (fieldValues[audioAssetFieldId] ?? "")
+    : "";
+  const selectedAudioAsset = useMemo(
+    () => assets.find((asset) => asset.id === selectedAudioAssetId) ?? null,
+    [assets, selectedAudioAssetId],
+  );
+  const renderableSelectedAudioAssetUrl = useRenderableAssetUrl(
+    selectedAudioAsset?.blobPath ?? null,
+  );
   const TemplateComponent = TEMPLATE_COMPONENTS[templateId];
   const activeBannerName = profileName.trim() || "Untitled";
+  const activeTemplateEntry = useMemo(
+    () =>
+      createTemplateEntryFromLegacySource({
+        templateId,
+        themeId,
+        platformId,
+        fieldValues,
+        borderWidth,
+        borderColor,
+        fontPairId: selectedFontPairId,
+        primaryFontFamily,
+        secondaryFontFamily,
+        fontSize,
+        brandLogoUrl: resolvePersistedBrandLogoUrl({
+          currentBrandLogoUrl: brandLogoUrl,
+          settingsLogoUrl: settings.logo_url,
+        }),
+        brandLogoSize,
+        showCopyrightMessage,
+        copyrightText,
+        tutorialImageUrl,
+        tutorialImageSize,
+        tutorialImageBottomPadding,
+        tutorialImageOpacity,
+        outroArrowOverlays,
+      }),
+    [
+      borderColor,
+      borderWidth,
+      brandLogoSize,
+      brandLogoUrl,
+      copyrightText,
+      fieldValues,
+      fontSize,
+      platformId,
+      primaryFontFamily,
+      secondaryFontFamily,
+      selectedFontPairId,
+      settings.logo_url,
+      showCopyrightMessage,
+      templateId,
+      themeId,
+      outroArrowOverlays,
+      tutorialImageBottomPadding,
+      tutorialImageOpacity,
+      tutorialImageSize,
+      tutorialImageUrl,
+    ],
+  );
+  const resolvedTemplateEntries = useMemo(
+    () => normalizeTemplateEntries(templateEntries, activeTemplateEntry),
+    [activeTemplateEntry, templateEntries],
+  );
+  const storedTemplateCount = resolvedTemplateEntries.length;
   const selectedBanner =
     banners.find((banner) => banner.id === selectedBannerId) ?? null;
 
+  const resolveTemplateState = useCallback(
+    (
+      bannerLike: Pick<
+        DraftBannerState,
+        | "templateId"
+        | "templateEntries"
+        | "themeId"
+        | "platformId"
+        | "fieldValues"
+        | "borderWidth"
+        | "borderColor"
+        | "fontPairId"
+        | "primaryFontFamily"
+        | "secondaryFontFamily"
+        | "fontSize"
+        | "brandLogoUrl"
+        | "brandLogoSize"
+        | "showCopyrightMessage"
+        | "copyrightText"
+        | "tutorialImageUrl"
+        | "tutorialImageSize"
+        | "tutorialImageBottomPadding"
+        | "tutorialImageOpacity"
+        | "outroArrowOverlays"
+      >,
+    ) => {
+      const fallbackEntry = createTemplateEntryFromLegacySource(bannerLike);
+      const normalizedEntries = normalizeTemplateEntries(
+        bannerLike.templateEntries,
+        fallbackEntry,
+      ).map((entry) => ({
+        ...entry,
+        brandLogoUrl: resolveLoadedBrandLogoUrl({
+          storedBrandLogoUrl: entry.brandLogoUrl,
+          settingsLogoUrl: settings.logo_url,
+        }),
+      }));
+      const activeEntry = findTemplateEntry(
+        normalizedEntries,
+        bannerLike.templateId,
+      ) ??
+        normalizedEntries[0] ?? {
+          ...fallbackEntry,
+          brandLogoUrl: resolveLoadedBrandLogoUrl({
+            storedBrandLogoUrl: fallbackEntry.brandLogoUrl,
+            settingsLogoUrl: settings.logo_url,
+          }),
+        };
+
+      return {
+        templateEntries: normalizedEntries,
+        activeEntry,
+      };
+    },
+    [settings.logo_url],
+  );
+
+  const applyTemplateEntryState = useCallback(
+    (entry: BannerTemplateEntry) => {
+      const resolvedBorderColor =
+        entry.borderColor || getThemeBorderColor(entry.themeId, themes);
+
+      setTemplateId(entry.templateId);
+      setThemeId(entry.themeId);
+      setPlatformId(entry.platformId);
+      setFieldValues({ ...entry.fieldValues });
+      setBorderWidth(entry.borderWidth);
+      setBorderColor(resolvedBorderColor);
+      setHasCustomBorderColor(
+        resolvedBorderColor.toLowerCase() !==
+          getThemeBorderColor(entry.themeId, themes).toLowerCase(),
+      );
+      setSelectedFontPairId(entry.fontPairId);
+      setSecondaryFontFamily(entry.secondaryFontFamily);
+      setPrimaryFontFamily(entry.primaryFontFamily);
+      setFontSize(entry.fontSize);
+      setBrandLogoUrl(entry.brandLogoUrl);
+      setBrandLogoSize(clampBrandLogoSize(entry.brandLogoSize));
+      setShowCopyrightMessage(entry.showCopyrightMessage ?? true);
+      setCopyrightText(entry.copyrightText || DEFAULT_COPYRIGHT_TEXT);
+      setTutorialImageUrl(entry.tutorialImageUrl);
+      setTutorialImageSize(clampTutorialImagePercent(entry.tutorialImageSize));
+      setTutorialImageBottomPadding(
+        clampTutorialBottomPadding(entry.tutorialImageBottomPadding),
+      );
+      setTutorialImageOpacity(
+        Math.min(100, Math.max(0, entry.tutorialImageOpacity)),
+      );
+      setOutroArrowOverlays(entry.outroArrowOverlays ?? []);
+    },
+    [themes],
+  );
+
+  const createSeededTemplateEntry = useCallback(
+    (nextTemplateId: string): BannerTemplateEntry => ({
+      ...activeTemplateEntry,
+      templateId: nextTemplateId,
+      fieldValues: getDefaultValues(nextTemplateId),
+      outroArrowOverlays:
+        nextTemplateId === "outro_thumbnail"
+          ? activeTemplateEntry.outroArrowOverlays
+          : [],
+    }),
+    [activeTemplateEntry],
+  );
+
   // Handle template change
-  const handleTemplateChange = useCallback((newId: string) => {
-    setTemplateId(newId);
-    setFieldValues(getDefaultValues(newId));
-  }, []);
+  const handleTemplateChange = useCallback(
+    (newId: string) => {
+      if (newId === templateId) {
+        return;
+      }
+
+      const nextSelection = resolveTemplateSelection({
+        entries: resolvedTemplateEntries,
+        nextTemplateId: newId,
+        createEntry: () => createSeededTemplateEntry(newId),
+      });
+
+      setTemplateEntries(nextSelection.templateEntries);
+      setDraftWithSuppression(() => {
+        applyTemplateEntryState(nextSelection.activeEntry);
+      });
+    },
+    [
+      applyTemplateEntryState,
+      createSeededTemplateEntry,
+      resolvedTemplateEntries,
+      setDraftWithSuppression,
+      templateId,
+    ],
+  );
 
   // Handle field change
   const handleFieldChange = useCallback((fieldId: string, value: string) => {
     setFieldValues((prev) => ({ ...prev, [fieldId]: value }));
   }, []);
+
+  const handleAddOutroArrowOverlay = useCallback(() => {
+    setOutroArrowOverlays((prev) => {
+      const nextOverlay = createDefaultOutroArrowOverlay();
+      const offset = prev.length * 4;
+
+      return [
+        ...prev,
+        {
+          ...nextOverlay,
+          x: Math.min(92, nextOverlay.x + offset),
+          y: Math.min(88, nextOverlay.y + offset),
+        },
+      ];
+    });
+  }, []);
+
+  const handleRemoveOutroArrowOverlay = useCallback((overlayId: string) => {
+    setOutroArrowOverlays((prev) =>
+      prev.filter((overlay) => overlay.id !== overlayId),
+    );
+  }, []);
+
+  const handleOutroArrowOverlayChange = useCallback(
+    (overlayId: string, updates: Partial<OutroArrowOverlay>) => {
+      setOutroArrowOverlays((prev) =>
+        prev.map((overlay) =>
+          overlay.id === overlayId ? { ...overlay, ...updates } : overlay,
+        ),
+      );
+    },
+    [],
+  );
+
+  const handleOutroArrowTypeChange = useCallback(
+    (overlayId: string, nextType: OutroArrowAssetType) => {
+      setOutroArrowOverlays((prev) =>
+        prev.map((overlay) => {
+          if (overlay.id !== overlayId) {
+            return overlay;
+          }
+
+          const previousDefaultText =
+            OUTRO_ARROW_ASSET_RESOURCES[overlay.type].defaultText;
+          const nextDefaultText =
+            OUTRO_ARROW_ASSET_RESOURCES[nextType].defaultText;
+
+          return {
+            ...overlay,
+            type: nextType,
+            text:
+              !overlay.text.trim() || overlay.text === previousDefaultText
+                ? nextDefaultText
+                : overlay.text,
+          };
+        }),
+      );
+    },
+    [],
+  );
 
   const handleFontPairChange = useCallback((pairId: string) => {
     setSelectedFontPairId(pairId);
@@ -584,91 +883,24 @@ export function ThumbnailPage() {
   const getBannerPayload = useCallback(
     (): Omit<BannerDoc, "id" | "updatedAt"> => ({
       name: profileName.trim() || "Untitled",
-      templateId,
-      themeId,
-      platformId,
-      fieldValues,
-      borderWidth,
-      borderColor,
-      fontPairId: selectedFontPairId,
-      secondaryFontFamily,
-      primaryFontFamily,
-      fontSize,
-      brandLogoUrl: resolvePersistedBrandLogoUrl({
-        currentBrandLogoUrl: brandLogoUrl,
-        settingsLogoUrl: settings.logo_url,
-      }),
-      brandLogoSize,
-      showCopyrightMessage,
-      copyrightText,
-      tutorialImageUrl,
-      tutorialImageSize,
-      tutorialImageBottomPadding,
-      tutorialImageOpacity,
+      ...activeTemplateEntry,
+      templateEntries: resolvedTemplateEntries,
     }),
-    [
-      profileName,
-      templateId,
-      themeId,
-      platformId,
-      fieldValues,
-      borderWidth,
-      borderColor,
-      selectedFontPairId,
-      secondaryFontFamily,
-      primaryFontFamily,
-      fontSize,
-      brandLogoUrl,
-      brandLogoSize,
-      showCopyrightMessage,
-      copyrightText,
-      settings.logo_url,
-      tutorialImageUrl,
-      tutorialImageSize,
-      tutorialImageBottomPadding,
-      tutorialImageOpacity,
-    ],
+    [activeTemplateEntry, profileName, resolvedTemplateEntries],
   );
 
   const applyBannerPayload = useCallback(
     (banner: BannerDoc) => {
-      const resolvedBorderColor =
-        banner.borderColor || getThemeBorderColor(banner.themeId, themes);
+      const nextTemplateState = resolveTemplateState(banner);
 
       setDraftWithSuppression(() => {
-        setTemplateId(banner.templateId);
-        setThemeId(banner.themeId);
-        setPlatformId(banner.platformId);
-        setFieldValues(banner.fieldValues);
-        setBorderWidth(banner.borderWidth);
-        setBorderColor(resolvedBorderColor);
-        setHasCustomBorderColor(
-          resolvedBorderColor.toLowerCase() !==
-            getThemeBorderColor(banner.themeId, themes).toLowerCase(),
-        );
-        setSelectedFontPairId(banner.fontPairId);
-        setSecondaryFontFamily(banner.secondaryFontFamily);
-        setPrimaryFontFamily(banner.primaryFontFamily);
-        setFontSize(banner.fontSize);
-        setBrandLogoUrl(banner.brandLogoUrl);
-        setBrandLogoSize(clampBrandLogoSize(banner.brandLogoSize));
-        setShowCopyrightMessage(banner.showCopyrightMessage ?? true);
-        setCopyrightText(banner.copyrightText || DEFAULT_COPYRIGHT_TEXT);
-        setTutorialImageUrl(banner.tutorialImageUrl);
-        setTutorialImageSize(
-          clampTutorialImagePercent(banner.tutorialImageSize),
-        );
-        setTutorialImageBottomPadding(
-          clampTutorialBottomPadding(banner.tutorialImageBottomPadding),
-        );
-        setTutorialImageOpacity(
-          Math.min(100, Math.max(0, banner.tutorialImageOpacity)),
-        );
+        setTemplateEntries(nextTemplateState.templateEntries);
+        applyTemplateEntryState(nextTemplateState.activeEntry);
         setProfileName(banner.name);
         setSelectedBannerId(banner.id);
       });
     },
-    [setDraftWithSuppression, themes],
+    [applyTemplateEntryState, resolveTemplateState, setDraftWithSuppression],
   );
 
   useEffect(() => {
@@ -696,33 +928,13 @@ export function ThumbnailPage() {
 
     if (appState.currentDraft) {
       const draft = appState.currentDraft;
-      const resolvedDraftBrandLogoUrl = resolveLoadedBrandLogoUrl({
-        storedBrandLogoUrl: draft.brandLogoUrl,
-        settingsLogoUrl: settings.logo_url,
-      });
+      const draftTemplateState = resolveTemplateState(draft);
 
       applyBannerPayload({
         id: draft.bannerId ?? "draft",
         name: draft.name,
-        templateId: draft.templateId,
-        themeId: draft.themeId,
-        platformId: draft.platformId,
-        fieldValues: draft.fieldValues,
-        borderWidth: draft.borderWidth,
-        borderColor:
-          draft.borderColor || getThemeBorderColor(draft.themeId, themes),
-        fontPairId: draft.fontPairId,
-        primaryFontFamily: draft.primaryFontFamily,
-        secondaryFontFamily: draft.secondaryFontFamily,
-        fontSize: draft.fontSize,
-        brandLogoUrl: resolvedDraftBrandLogoUrl,
-        brandLogoSize: clampBrandLogoSize(draft.brandLogoSize),
-        showCopyrightMessage: draft.showCopyrightMessage ?? true,
-        copyrightText: draft.copyrightText || DEFAULT_COPYRIGHT_TEXT,
-        tutorialImageUrl: draft.tutorialImageUrl,
-        tutorialImageSize: draft.tutorialImageSize,
-        tutorialImageBottomPadding: draft.tutorialImageBottomPadding,
-        tutorialImageOpacity: draft.tutorialImageOpacity,
+        templateEntries: draftTemplateState.templateEntries,
+        ...draftTemplateState.activeEntry,
         updatedAt: Date.now(),
       });
       previousSettingsLogoUrlRef.current = settings.logo_url;
@@ -797,50 +1009,14 @@ export function ThumbnailPage() {
     (): DraftBannerState => ({
       bannerId: selectedBannerId || null,
       name: profileName.trim() || "Untitled",
-      templateId,
-      themeId,
-      platformId,
-      fieldValues,
-      borderWidth,
-      borderColor,
-      fontPairId: selectedFontPairId,
-      secondaryFontFamily,
-      primaryFontFamily,
-      fontSize,
-      brandLogoUrl: resolvePersistedBrandLogoUrl({
-        currentBrandLogoUrl: brandLogoUrl,
-        settingsLogoUrl: settings.logo_url,
-      }),
-      brandLogoSize,
-      showCopyrightMessage,
-      copyrightText,
-      tutorialImageUrl,
-      tutorialImageSize,
-      tutorialImageBottomPadding,
-      tutorialImageOpacity,
+      ...activeTemplateEntry,
+      templateEntries: resolvedTemplateEntries,
     }),
     [
-      borderColor,
-      borderWidth,
-      brandLogoSize,
-      brandLogoUrl,
-      copyrightText,
-      fieldValues,
-      fontSize,
-      platformId,
-      primaryFontFamily,
+      activeTemplateEntry,
       profileName,
-      secondaryFontFamily,
+      resolvedTemplateEntries,
       selectedBannerId,
-      selectedFontPairId,
-      showCopyrightMessage,
-      settings.logo_url,
-      templateId,
-      themeId,
-      tutorialImageBottomPadding,
-      tutorialImageOpacity,
-      tutorialImageSize,
-      tutorialImageUrl,
     ],
   );
 
@@ -926,40 +1102,15 @@ export function ThumbnailPage() {
 
       const banner = await getBanner(bannerId);
       if (banner) {
-        const resolvedBannerBrandLogoUrl = resolveLoadedBrandLogoUrl({
-          storedBrandLogoUrl: banner.brandLogoUrl,
-          settingsLogoUrl: settings.logo_url,
-        });
+        const nextTemplateState = resolveTemplateState(banner);
 
-        applyBannerPayload({
-          ...banner,
-          brandLogoUrl: resolvedBannerBrandLogoUrl,
-        });
+        applyBannerPayload(banner);
         await updateAppState({
           currentDraft: {
             bannerId: banner.id,
             name: banner.name,
-            templateId: banner.templateId,
-            themeId: banner.themeId,
-            platformId: banner.platformId,
-            fieldValues: banner.fieldValues,
-            borderWidth: banner.borderWidth,
-            borderColor: banner.borderColor,
-            fontPairId: banner.fontPairId,
-            primaryFontFamily: banner.primaryFontFamily,
-            secondaryFontFamily: banner.secondaryFontFamily,
-            fontSize: banner.fontSize,
-            brandLogoUrl: resolvePersistedBrandLogoUrl({
-              currentBrandLogoUrl: resolvedBannerBrandLogoUrl,
-              settingsLogoUrl: settings.logo_url,
-            }),
-            brandLogoSize: clampBrandLogoSize(banner.brandLogoSize),
-            showCopyrightMessage: banner.showCopyrightMessage ?? true,
-            copyrightText: banner.copyrightText || DEFAULT_COPYRIGHT_TEXT,
-            tutorialImageUrl: banner.tutorialImageUrl,
-            tutorialImageSize: banner.tutorialImageSize,
-            tutorialImageBottomPadding: banner.tutorialImageBottomPadding,
-            tutorialImageOpacity: banner.tutorialImageOpacity,
+            ...nextTemplateState.activeEntry,
+            templateEntries: nextTemplateState.templateEntries,
           },
           draftDirty: false,
         });
@@ -1143,18 +1294,48 @@ export function ThumbnailPage() {
     tutorialImageSize,
     tutorialImageBottomPadding,
     tutorialImageOpacity,
+    outroArrowOverlays,
+    socialAccounts: settings.social_accounts,
     showCopyrightMessage,
     copyrightText,
   });
 
   // Export handlers
+  const motionDurationSeconds = resolveMotionDurationSeconds(fieldValues);
+
   const handleExportMain = useCallback(async () => {
     if (!canvasRef.current) return;
     const name =
       fieldValues["title"]?.trim() || currentTemplate?.name || "thumbnail";
     const safeFilename = name.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
-    await exportPng(canvasRef.current, `${safeFilename}_main.png`);
+    await exportPng(canvasRef.current, `${safeFilename}_image.png`);
   }, [currentTemplate?.name, exportPng, fieldValues]);
+
+  const handleExportMotion = useCallback(async () => {
+    if (!canvasRef.current) return;
+
+    if (selectedAudioAsset && !renderableSelectedAudioAssetUrl) {
+      toast.error(
+        "Audio track is still loading. Try exporting again in a moment.",
+      );
+      return;
+    }
+
+    const name =
+      fieldValues["title"]?.trim() || currentTemplate?.name || "thumbnail";
+    const safeFilename = name.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+    await exportMotion(canvasRef.current, `${safeFilename}_motion.mp4`, {
+      durationSeconds: motionDurationSeconds,
+      audioUrl: renderableSelectedAudioAssetUrl,
+    });
+  }, [
+    currentTemplate?.name,
+    exportMotion,
+    fieldValues,
+    motionDurationSeconds,
+    renderableSelectedAudioAssetUrl,
+    selectedAudioAsset,
+  ]);
 
   // Scale for preview
   const containerWidth = 720;
@@ -1263,8 +1444,8 @@ export function ThumbnailPage() {
                     <StatusChip
                       label={
                         selectedBanner
-                          ? `Loaded: ${selectedBanner.name}`
-                          : `Working draft: ${activeBannerName}`
+                          ? `Loaded: ${selectedBanner.name} · ${storedTemplateCount} template${storedTemplateCount === 1 ? "" : "s"}`
+                          : `Working draft: ${activeBannerName} · ${storedTemplateCount} template${storedTemplateCount === 1 ? "" : "s"}`
                       }
                       status={selectedBanner ? "info" : "default"}
                     />
@@ -1312,13 +1493,19 @@ export function ThumbnailPage() {
                 >
                   <Stack spacing={2}>
                     {contentFieldRows.map((row) => (
-                      <Stack key={row.map((field) => field.id).join("-")} spacing={2} {...CONTROL_ROW_SX}>
+                      <Stack
+                        key={row.map((field) => field.id).join("-")}
+                        spacing={2}
+                        {...CONTROL_ROW_SX}
+                      >
                         {row.map((field) => (
                           <Box key={field.id} sx={CONTROL_CELL_SX}>
                             {renderTemplateFieldControl({
                               field,
                               value:
-                                fieldValues[field.id] ?? field.defaultValue ?? "",
+                                fieldValues[field.id] ??
+                                field.defaultValue ??
+                                "",
                               onChange: (nextValue) =>
                                 handleFieldChange(field.id, nextValue),
                             })}
@@ -1517,7 +1704,9 @@ export function ThumbnailPage() {
                       <SelectControl
                         label="Footer Size"
                         value={fieldValues["footer_size"] ?? "small"}
-                        onChange={(value) => handleFieldChange("footer_size", value)}
+                        onChange={(value) =>
+                          handleFieldChange("footer_size", value)
+                        }
                         options={SIZE_PRESET_OPTIONS}
                         tooltip="Scale the footer from the current small default up to medium or large"
                       />
@@ -1627,7 +1816,7 @@ export function ThumbnailPage() {
                   {templateCapabilities.showsTutorialImage && (
                     <Stack spacing={1.5}>
                       <Typography variant="subtitle2">
-                        Tutorial Image
+                        {tutorialImageSectionTitle}
                       </Typography>
                       <Box
                         component="label"
@@ -1650,9 +1839,7 @@ export function ThumbnailPage() {
                             sx={{ fontSize: 18, color: "primary.main" }}
                           />
                           <Typography variant="body2" color="primary">
-                            {tutorialImageUrl
-                              ? "Change Tutorial Image"
-                              : "Upload Tutorial Image"}
+                            {tutorialImageUploadLabel}
                           </Typography>
                         </Stack>
                         <input
@@ -1675,7 +1862,7 @@ export function ThumbnailPage() {
                           >
                             <img
                               src={tutorialImageUrl}
-                              alt="Tutorial preview"
+                              alt={`${tutorialImageSectionTitle} preview`}
                               style={{
                                 maxWidth: 120,
                                 maxHeight: 80,
@@ -1738,20 +1925,342 @@ export function ThumbnailPage() {
                       )}
                     </Stack>
                   )}
+                  {templateCapabilities.showsSharedAudioAsset &&
+                    audioAssetFieldId && (
+                      <Stack spacing={1.5}>
+                        <Typography variant="subtitle2">Audio Track</Typography>
+                        <SelectControl
+                          label="Shared Audio Asset"
+                          value={selectedAudioAssetId}
+                          onChange={(value) =>
+                            handleFieldChange(audioAssetFieldId, value)
+                          }
+                          options={[
+                            { value: "", label: "None" },
+                            ...audioAssetOptions,
+                          ]}
+                          tooltip="Select a shared uploaded MP3 or other audio asset for this intro/outro template"
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                          Upload shared audio once in the Asset Library, then
+                          reuse it across intro and outro templates.
+                        </Typography>
+                        {selectedAudioAsset ? (
+                          <Stack spacing={1}>
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              useFlexGap
+                              flexWrap="wrap"
+                            >
+                              <StatusChip
+                                label={selectedAudioAsset.kind}
+                                status="info"
+                              />
+                              <StatusChip
+                                label={selectedAudioAsset.fileName}
+                                status="default"
+                              />
+                            </Stack>
+                            <Box
+                              component="audio"
+                              src={renderableSelectedAudioAssetUrl ?? undefined}
+                              controls
+                              sx={{ width: "100%" }}
+                            />
+                            <ActionButton
+                              label="Clear Audio"
+                              variant="secondary"
+                              onClick={() =>
+                                handleFieldChange(audioAssetFieldId, "")
+                              }
+                            />
+                          </Stack>
+                        ) : (
+                          <ActionButton
+                            label="Open Asset Library"
+                            variant="secondary"
+                            onClick={() => window.location.assign("/assets")}
+                          />
+                        )}
+                      </Stack>
+                    )}
                 </Stack>
               </SectionCard>
+
+              {isOutroTemplate && (
+                <SectionCard
+                  title="Outro Arrows"
+                  icon={<ImageIcon />}
+                  collapsible
+                  defaultExpanded
+                >
+                  <Stack spacing={2}>
+                    <Typography variant="body2" color="text.secondary">
+                      Add any number of shared arrow overlays, then place and
+                      rotate each one independently for the outro layout.
+                    </Typography>
+                    <ActionButton
+                      label="Add Arrow"
+                      variant="secondary"
+                      onClick={handleAddOutroArrowOverlay}
+                    />
+                    {outroArrowOverlays.length === 0 ? (
+                      <Typography variant="body2" color="text.secondary">
+                        No arrow overlays added yet.
+                      </Typography>
+                    ) : (
+                      outroArrowOverlays.map((overlay, index) => (
+                        <Box
+                          key={overlay.id}
+                          sx={{
+                            p: 2,
+                            border: "1px solid",
+                            borderColor: "divider",
+                            borderRadius: 2,
+                            bgcolor: "background.default",
+                          }}
+                        >
+                          <Stack spacing={2}>
+                            <Stack
+                              direction={{ xs: "column", sm: "row" }}
+                              spacing={1}
+                              justifyContent="space-between"
+                              alignItems={{ xs: "flex-start", sm: "center" }}
+                            >
+                              <Typography variant="subtitle2">
+                                Arrow {index + 1}
+                              </Typography>
+                              <ActionButton
+                                label="Remove Arrow"
+                                variant="secondary"
+                                onClick={() =>
+                                  handleRemoveOutroArrowOverlay(overlay.id)
+                                }
+                              />
+                            </Stack>
+                            <Box sx={{ py: 1 }}>
+                              <Typography sx={CONTROL_LABEL_SX}>
+                                Text
+                              </Typography>
+                              <TextField
+                                value={overlay.text}
+                                onChange={(event) =>
+                                  handleOutroArrowOverlayChange(overlay.id, {
+                                    text: event.target.value,
+                                  })
+                                }
+                                size="small"
+                                fullWidth
+                                sx={TEXT_INPUT_SX}
+                              />
+                            </Box>
+                            <Stack spacing={2} {...CONTROL_ROW_SX}>
+                              <Box sx={CONTROL_CELL_SX}>
+                                <SelectControl
+                                  label="Arrow Type"
+                                  value={overlay.type}
+                                  onChange={(value) =>
+                                    handleOutroArrowTypeChange(
+                                      overlay.id,
+                                      value as OutroArrowAssetType,
+                                    )
+                                  }
+                                  options={OUTRO_ARROW_TYPE_OPTIONS}
+                                />
+                              </Box>
+                              <Box sx={CONTROL_CELL_SX}>
+                                <SelectControl
+                                  label="Orientation"
+                                  value={overlay.isInverse ? "true" : "false"}
+                                  onChange={(value) =>
+                                    handleOutroArrowOverlayChange(overlay.id, {
+                                      isInverse: value === "true",
+                                    })
+                                  }
+                                  options={OUTRO_ARROW_ORIENTATION_OPTIONS}
+                                />
+                              </Box>
+                            </Stack>
+                            <Stack spacing={2} {...CONTROL_ROW_SX}>
+                              <Box sx={CONTROL_CELL_SX}>
+                                <SliderControl
+                                  label="X Position"
+                                  value={overlay.x}
+                                  onChange={(value) =>
+                                    handleOutroArrowOverlayChange(overlay.id, {
+                                      x: value,
+                                    })
+                                  }
+                                  min={0}
+                                  max={100}
+                                  step={1}
+                                  formatValue={(value) => `${value}%`}
+                                />
+                              </Box>
+                              <Box sx={CONTROL_CELL_SX}>
+                                <SliderControl
+                                  label="Y Position"
+                                  value={overlay.y}
+                                  onChange={(value) =>
+                                    handleOutroArrowOverlayChange(overlay.id, {
+                                      y: value,
+                                    })
+                                  }
+                                  min={0}
+                                  max={100}
+                                  step={1}
+                                  formatValue={(value) => `${value}%`}
+                                />
+                              </Box>
+                              <Box sx={CONTROL_CELL_SX}>
+                                <SliderControl
+                                  label="Rotation"
+                                  value={overlay.degree}
+                                  onChange={(value) =>
+                                    handleOutroArrowOverlayChange(overlay.id, {
+                                      degree: value,
+                                    })
+                                  }
+                                  min={0}
+                                  max={360}
+                                  step={1}
+                                  formatValue={(value) => `${value}°`}
+                                />
+                              </Box>
+                            </Stack>
+                            <Stack spacing={2} {...CONTROL_ROW_SX}>
+                              <Box sx={CONTROL_CELL_SX}>
+                                <SliderControl
+                                  label="Arrow Size"
+                                  value={overlay.arrowSize}
+                                  onChange={(value) =>
+                                    handleOutroArrowOverlayChange(overlay.id, {
+                                      arrowSize: value,
+                                    })
+                                  }
+                                  min={50}
+                                  max={200}
+                                  step={1}
+                                  formatValue={(value) => `${value}%`}
+                                />
+                              </Box>
+                              <Box sx={CONTROL_CELL_SX}>
+                                <SliderControl
+                                  label="Text Size"
+                                  value={overlay.textSize}
+                                  onChange={(value) =>
+                                    handleOutroArrowOverlayChange(overlay.id, {
+                                      textSize: value,
+                                    })
+                                  }
+                                  min={50}
+                                  max={200}
+                                  step={1}
+                                  formatValue={(value) => `${value}%`}
+                                />
+                              </Box>
+                              <Box sx={{ ...CONTROL_CELL_SX, minWidth: 0 }}>
+                                <Typography sx={CONTROL_LABEL_SX}>
+                                  Text Style
+                                </Typography>
+                                <Stack direction="row" spacing={1}>
+                                  <ActionButton
+                                    label="Bold"
+                                    variant={
+                                      overlay.isBold ? "primary" : "secondary"
+                                    }
+                                    onClick={() =>
+                                      handleOutroArrowOverlayChange(
+                                        overlay.id,
+                                        {
+                                          isBold: !overlay.isBold,
+                                        },
+                                      )
+                                    }
+                                    sx={{ flex: 1, minWidth: 0 }}
+                                  />
+                                  <ActionButton
+                                    label="Italic"
+                                    variant={
+                                      overlay.isItalic ? "primary" : "secondary"
+                                    }
+                                    onClick={() =>
+                                      handleOutroArrowOverlayChange(
+                                        overlay.id,
+                                        {
+                                          isItalic: !overlay.isItalic,
+                                        },
+                                      )
+                                    }
+                                    sx={{ flex: 1, minWidth: 0 }}
+                                  />
+                                </Stack>
+                              </Box>
+                              <Box sx={CONTROL_CELL_SX}>
+                                <SelectControl
+                                  label="Thickness"
+                                  value={overlay.thickness}
+                                  onChange={(value) =>
+                                    handleOutroArrowOverlayChange(overlay.id, {
+                                      thickness:
+                                        value as OutroArrowOverlay["thickness"],
+                                    })
+                                  }
+                                  options={OUTRO_ARROW_THICKNESS_OPTIONS.map(
+                                    (option) => ({
+                                      value: option.value,
+                                      label: option.label,
+                                    }),
+                                  )}
+                                />
+                              </Box>
+                            </Stack>
+                          </Stack>
+                        </Box>
+                      ))
+                    )}
+                  </Stack>
+                </SectionCard>
+              )}
             </Stack>
 
             <Box sx={{ mt: 2 }}>
               <Stack spacing={1}>
-                <ActionButton
-                  label="Export Main PNG"
-                  variant="primary"
-                  onClick={handleExportMain}
-                  loading={isExporting}
-                  icon={<DownloadIcon />}
-                  fullWidth
+                <SliderControl
+                  label="Motion Length"
+                  value={motionDurationSeconds}
+                  onChange={(value) =>
+                    handleFieldChange("motion_duration_seconds", String(value))
+                  }
+                  min={1}
+                  max={15}
+                  step={1}
+                  formatValue={(value) => `${value}s`}
+                  tooltip="Export a fixed-frame motion video for the selected number of seconds"
                 />
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  spacing={1}
+                  useFlexGap
+                >
+                  <ActionButton
+                    label="Export Image"
+                    variant="primary"
+                    onClick={handleExportMain}
+                    loading={isImageExporting}
+                    icon={<DownloadIcon />}
+                    fullWidth
+                  />
+                  <ActionButton
+                    label="Export Motion Video"
+                    variant="secondary"
+                    onClick={handleExportMotion}
+                    loading={isMotionExporting}
+                    icon={<DownloadIcon />}
+                    fullWidth
+                  />
+                </Stack>
               </Stack>
             </Box>
           </SettingsPanel>

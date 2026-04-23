@@ -20,6 +20,11 @@ Choose a profile before connecting:
 - Pick a template, platform, and theme.
 - Edit text, images, borders, typography, footer visibility, and copyright text.
 - For Centered and Center Course templates, optionally add duration, skill-level, and instructor capsules.
+- Use `Intro Bite` for short clip teasers with a bite title, `BITE FROM` source attribution, and bite/duration/speed capsules.
+- Use `Outro` for static end cards with a thank-you headline, a subscribe CTA, and a reusable shared audio track selected from the Asset Library.
+- Use the shared audio selector on `Intro Bite` and `Outro` to attach an uploaded MP3 or other audio asset reference from the Asset Library.
+- Motion video export keeps the configured canvas resolution, uses ffmpeg.wasm to build MP4 output from the rendered still frame, and falls back to WEBM if the browser cannot complete the MP4 encode path.
+- When a shared audio track is selected and loaded, motion video export includes that track in the exported file.
 - Paste an image from the clipboard to populate the tutorial image.
 - Save the current banner when you want a named reusable record.
 - Saved banners write to Azure immediately when cloud auth is configured, then update the local RxDB cache.
@@ -44,6 +49,18 @@ Use the Theme Generator from the launcher to:
 
 Saved themes become available immediately in the Thumbnail Generator theme picker.
 
+## Asset Library
+
+Use the Asset Library from the launcher to:
+
+- upload shared MP3, MP4, image, and document assets into the Azure `banner` blob container
+- store reusable metadata for those assets in the shared `assets` collection
+- preview existing image, audio, and video assets
+- delete assets from both blob storage and cached local metadata
+- reuse uploaded audio from Intro Bite and Outro without re-uploading the same file per banner
+
+Downloaded blob-backed assets are cached locally after the first fetch so later previews and renders reuse the local cache instead of refetching the same blob.
+
 ## Settings
 
 Use Settings to manage:
@@ -58,9 +75,9 @@ Use Settings to manage:
 
 Use the Sync menu in the app bar to review status and trigger manual sync.
 
-When cloud auth is configured, opening the app already refreshes `banners` and `themes` from Azure instead of trusting previously cached local copies.
+When cloud auth is configured, opening the app already refreshes `banners`, `assets`, and `themes` from Azure instead of trusting previously cached local copies.
 
-Manual sync refreshes cached `banners` and `themes` from Azure so a second machine can pull remote records into its local RxDB cache.
+Manual sync refreshes cached `banners`, `assets`, and `themes` from Azure so a second machine can pull remote records into its local RxDB cache.
 
 `settings`, `presets`, and `app_state` continue to use the existing sync flow until they are migrated to the Azure-first cache model.
 

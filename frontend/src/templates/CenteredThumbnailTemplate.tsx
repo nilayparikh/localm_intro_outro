@@ -235,9 +235,12 @@ export function CenteredThumbnailTemplate({
   const showGrid = values["show_grid"] !== "false";
   const gridPattern = values["grid_pattern"] ?? "dots";
   const surfaceStyle = resolveTemplateSurfaceStyle(values["surface_style"]);
-  const surfaceShadow = resolveTemplateSurfaceShadowStyle(values["surface_shadow"]);
+  const surfaceShadow = resolveTemplateSurfaceShadowStyle(
+    values["surface_shadow"],
+  );
   const borderStyle = resolveTemplateBorderStyle(values["border_style"]);
-  const borderColorSecondary = values["border_color_secondary"]?.trim() || undefined;
+  const borderColorSecondary =
+    values["border_color_secondary"]?.trim() || undefined;
   const footerSize = resolveFooterSize(values["footer_size"]);
   const contentPanelStyle = buildTemplatePanelStyle({
     surfaceStyle,
@@ -323,18 +326,6 @@ export function CenteredThumbnailTemplate({
           height={height}
         />
       )}
-
-      <div
-        style={{
-          position: "absolute",
-          top: "-20%",
-          right: "-10%",
-          width: "60%",
-          height: "60%",
-          background: `radial-gradient(circle, ${theme.accent}15, transparent 70%)`,
-          pointerEvents: "none",
-        }}
-      />
 
       <ThumbnailCapsules
         values={values}

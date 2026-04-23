@@ -132,8 +132,30 @@ export async function resolveBlobAssetUrl(
     return buildBlobUrl(path, authState);
   }
 
+  const downloadedAsset = await downloadBlobAsset(reference, authState);
+  if (!downloadedAsset) {
+    return reference;
+  }
+
+  return URL.createObjectURL(downloadedAsset.blob);
+}
+
+export async function downloadBlobAsset(
+  reference: string,
+  authState: StoredAuthState,
+  fetchImpl: typeof fetch = fetch,
+): Promise<{ path: string; blob: Blob } | null> {
+  if (reference.startsWith("data:") || reference.startsWith("blob:")) {
+    return null;
+  }
+
+  const path = extractBlobPath(reference, authState);
+  if (!path) {
+    return null;
+  }
+
   const authHeaders = await buildAuthHeaders(authState);
-  const response = await fetch(getBlobUrl(path, authState), {
+  const response = await fetchImpl(getBlobUrl(path, authState), {
     method: "GET",
     headers: {
       ...authHeaders,
@@ -147,7 +169,10 @@ export async function resolveBlobAssetUrl(
     );
   }
 
-  return URL.createObjectURL(await response.blob());
+  return {
+    path,
+    blob: await response.blob(),
+  };
 }
 
 export async function uploadBlob(

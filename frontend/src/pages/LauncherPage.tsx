@@ -7,86 +7,17 @@
 
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
+import LibraryMusicIcon from "@mui/icons-material/LibraryMusic";
 import PaletteIcon from "@mui/icons-material/Palette";
 import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
 import SettingsIcon from "@mui/icons-material/Settings";
 
-import { PageLayout, AppBar } from "@common";
+import { AppBar, AppCard, PageLayout } from "@common";
 import { SettingsDialog } from "../components/SettingsDialog";
 import { SyncMenu } from "../components/SyncMenu";
 import { useState } from "react";
-
-interface ToolCardProps {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  onClick: () => void;
-}
-
-function ToolCard({ title, description, icon, onClick }: ToolCardProps) {
-  return (
-    <Card
-      sx={{
-        width: 340,
-        bgcolor: "background.paper",
-        border: 1,
-        borderColor: "divider",
-        transition: "all 0.2s",
-        "&:hover": {
-          borderColor: "primary.main",
-          transform: "translateY(-4px)",
-          boxShadow: 4,
-        },
-      }}
-    >
-      <Box
-        component="button"
-        type="button"
-        onClick={onClick}
-        sx={{
-          width: "100%",
-          border: 0,
-          bgcolor: "transparent",
-          color: "inherit",
-          cursor: "pointer",
-          p: 3,
-          textAlign: "inherit",
-          font: "inherit",
-          display: "block",
-          "&:focus-visible": {
-            outline: "2px solid",
-            outlineColor: "primary.main",
-            outlineOffset: -2,
-          },
-        }}
-      >
-        <CardContent sx={{ textAlign: "center", p: 0 }}>
-          <Box
-            sx={{
-              mb: 2,
-              "& .MuiSvgIcon-root": {
-                fontSize: 48,
-                color: "primary.main",
-              },
-            }}
-          >
-            {icon}
-          </Box>
-          <Typography variant="h6" gutterBottom fontWeight={700}>
-            {title}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {description}
-          </Typography>
-        </CardContent>
-      </Box>
-    </Card>
-  );
-}
 
 export function LauncherPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -142,18 +73,30 @@ export function LauncherPage() {
           rendered client-side with local-first storage.
         </Typography>
 
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={3}>
-          <ToolCard
+        <Stack direction={{ xs: "column", md: "row" }} spacing={3}>
+          <AppCard
+            appKey="thumbnail"
             title="Thumbnail Generator"
             description="Create eye-catching thumbnails with titles, code snippets, background patterns, and branded footer."
             icon={<PhotoLibraryIcon />}
+            color="#38bdf8"
             onClick={() => openTool("/thumbnail")}
           />
-          <ToolCard
+          <AppCard
+            appKey="themes"
             title="Theme Generator"
             description="Design reusable theme backgrounds, gradients, text colors, and border defaults for the thumbnail generator."
             icon={<PaletteIcon />}
+            color="#f59e0b"
             onClick={() => openTool("/themes")}
+          />
+          <AppCard
+            appKey="assets"
+            title="Asset Library"
+            description="Upload shared MP3, MP4, image, and file assets once, then reuse them across the app from a single Azure-backed library."
+            icon={<LibraryMusicIcon />}
+            color="#22c55e"
+            onClick={() => openTool("/assets")}
           />
         </Stack>
       </Box>

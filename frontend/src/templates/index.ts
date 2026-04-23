@@ -8,6 +8,8 @@ import { CodeThumbnailTemplate } from "./CodeThumbnailTemplate";
 import { CenteredThumbnailTemplate } from "./CenteredThumbnailTemplate";
 import { CenteredCourseThumbnailTemplate } from "./CenteredCourseThumbnailTemplate";
 import { BackgroundThumbnailTemplate } from "./BackgroundThumbnailTemplate";
+import { IntroBiteThumbnailTemplate } from "./IntroBiteThumbnailTemplate";
+import { OutroThumbnailTemplate } from "./OutroThumbnailTemplate";
 
 export type TemplateComponent = React.ComponentType<TemplateProps>;
 
@@ -116,6 +118,14 @@ const CAPSULE_SIZE_FIELD: FieldDef = {
   options: SIZE_PRESET_OPTIONS,
 };
 
+const OUTRO_IMAGE_FIELD: FieldDef = {
+  id: "show_outro_image",
+  label: "Show Suggested Preview",
+  type: "select",
+  defaultValue: "true",
+  options: CAPSULE_TOGGLE_OPTIONS,
+};
+
 const CAPSULE_STYLE_FIELD: FieldDef = {
   id: "capsule_style",
   label: "Capsule Style",
@@ -184,6 +194,51 @@ const CENTERED_CAPSULE_FIELDS: FieldDef[] = [
     label: "Hands-On Lab Text",
     type: "text",
     defaultValue: "Hands-On Lab",
+  },
+  CAPSULE_STYLE_FIELD,
+  CAPSULE_COLOR_FIELD,
+  CAPSULE_SIZE_FIELD,
+];
+
+const INTRO_BITE_CAPSULE_FIELDS: FieldDef[] = [
+  {
+    id: "show_bite_capsule",
+    label: "Show Bite Capsule",
+    type: "select",
+    defaultValue: "true",
+    options: CAPSULE_TOGGLE_OPTIONS,
+  },
+  {
+    id: "bite_capsule_text",
+    label: "Bite Capsule Text",
+    type: "text",
+    defaultValue: "BITE",
+  },
+  {
+    id: "show_duration_capsule",
+    label: "Show Duration Capsule",
+    type: "select",
+    defaultValue: "true",
+    options: CAPSULE_TOGGLE_OPTIONS,
+  },
+  {
+    id: "duration_capsule_text",
+    label: "Duration Text",
+    type: "text",
+    defaultValue: "45 sec",
+  },
+  {
+    id: "show_speed_capsule",
+    label: "Show Speed Capsule",
+    type: "select",
+    defaultValue: "true",
+    options: CAPSULE_TOGGLE_OPTIONS,
+  },
+  {
+    id: "speed_capsule_text",
+    label: "Speed Text",
+    type: "text",
+    defaultValue: "Fast",
   },
   CAPSULE_STYLE_FIELD,
   CAPSULE_COLOR_FIELD,
@@ -419,6 +474,87 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
       FOOTER_SIZE_FIELD,
     ],
   },
+  {
+    id: "intro_bite_thumbnail",
+    name: "Intro Bite",
+    description:
+      "Editorial teaser layout for a short bite clip with a source attribution rail and fast-read metadata capsules.",
+    tool: "thumbnail",
+    hasPip: false,
+    fields: [
+      {
+        id: "title",
+        label: "Bite Title",
+        type: "text",
+        defaultValue: "5 Copilot Prompts That Save Time",
+      },
+      {
+        id: "source_label",
+        label: "Source Label",
+        type: "text",
+        defaultValue: "BITE FROM",
+      },
+      {
+        id: "source_title",
+        label: "Original Video Title",
+        type: "text",
+        defaultValue: "Context Engineering for GitHub Copilot",
+      },
+      {
+        id: "title_size",
+        label: "Title Size",
+        type: "select",
+        defaultValue: "lg",
+        options: TEXT_SIZE_OPTIONS,
+      },
+      SECONDARY_TEXT_SIZE_FIELD,
+      ...INTRO_BITE_CAPSULE_FIELDS,
+      SURFACE_STYLE_FIELD,
+      SURFACE_SHADOW_FIELD,
+      BORDER_STYLE_FIELD,
+      BORDER_COLOR_SECONDARY_FIELD,
+      ...gridPatternFields,
+      FOOTER_SIZE_FIELD,
+    ],
+  },
+  {
+    id: "outro_thumbnail",
+    name: "Outro",
+    description:
+      "Static end-card banner with a top gratitude CTA block and a reusable shared audio-track workflow.",
+    tool: "thumbnail",
+    hasPip: false,
+    supportsTutorialImage: true,
+    fields: [
+      {
+        id: "title",
+        label: "Headline",
+        type: "text",
+        defaultValue: "Thank You for Watching",
+      },
+      {
+        id: "subtitle",
+        label: "Support Line",
+        type: "text",
+        defaultValue: "Want more? Subscribe and press the bell",
+      },
+      {
+        id: "title_size",
+        label: "Title Size",
+        type: "select",
+        defaultValue: "lg",
+        options: TEXT_SIZE_OPTIONS,
+      },
+      SECONDARY_TEXT_SIZE_FIELD,
+      OUTRO_IMAGE_FIELD,
+      SURFACE_STYLE_FIELD,
+      SURFACE_SHADOW_FIELD,
+      BORDER_STYLE_FIELD,
+      BORDER_COLOR_SECONDARY_FIELD,
+      ...gridPatternFields,
+      FOOTER_SIZE_FIELD,
+    ],
+  },
 ];
 
 export const TEMPLATE_COMPONENTS: Record<string, TemplateComponent> = {
@@ -427,6 +563,8 @@ export const TEMPLATE_COMPONENTS: Record<string, TemplateComponent> = {
   background_thumbnail: BackgroundThumbnailTemplate,
   centered_thumbnail: CenteredThumbnailTemplate,
   centered_course_thumbnail: CenteredCourseThumbnailTemplate,
+  intro_bite_thumbnail: IntroBiteThumbnailTemplate,
+  outro_thumbnail: OutroThumbnailTemplate,
 };
 
 export function getTemplatesForTool(

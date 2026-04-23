@@ -13,6 +13,7 @@ import {
   type BannerDoc,
   type BannerSaveInput,
 } from "../persistence/bannerPersistence";
+import { runManagedLogoff } from "./managedLogoff";
 
 export function useManagedLogoff() {
   const { authState, logoff } = useAuth();
@@ -29,45 +30,24 @@ export function useManagedLogoff() {
   );
 
   return useCallback(async () => {
-    if (
-      appState.autoSaveOnLogout &&
-      appState.draftDirty &&
-      appState.currentDraft
-    ) {
-      const draft = appState.currentDraft;
-      const name =
-        draft.name.trim() || `Recovery Draft ${new Date().toISOString()}`;
-      const savedBanner = await bannerApi.save({
-        id: draft.bannerId ?? undefined,
-        name,
-        templateId: draft.templateId,
-        themeId: draft.themeId,
-        platformId: draft.platformId,
-        fieldValues: draft.fieldValues,
-        borderWidth: draft.borderWidth,
-        borderColor: draft.borderColor,
-        fontPairId: draft.fontPairId,
-        primaryFontFamily: draft.primaryFontFamily,
-        secondaryFontFamily: draft.secondaryFontFamily,
-        fontSize: draft.fontSize,
-        brandLogoUrl: draft.brandLogoUrl,
-        brandLogoSize: draft.brandLogoSize,
-        showCopyrightMessage: draft.showCopyrightMessage,
-        copyrightText: draft.copyrightText,
-        tutorialImageUrl: draft.tutorialImageUrl,
-        tutorialImageSize: draft.tutorialImageSize,
-        tutorialImageBottomPadding: draft.tutorialImageBottomPadding,
-        tutorialImageOpacity: draft.tutorialImageOpacity,
-      });
-      const bannerId = savedBanner.id;
-
-      await updateAppState({
-        currentDraft: { ...draft, bannerId: bannerId ?? draft.bannerId, name },
-        draftDirty: false,
-      });
-      toast.success(`Auto-saved \"${name}\" before log off`);
-    }
-
-    logoff();
+    await runManagedLogoff({
+      autoSaveOnLogout: appState.autoSaveOnLogout,
+      draftDirty: appState.draftDirty,
+      currentDraft: appState.currentDraft,
+      saveDraft: bannerApi.save,
+      updateDraftAfterSave: async (draft) => {
+        await updateAppState({
+          currentDraft: draft,
+          draftDirty: false,
+        });
+      },
+      logoff,
+      notifySaved: (name) => {
+        toast.success(`Auto-saved "${name}" before log off`);
+      },
+      notifySaveFailed: (message) => {
+        toast.error(message);
+      },
+    });
   }, [appState, bannerApi, logoff, updateAppState]);
 }

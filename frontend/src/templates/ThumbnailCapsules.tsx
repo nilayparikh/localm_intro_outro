@@ -7,9 +7,16 @@ import {
 import type { ThemeColors } from "./types";
 
 type CapsulePosition = "top-left" | "top-right";
-type CapsuleKind = "duration" | "level" | "instructor" | "hands-on-lab";
+type CapsuleKind =
+  | "duration"
+  | "level"
+  | "instructor"
+  | "hands-on-lab"
+  | "bite"
+  | "speed";
 type CapsuleLevel = "beginner" | "intermediate" | "advanced" | "expert";
 type CapsuleSizePreset = "small" | "medium" | "large";
+type CapsuleVariant = "default" | "intro-bite";
 
 interface CapsuleSizing {
   insetX: number;
@@ -197,9 +204,49 @@ function LabIcon({ size, color }: { size: number; color: string }) {
   );
 }
 
+function BiteIcon({ size, color }: { size: number; color: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M5.5 7.5L12 4.2L18.5 7.5V16.5L12 19.8L5.5 16.5V7.5Z"
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9 12H15"
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function SpeedIcon({ size, color }: { size: number; color: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4.8 13.8L10.2 8.4V12H15.2V8.4L20.6 13.8"
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6.2 18.2H17.8"
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function buildCapsules(
   values: Record<string, string>,
   sizing: CapsuleSizing,
+  variant: CapsuleVariant,
 ): CapsuleDescriptor[] {
   const capsules: CapsuleDescriptor[] = [];
   const durationText = normalizeCapsuleText(values["duration_capsule_text"]);
@@ -207,7 +254,10 @@ function buildCapsules(
   const handsOnLabText = normalizeCapsuleText(
     values["hands_on_lab_capsule_text"],
   );
+  const biteText = normalizeCapsuleText(values["bite_capsule_text"]);
+  const speedText = normalizeCapsuleText(values["speed_capsule_text"]);
   const capsuleColor = normalizeCapsuleColor(values["capsule_color"]);
+  const isIntroBiteVariant = variant === "intro-bite";
 
   if (isCapsuleEnabled(values["show_duration_capsule"]) && durationText) {
     const durationColor = capsuleColor ?? "#38bdf8";
@@ -215,10 +265,38 @@ function buildCapsules(
     capsules.push({
       kind: "duration",
       text: durationText,
-      position: "top-left",
+      position: isIntroBiteVariant ? "top-right" : "top-left",
       color: durationColor,
       icon: <ClockIcon size={sizing.iconSize} color={durationColor} />,
     });
+  }
+
+  if (isIntroBiteVariant && isCapsuleEnabled(values["show_bite_capsule"]) && biteText) {
+    const biteColor = capsuleColor ?? "#f97316";
+
+    capsules.push({
+      kind: "bite",
+      text: biteText,
+      position: "top-left",
+      color: biteColor,
+      icon: <BiteIcon size={sizing.iconSize} color={biteColor} />,
+    });
+  }
+
+  if (isIntroBiteVariant && isCapsuleEnabled(values["show_speed_capsule"]) && speedText) {
+    const speedColor = capsuleColor ?? "#f472b6";
+
+    capsules.push({
+      kind: "speed",
+      text: speedText,
+      position: "top-right",
+      color: speedColor,
+      icon: <SpeedIcon size={sizing.iconSize} color={speedColor} />,
+    });
+  }
+
+  if (isIntroBiteVariant) {
+    return capsules;
   }
 
   if (isCapsuleEnabled(values["show_level_capsule"])) {
@@ -353,18 +431,20 @@ export function ThumbnailCapsules({
   theme,
   scale,
   fontFamily,
+  variant = "default",
 }: {
   values: Record<string, string>;
   theme: ThemeColors;
   scale: number;
   fontFamily: string;
+  variant?: CapsuleVariant;
 }) {
   const stylePreset = resolveTemplateSurfaceStyle(values["capsule_style"]);
   const sizing = buildCapsuleSizing(
     resolveCapsuleSize(values["capsule_size"]),
     scale,
   );
-  const capsules = buildCapsules(values, sizing);
+  const capsules = buildCapsules(values, sizing, variant);
   const leftCapsules = capsules.filter(
     (capsule) => capsule.position === "top-left",
   );
@@ -395,6 +475,12 @@ export function ThumbnailCapsules({
                   sizing,
                   stylePreset,
                 }),
+                ...(capsule.kind === "bite"
+                  ? {
+                      borderRadius: Math.round(22 * scale),
+                      letterSpacing: "0.08em",
+                    }
+                  : {}),
                 fontFamily,
                 fontSize: sizing.textSize,
               }}
@@ -422,6 +508,12 @@ export function ThumbnailCapsules({
                   sizing,
                   stylePreset,
                 }),
+                ...(capsule.kind === "bite"
+                  ? {
+                      borderRadius: Math.round(22 * scale),
+                      letterSpacing: "0.08em",
+                    }
+                  : {}),
                 fontFamily,
                 fontSize: sizing.textSize,
               }}

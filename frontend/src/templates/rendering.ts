@@ -313,7 +313,8 @@ export function buildTemplateSeparatorStyle({
   borderStyle: TemplateBorderStyle;
   scale: number;
 }): CSSProperties {
-  const resolvedBorderColorSecondary = borderColorSecondary ?? theme.textSecondary;
+  const resolvedBorderColorSecondary =
+    borderColorSecondary ?? theme.textSecondary;
   const solidLine = `linear-gradient(90deg, ${colorWithAlpha(borderColor, 0)}, ${opaqueColor(borderColor)} 50%, ${colorWithAlpha(borderColor, 0)})`;
   const gradientLine = borderColorSecondary
     ? `linear-gradient(90deg, ${colorWithAlpha(borderColor, 0)}, ${opaqueColor(borderColor)} 32%, ${opaqueColor(resolvedBorderColorSecondary)} 68%, ${colorWithAlpha(borderColor, 0)})`

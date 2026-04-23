@@ -5,8 +5,11 @@ import {
   buildThumbnailContentFieldRows,
   buildBannerDialogState,
   clampBrandLogoSize,
+  resolveExportActionLoadingState,
+  getTemplateAudioAssetFieldId,
   getThumbnailTemplateCapabilities,
   getThemeBorderColor,
+  resolveMotionDurationSeconds,
   resolveLoadedBrandLogoUrl,
   resolveBrandLogoUrlFromSettings,
   resolvePersistedBrandLogoUrl,
@@ -19,6 +22,8 @@ test("tutorial-style templates expose pip logo and anchored tutorial image contr
     showsTutorialImage: true,
     showsTutorialImageBottomPadding: true,
     showsTutorialImageOpacity: false,
+    showsYoutubeOverlayAsset: false,
+    showsSharedAudioAsset: false,
   });
 
   assert.deepEqual(getThumbnailTemplateCapabilities("code_thumbnail"), {
@@ -26,6 +31,8 @@ test("tutorial-style templates expose pip logo and anchored tutorial image contr
     showsTutorialImage: true,
     showsTutorialImageBottomPadding: true,
     showsTutorialImageOpacity: false,
+    showsYoutubeOverlayAsset: false,
+    showsSharedAudioAsset: false,
   });
 });
 
@@ -35,6 +42,8 @@ test("centered templates hide tutorial image controls entirely", () => {
     showsTutorialImage: false,
     showsTutorialImageBottomPadding: false,
     showsTutorialImageOpacity: false,
+    showsYoutubeOverlayAsset: false,
+    showsSharedAudioAsset: false,
   });
 
   assert.deepEqual(
@@ -44,6 +53,8 @@ test("centered templates hide tutorial image controls entirely", () => {
       showsTutorialImage: false,
       showsTutorialImageBottomPadding: false,
       showsTutorialImageOpacity: false,
+      showsYoutubeOverlayAsset: false,
+      showsSharedAudioAsset: false,
     },
   );
 });
@@ -54,7 +65,41 @@ test("background template keeps border and grid controls while making the logo o
     showsTutorialImage: false,
     showsTutorialImageBottomPadding: false,
     showsTutorialImageOpacity: false,
+    showsYoutubeOverlayAsset: false,
+    showsSharedAudioAsset: false,
   });
+});
+
+test("intro bite and outro stay on the shared audio workflow without youtube overlay controls", () => {
+  assert.deepEqual(getThumbnailTemplateCapabilities("intro_bite_thumbnail"), {
+    showsBrandLogo: false,
+    showsTutorialImage: false,
+    showsTutorialImageBottomPadding: false,
+    showsTutorialImageOpacity: false,
+    showsYoutubeOverlayAsset: false,
+    showsSharedAudioAsset: true,
+  });
+
+  assert.deepEqual(getThumbnailTemplateCapabilities("outro_thumbnail"), {
+    showsBrandLogo: false,
+    showsTutorialImage: true,
+    showsTutorialImageBottomPadding: false,
+    showsTutorialImageOpacity: true,
+    showsYoutubeOverlayAsset: false,
+    showsSharedAudioAsset: true,
+  });
+});
+
+test("intro and outro templates persist shared audio selections under stable field ids", () => {
+  assert.equal(
+    getTemplateAudioAssetFieldId("intro_bite_thumbnail"),
+    "intro_audio_asset_id",
+  );
+  assert.equal(
+    getTemplateAudioAssetFieldId("outro_thumbnail"),
+    "outro_audio_asset_id",
+  );
+  assert.equal(getTemplateAudioAssetFieldId("tutorial_thumbnail"), null);
 });
 
 test("save dialog starts from the current banner and keeps overwrite intent explicit", () => {
@@ -125,6 +170,60 @@ test("brand logo size is clamped to the supported thumbnail range", () => {
   assert.equal(clampBrandLogoSize(10), 60);
   assert.equal(clampBrandLogoSize(90), 90);
   assert.equal(clampBrandLogoSize(180), 120);
+});
+
+test("motion duration defaults to 3 seconds and clamps unsupported values", () => {
+  assert.equal(resolveMotionDurationSeconds({}), 3);
+  assert.equal(
+    resolveMotionDurationSeconds({ motion_duration_seconds: "0" }),
+    1,
+  );
+  assert.equal(
+    resolveMotionDurationSeconds({ motion_duration_seconds: "5" }),
+    5,
+  );
+  assert.equal(
+    resolveMotionDurationSeconds({ motion_duration_seconds: "24" }),
+    15,
+  );
+});
+
+test("export action loading state only marks the currently running export control as loading", () => {
+  assert.deepEqual(
+    resolveExportActionLoadingState({ png: 0, zip: 0, motion: 0 } as never),
+    {
+      isImageExporting: false,
+      isMotionExporting: false,
+    },
+  );
+  assert.deepEqual(
+    resolveExportActionLoadingState({ png: 1, zip: 0, motion: 0 } as never),
+    {
+      isImageExporting: true,
+      isMotionExporting: false,
+    },
+  );
+  assert.deepEqual(
+    resolveExportActionLoadingState({ png: 0, zip: 0, motion: 1 } as never),
+    {
+      isImageExporting: false,
+      isMotionExporting: true,
+    },
+  );
+  assert.deepEqual(
+    resolveExportActionLoadingState({ png: 1, zip: 0, motion: 1 } as never),
+    {
+      isImageExporting: true,
+      isMotionExporting: true,
+    },
+  );
+  assert.deepEqual(
+    resolveExportActionLoadingState({ png: 0, zip: 1, motion: 0 } as never),
+    {
+      isImageExporting: false,
+      isMotionExporting: false,
+    },
+  );
 });
 
 test("copyright defaults stay aligned across thumbnail templates", () => {
@@ -202,6 +301,47 @@ test("content field rows keep centered template controls paired on one line", ()
       ["show_level_capsule", "level_capsule_value"],
       ["show_instructor_capsule", "instructor_capsule_text"],
       ["show_hands_on_lab_capsule", "hands_on_lab_capsule_text"],
+      ["title_size", "secondary_size"],
+      ["show_grid", "grid_pattern"],
+    ],
+  );
+});
+
+test("content field rows keep intro bite attribution and capsule controls paired", () => {
+  assert.deepEqual(
+    buildThumbnailContentFieldRows([
+      { id: "title", label: "Bite Title", type: "text" },
+      { id: "source_label", label: "Source Label", type: "text" },
+      { id: "source_title", label: "Source Title", type: "text" },
+      {
+        id: "show_bite_capsule",
+        label: "Show Bite Capsule",
+        type: "select",
+      },
+      { id: "bite_capsule_text", label: "Bite Capsule Text", type: "text" },
+      {
+        id: "show_duration_capsule",
+        label: "Show Duration Capsule",
+        type: "select",
+      },
+      { id: "duration_capsule_text", label: "Duration Text", type: "text" },
+      {
+        id: "show_speed_capsule",
+        label: "Show Speed Capsule",
+        type: "select",
+      },
+      { id: "speed_capsule_text", label: "Speed Text", type: "text" },
+      { id: "title_size", label: "Title Size", type: "select" },
+      { id: "secondary_size", label: "Secondary Size", type: "select" },
+      { id: "show_grid", label: "Show Grid Pattern", type: "select" },
+      { id: "grid_pattern", label: "Grid Pattern", type: "select" },
+    ]),
+    [
+      ["title"],
+      ["source_label", "source_title"],
+      ["show_bite_capsule", "bite_capsule_text"],
+      ["show_duration_capsule", "duration_capsule_text"],
+      ["show_speed_capsule", "speed_capsule_text"],
       ["title_size", "secondary_size"],
       ["show_grid", "grid_pattern"],
     ],
