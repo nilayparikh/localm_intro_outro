@@ -19,7 +19,13 @@ export interface TemplateProps {
   borderWidth: number;
   borderColor: string;
   overlayImageUrl: string | null;
+  overlayImageScale?: number;
+  overlayImageX?: number;
+  overlayImageY?: number;
   overlayImageSize: number;
+  splitBlendImageUrl?: string | null;
+  splitCornerIconUrls?: string[];
+  splitCornerIconSize?: number;
   brandLogoUrl?: string | null;
   brandLogoSize?: number;
   brandLogoPosition?: "top-right" | "bottom-left";

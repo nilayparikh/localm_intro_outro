@@ -1,13 +1,18 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useMemo, useState } from "react";
+import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
-import Divider from "@mui/material/Divider";
+import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import LibraryMusicIcon from "@mui/icons-material/LibraryMusic";
+import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import VideocamIcon from "@mui/icons-material/Videocam";
@@ -20,13 +25,18 @@ import {
   AppBar,
   PageLayout,
   SectionCard,
-  SelectControl,
   StatusChip,
 } from "@common";
 import { useAuth } from "../auth";
+import { AssetEditDialog } from "../components/AssetEditDialog";
 import { SettingsDialog } from "../components/SettingsDialog";
 import { SyncMenu } from "../components/SyncMenu";
-import { useAssets, type AssetDoc } from "../hooks/useAssets";
+import {
+  collectAssetTags,
+  filterAssets,
+  useAssets,
+  type AssetDoc,
+} from "../hooks/useAssets";
 import { useRenderableAssetUrl } from "../hooks/useRenderableAssetUrl";
 import {
   buildAssetBlobPath,
@@ -35,8 +45,13 @@ import {
   type AssetKind,
 } from "../persistence/assetPersistence";
 import { deleteBlob, deleteCachedAssetBlob, uploadBlob } from "../services";
+import {
+  appendAssetSearchToken,
+  buildAssetSearchToken,
+  parseAssetTagInput,
+} from "./assetsMetadata";
 
-const FILTER_OPTIONS = [
+const FILTER_OPTIONS: Array<{ value: AssetKind | "all"; label: string }> = [
   { value: "all", label: "All Assets" },
   { value: "audio", label: "Audio" },
   { value: "video", label: "Video" },
@@ -60,6 +75,14 @@ function formatFileSize(sizeBytes: number): string {
   }
 
   return `${sizeBytes} B`;
+}
+
+function formatDimensionLabel(asset: AssetDoc): string {
+  if (!asset.width || !asset.height) {
+    return "No dimensions";
+  }
+
+  return `${asset.width}×${asset.height}`;
 }
 
 function readImageMetadata(
@@ -133,20 +156,44 @@ async function readAssetMetadata(
   return { durationMs: null, width: null, height: null };
 }
 
-function AssetPreview({ asset }: { asset: AssetDoc }) {
+function AssetKindIcon({ kind }: { kind: AssetKind }) {
+  if (kind === "audio") {
+    return <LibraryMusicIcon sx={{ color: "primary.main" }} />;
+  }
+
+  if (kind === "video") {
+    return <VideocamIcon sx={{ color: "primary.main" }} />;
+  }
+
+  if (kind === "image") {
+    return <WallpaperIcon sx={{ color: "primary.main" }} />;
+  }
+
+  return <DescriptionIcon sx={{ color: "primary.main" }} />;
+}
+
+function AssetPreview({
+  asset,
+  compact = false,
+}: {
+  asset: AssetDoc;
+  compact?: boolean;
+}) {
   const assetUrl = useRenderableAssetUrl(asset.blobPath);
 
   if (!assetUrl) {
     return (
       <Box
         sx={{
-          minHeight: 96,
+          minHeight: compact ? 160 : 96,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           bgcolor: "background.default",
           borderRadius: 1,
           color: "text.secondary",
+          textAlign: "center",
+          p: 2,
         }}
       >
         <Typography variant="caption">Preview unavailable</Typography>
@@ -162,12 +209,33 @@ function AssetPreview({ asset }: { asset: AssetDoc }) {
         alt={asset.name}
         sx={{
           width: "100%",
-          maxHeight: 160,
+          height: compact ? 160 : "auto",
+          maxHeight: compact ? 160 : 220,
           objectFit: "contain",
           bgcolor: "background.default",
           borderRadius: 1,
         }}
       />
+    );
+  }
+
+  if (compact) {
+    return (
+      <Stack
+        spacing={1}
+        sx={{
+          minHeight: 160,
+          justifyContent: "center",
+          alignItems: "center",
+          p: 2,
+          bgcolor: "background.default",
+          borderRadius: 1,
+          textAlign: "center",
+        }}
+      >
+        <AssetKindIcon kind={asset.kind} />
+        <Typography variant="body2">{asset.fileName}</Typography>
+      </Stack>
     );
   }
 
@@ -214,37 +282,38 @@ function AssetPreview({ asset }: { asset: AssetDoc }) {
   );
 }
 
-function AssetKindIcon({ kind }: { kind: AssetKind }) {
-  if (kind === "audio") {
-    return <LibraryMusicIcon sx={{ color: "primary.main" }} />;
-  }
-
-  if (kind === "video") {
-    return <VideocamIcon sx={{ color: "primary.main" }} />;
-  }
-
-  if (kind === "image") {
-    return <WallpaperIcon sx={{ color: "primary.main" }} />;
-  }
-
-  return <DescriptionIcon sx={{ color: "primary.main" }} />;
-}
-
 export function AssetsPage() {
   const { authState } = useAuth();
   const { assets, saveAsset, deleteAsset, refreshAssets } = useAssets();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [uploadName, setUploadName] = useState("");
+  const [uploadTags, setUploadTags] = useState("");
+  const [uploadTagInputValue, setUploadTagInputValue] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [filterKind, setFilterKind] = useState<AssetKind | "all">("all");
+  const [searchText, setSearchText] = useState("");
+  const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
+  const [savingAssetId, setSavingAssetId] = useState<string | null>(null);
+
+  const deferredSearchText = useDeferredValue(searchText);
+  const availableTags = useMemo(() => collectAssetTags(assets), [assets]);
+  const editingAsset = useMemo(
+    () => assets.find((asset) => asset.id === editingAssetId) ?? null,
+    [assets, editingAssetId],
+  );
+  const normalizedUploadTags = useMemo(
+    () => parseAssetTagInput(uploadTags),
+    [uploadTags],
+  );
 
   const filteredAssets = useMemo(
     () =>
-      filterKind === "all"
-        ? assets
-        : assets.filter((asset) => asset.kind === filterKind),
-    [assets, filterKind],
+      filterAssets(assets, {
+        kind: filterKind,
+        searchText: deferredSearchText,
+      }),
+    [assets, deferredSearchText, filterKind],
   );
 
   const handleFileChange = useCallback(
@@ -293,17 +362,21 @@ export function AssetsPage() {
         previewImagePath: null,
         width: metadata.width,
         height: metadata.height,
+        category: "",
+        tags: parseAssetTagInput(uploadTags),
       });
 
       setSelectedFile(null);
       setUploadName("");
+      setUploadTags("");
+      setUploadTagInputValue("");
       toast.success("Asset uploaded");
     } catch (error: any) {
       toast.error(`Upload failed: ${error.message}`);
     } finally {
       setUploading(false);
     }
-  }, [authState, saveAsset, selectedFile, uploadName]);
+  }, [authState, saveAsset, selectedFile, uploadName, uploadTags]);
 
   const handleDelete = useCallback(
     async (asset: AssetDoc) => {
@@ -323,6 +396,55 @@ export function AssetsPage() {
     },
     [authState, deleteAsset],
   );
+
+  const handleSaveAssetDetails = useCallback(
+    async (values: { name: string; tags: string }) => {
+      if (!editingAsset) {
+        return;
+      }
+
+      setSavingAssetId(editingAsset.id);
+
+      try {
+        await saveAsset({
+          id: editingAsset.id,
+          name: values.name.trim(),
+          fileName: editingAsset.fileName,
+          kind: editingAsset.kind,
+          mimeType: editingAsset.mimeType,
+          blobPath: editingAsset.blobPath,
+          sizeBytes: editingAsset.sizeBytes,
+          durationMs: editingAsset.durationMs,
+          previewImagePath: editingAsset.previewImagePath,
+          width: editingAsset.width,
+          height: editingAsset.height,
+          category: "",
+          tags: parseAssetTagInput(values.tags),
+        });
+        setEditingAssetId(null);
+        toast.success(`Saved asset details for ${editingAsset.name}`);
+      } catch (error: any) {
+        toast.error(`Asset update failed: ${error.message}`);
+      } finally {
+        setSavingAssetId(null);
+      }
+    },
+    [editingAsset, saveAsset],
+  );
+
+  const appendTagToken = useCallback((tag: string) => {
+    setSearchText((currentSearchText) =>
+      appendAssetSearchToken(
+        currentSearchText,
+        buildAssetSearchToken("#", tag),
+      ),
+    );
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setSearchText("");
+    setFilterKind("all");
+  }, []);
 
   const goHome = useCallback(() => {
     window.location.assign("/");
@@ -365,7 +487,12 @@ export function AssetsPage() {
             alignItems="stretch"
           >
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <SectionCard title="Upload Assets" icon={<UploadFileIcon />}>
+              <SectionCard
+                title="Upload Assets"
+                icon={<UploadFileIcon />}
+                collapsible
+                defaultExpanded
+              >
                 <Stack spacing={2}>
                   <Typography variant="body2" color="text.secondary">
                     Upload shared media once to Azure Blob Storage, then reuse
@@ -377,6 +504,29 @@ export function AssetsPage() {
                     onChange={(event) => setUploadName(event.target.value)}
                     size="small"
                     fullWidth
+                  />
+                  <Autocomplete
+                    multiple
+                    freeSolo
+                    filterSelectedOptions
+                    options={availableTags}
+                    value={normalizedUploadTags}
+                    inputValue={uploadTagInputValue}
+                    onInputChange={(_, value) => setUploadTagInputValue(value)}
+                    onChange={(_, value) => {
+                      const resolvedTags = value.map((tag) => String(tag));
+                      setUploadTags(resolvedTags.join(", "));
+                      setUploadTagInputValue("");
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Tags"
+                        helperText="Reuse existing tags or add new ones to improve search and filtering."
+                        size="small"
+                        fullWidth
+                      />
+                    )}
                   />
                   <Box
                     component="label"
@@ -406,7 +556,7 @@ export function AssetsPage() {
                     </Stack>
                     <input type="file" hidden onChange={handleFileChange} />
                   </Box>
-                  {selectedFile && (
+                  {selectedFile ? (
                     <Stack
                       direction="row"
                       spacing={1}
@@ -422,7 +572,7 @@ export function AssetsPage() {
                         status="default"
                       />
                     </Stack>
-                  )}
+                  ) : null}
                   <ActionButton
                     label="Upload Asset"
                     onClick={handleUpload}
@@ -449,7 +599,7 @@ export function AssetsPage() {
                     status="default"
                   />
                   <StatusChip
-                    label={`${assets.filter((asset) => asset.kind === "video").length} videos`}
+                    label={`${availableTags.length} tags`}
                     status="default"
                   />
                 </Stack>
@@ -460,24 +610,105 @@ export function AssetsPage() {
           <SectionCard title="Asset Management" icon={<LibraryMusicIcon />}>
             <Stack spacing={2}>
               <Stack
-                direction={{ xs: "column", sm: "row" }}
+                direction={{ xs: "column", lg: "row" }}
                 spacing={2}
-                alignItems={{ sm: "center" }}
+                alignItems={{ lg: "flex-start" }}
               >
-                <Box sx={{ width: { xs: "100%", sm: 240 } }}>
-                  <SelectControl
-                    label="Filter"
-                    value={filterKind}
-                    onChange={(value) =>
-                      setFilterKind(value as AssetKind | "all")
-                    }
-                    options={FILTER_OPTIONS}
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <TextField
+                    label="Search Assets"
+                    helperText="Use #tags with free text to refine results."
+                    value={searchText}
+                    onChange={(event) => setSearchText(event.target.value)}
+                    size="small"
+                    fullWidth
+                    slotProps={{
+                      input: {
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <SearchIcon sx={{ color: "text.secondary" }} />
+                          </InputAdornment>
+                        ),
+                      },
+                    }}
                   />
                 </Box>
-                <Typography variant="body2" color="text.secondary">
-                  Shared asset labels use the same format as the intro/outro
-                  dropdowns: Name [filename] | duration.
-                </Typography>
+                <Box sx={{ width: { xs: "100%", lg: 180 } }}>
+                  <ActionButton
+                    label="Clear Filters"
+                    variant="secondary"
+                    onClick={clearFilters}
+                  />
+                </Box>
+              </Stack>
+
+              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                {FILTER_OPTIONS.map((option) => (
+                  <Chip
+                    key={option.value}
+                    label={option.label}
+                    clickable
+                    color={filterKind === option.value ? "primary" : "default"}
+                    variant={
+                      filterKind === option.value ? "filled" : "outlined"
+                    }
+                    onClick={() => setFilterKind(option.value)}
+                  />
+                ))}
+              </Stack>
+
+              <Stack spacing={1}>
+                <Stack
+                  direction={{ xs: "column", md: "row" }}
+                  spacing={1}
+                  alignItems={{ md: "center" }}
+                >
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <LocalOfferOutlinedIcon
+                      sx={{ color: "text.secondary", fontSize: 18 }}
+                    />
+                    <Typography variant="body2" color="text.secondary">
+                      Filter by Tags
+                    </Typography>
+                  </Stack>
+                  <Typography variant="body2" color="text.secondary">
+                    Click a tag chip to append a search token, or type your own
+                    free-text query.
+                  </Typography>
+                </Stack>
+
+                {availableTags.length === 0 ? (
+                  <Typography variant="caption" color="text.secondary">
+                    Add tags to uploaded assets to unlock faster filtering.
+                  </Typography>
+                ) : (
+                  <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                    {availableTags.map((tag) => (
+                      <Chip
+                        key={tag}
+                        label={tag}
+                        clickable
+                        variant="outlined"
+                        onClick={() => appendTagToken(tag)}
+                      />
+                    ))}
+                  </Stack>
+                )}
+              </Stack>
+
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={1}
+                useFlexGap
+                flexWrap="wrap"
+              >
+                <StatusChip
+                  label={`Showing ${filteredAssets.length} of ${assets.length} assets`}
+                  status="info"
+                />
+                {filterKind !== "all" ? (
+                  <StatusChip label={`type:${filterKind}`} status="default" />
+                ) : null}
               </Stack>
 
               {filteredAssets.length === 0 ? (
@@ -491,77 +722,167 @@ export function AssetsPage() {
                     color: "text.secondary",
                   }}
                 >
-                  No assets yet. Upload MP3, MP4, image, or document files to
-                  build the shared library.
+                  {assets.length === 0
+                    ? "No assets yet. Upload MP3, MP4, image, or document files to build the shared library."
+                    : "No assets match the current search and filter settings."}
                 </Box>
               ) : (
-                <Stack spacing={2} divider={<Divider flexItem />}>
-                  {filteredAssets.map((asset) => (
-                    <Stack
-                      key={asset.id}
-                      direction={{ xs: "column", lg: "row" }}
-                      spacing={2.5}
-                    >
+                <Box
+                  sx={{
+                    maxHeight: { xs: 520, lg: 720 },
+                    overflowY: "auto",
+                    pr: 1,
+                    scrollbarWidth: "thin",
+                    scrollbarColor: "rgba(148, 163, 184, 0.8) transparent",
+                    "&::-webkit-scrollbar": {
+                      width: 10,
+                    },
+                    "&::-webkit-scrollbar-thumb": {
+                      backgroundColor: "rgba(148, 163, 184, 0.8)",
+                      borderRadius: 999,
+                    },
+                    "&::-webkit-scrollbar-track": {
+                      backgroundColor: "transparent",
+                    },
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: {
+                        xs: "1fr",
+                        sm: "repeat(2, minmax(0, 1fr))",
+                        md: "repeat(3, minmax(0, 1fr))",
+                        lg: "repeat(4, minmax(0, 1fr))",
+                        xl: "repeat(5, minmax(0, 1fr))",
+                      },
+                      gap: 2,
+                    }}
+                  >
+                    {filteredAssets.map((asset) => (
                       <Box
-                        sx={{ width: { xs: "100%", lg: 320 }, flexShrink: 0 }}
+                        key={asset.id}
+                        sx={{
+                          border: "1px solid",
+                          borderColor: "divider",
+                          borderRadius: 3,
+                          bgcolor: "background.paper",
+                          overflow: "hidden",
+                          display: "flex",
+                          flexDirection: "column",
+                          minWidth: 0,
+                        }}
                       >
-                        <AssetPreview asset={asset} />
-                      </Box>
-                      <Stack spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <AssetKindIcon kind={asset.kind} />
-                          <Typography
-                            variant="h6"
-                            sx={{ minWidth: 0, wordBreak: "break-word" }}
-                          >
-                            {asset.name}
-                          </Typography>
-                        </Stack>
-                        <Typography variant="body2" color="text.secondary">
-                          {formatAssetOptionLabel(asset)}
-                        </Typography>
+                        <Box sx={{ p: 1.5, pb: 0 }}>
+                          <AssetPreview asset={asset} compact />
+                        </Box>
                         <Stack
-                          direction="row"
-                          spacing={1}
-                          useFlexGap
-                          flexWrap="wrap"
+                          spacing={1.25}
+                          sx={{ p: 1.5, flex: 1, minWidth: 0 }}
                         >
-                          <StatusChip label={asset.kind} status="info" />
-                          <StatusChip
-                            label={formatFileSize(asset.sizeBytes)}
-                            status="default"
-                          />
-                          {asset.width && asset.height ? (
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            alignItems="center"
+                          >
+                            <AssetKindIcon kind={asset.kind} />
+                            <Typography
+                              variant="subtitle1"
+                              sx={{ minWidth: 0, wordBreak: "break-word" }}
+                            >
+                              {asset.name}
+                            </Typography>
+                          </Stack>
+                          <Typography variant="body2" color="text.secondary">
+                            {formatAssetOptionLabel(asset)}
+                          </Typography>
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            useFlexGap
+                            flexWrap="wrap"
+                          >
                             <StatusChip
-                              label={`${asset.width}×${asset.height}`}
+                              label={`Type: ${asset.kind}`}
+                              status="info"
+                            />
+                          </Stack>
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            useFlexGap
+                            flexWrap="wrap"
+                          >
+                            <StatusChip
+                              label={formatDimensionLabel(asset)}
                               status="default"
                             />
-                          ) : null}
+                            <StatusChip
+                              label={formatFileSize(asset.sizeBytes)}
+                              status="default"
+                            />
+                          </Stack>
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            useFlexGap
+                            flexWrap="wrap"
+                          >
+                            {asset.tags.length > 0 ? (
+                              asset.tags.map((tag) => (
+                                <Chip
+                                  key={`${asset.id}-${tag}`}
+                                  label={tag}
+                                  size="small"
+                                  variant="outlined"
+                                  onClick={() => appendTagToken(tag)}
+                                />
+                              ))
+                            ) : (
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                No tags added yet.
+                              </Typography>
+                            )}
+                          </Stack>
+                          <Stack
+                            direction={{ xs: "column", sm: "row" }}
+                            spacing={1.5}
+                            sx={{ mt: "auto" }}
+                          >
+                            <ActionButton
+                              label="Edit Asset"
+                              variant="secondary"
+                              icon={<EditOutlinedIcon />}
+                              onClick={() => setEditingAssetId(asset.id)}
+                            />
+                            <ActionButton
+                              label="Delete Asset"
+                              variant="secondary"
+                              icon={<DeleteOutlineIcon />}
+                              onClick={() => void handleDelete(asset)}
+                            />
+                          </Stack>
                         </Stack>
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ wordBreak: "break-all" }}
-                        >
-                          Blob path: {asset.blobPath}
-                        </Typography>
-                        <Box>
-                          <ActionButton
-                            label="Delete Asset"
-                            variant="secondary"
-                            icon={<DeleteOutlineIcon />}
-                            onClick={() => void handleDelete(asset)}
-                          />
-                        </Box>
-                      </Stack>
-                    </Stack>
-                  ))}
-                </Stack>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
               )}
             </Stack>
           </SectionCard>
         </Stack>
       </Box>
+      <AssetEditDialog
+        open={Boolean(editingAsset)}
+        asset={editingAsset}
+        saving={savingAssetId === (editingAsset?.id ?? "")}
+        availableTags={availableTags}
+        onClose={() => setEditingAssetId(null)}
+        onSave={handleSaveAssetDetails}
+      />
       <SettingsDialog
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}

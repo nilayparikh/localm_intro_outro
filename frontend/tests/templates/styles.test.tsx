@@ -5,6 +5,7 @@ import { CenteredThumbnailTemplate } from "../../src/templates/CenteredThumbnail
 import { TutorialThumbnailTemplate } from "../../src/templates/TutorialThumbnailTemplate";
 import { CenteredCourseThumbnailTemplate } from "../../src/templates/CenteredCourseThumbnailTemplate";
 import { IntroBiteThumbnailTemplate } from "../../src/templates/IntroBiteThumbnailTemplate";
+import { IntroSplitThumbnailTemplate } from "../../src/templates/IntroSplitThumbnailTemplate";
 import { OutroThumbnailTemplate } from "../../src/templates/OutroThumbnailTemplate";
 import {
   buildTemplateFrameStyle,
@@ -81,7 +82,8 @@ test("tutorial template supports larger secondary text and glass styling", () =>
 
   assert.match(subtitleSnippet, /font-size:259px/);
   assert.match(html, /backdrop-filter:blur\(/);
-  assert.match(html, /border-image-source:linear-gradient\(/);
+  assert.match(html, /background-image:linear-gradient\(/);
+  assert.match(html, /background-clip:padding-box, border-box/);
 });
 
 test("gradient borders stay inside the frame and use both configured border colors", () => {
@@ -97,11 +99,38 @@ test("gradient borders stay inside the frame and use both configured border colo
   });
 
   assert.equal(style.boxSizing, "border-box");
-  assert.equal(
-    style.borderImageSource,
-    "linear-gradient(135deg, #22d3ee, #f59e0b)",
+  assert.equal(style.borderWidth, "24px");
+  assert.equal(style.borderStyle, "solid");
+  assert.equal(style.borderColor, "transparent");
+  assert.equal(style.borderImageSource, undefined);
+  assert.equal(style.borderImageSlice, undefined);
+  assert.equal(style.backgroundOrigin, "border-box");
+  assert.equal(style.backgroundClip, "padding-box, border-box");
+  assert.match(
+    String(style.backgroundImage),
+    /linear-gradient\(135deg, #22d3ee, #f59e0b\)/,
   );
-  assert.equal(style.borderImageSlice, 1);
+});
+
+test("gradient borders fall back to the theme border accent instead of a dark text color", () => {
+  const style = buildTemplateFrameStyle({
+    width: 3840,
+    height: 2160,
+    fontFamily: "'Outfit', sans-serif",
+    theme: {
+      ...baseTheme,
+      borderColor: "#f59e0b",
+    },
+    borderWidth: 24,
+    borderColor: "#22d3ee",
+    borderStyle: "gradient",
+  });
+
+  assert.match(
+    String(style.backgroundImage),
+    /linear-gradient\(135deg, #22d3ee, #f59e0b\)/,
+  );
+  assert.doesNotMatch(String(style.backgroundImage), /#94a3b8/);
 });
 
 test("frame backgrounds use the configured theme background without adding extra overlay layers", () => {
@@ -320,6 +349,322 @@ test("intro bite template renders source attribution with bite, duration, and sp
   );
 });
 
+test("intro bite template can hide Bite From and Original Video Title independently", () => {
+  const hideBothHtml = renderToStaticMarkup(
+    <IntroBiteThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        title: "5 Copilot Prompts That Save Time",
+        show_source_label: "false",
+        source_label: "BITE FROM",
+        show_source_title: "false",
+        source_title: "Context Engineering for GitHub Copilot",
+      }}
+    />,
+  );
+
+  assert.doesNotMatch(hideBothHtml, /data-template-region="bite-source"/);
+  assert.doesNotMatch(hideBothHtml, />BITE FROM</);
+  assert.doesNotMatch(hideBothHtml, />Context Engineering for GitHub Copilot</);
+
+  const hideLabelOnlyHtml = renderToStaticMarkup(
+    <IntroBiteThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        title: "5 Copilot Prompts That Save Time",
+        show_source_label: "false",
+        source_label: "BITE FROM",
+        show_source_title: "true",
+        source_title: "Context Engineering for GitHub Copilot",
+      }}
+    />,
+  );
+
+  assert.doesNotMatch(hideLabelOnlyHtml, />BITE FROM</);
+  assert.match(hideLabelOnlyHtml, />Context Engineering for GitHub Copilot</);
+});
+
+test("intro bite content stays centered in the capsule-safe region whether source attribution is shown or hidden", () => {
+  const withAttributionHtml = renderToStaticMarkup(
+    <IntroBiteThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        title: "5 Copilot Prompts That Save Time",
+        show_source_label: "true",
+        source_label: "BITE FROM",
+        show_source_title: "true",
+        source_title: "Context Engineering for GitHub Copilot",
+        show_bite_capsule: "true",
+        show_duration_capsule: "true",
+        duration_capsule_text: "45 sec",
+        show_speed_capsule: "true",
+      }}
+    />,
+  );
+
+  const withoutAttributionHtml = renderToStaticMarkup(
+    <IntroBiteThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        title: "5 Copilot Prompts That Save Time",
+        show_source_label: "false",
+        show_source_title: "false",
+        show_bite_capsule: "true",
+        show_duration_capsule: "true",
+        duration_capsule_text: "45 sec",
+        show_speed_capsule: "true",
+      }}
+    />,
+  );
+
+  const withAttributionRegion =
+    withAttributionHtml.match(
+      /data-template-region="bite-main-content" style="[^"]*"/,
+    )?.[0] ?? "";
+  const withoutAttributionRegion =
+    withoutAttributionHtml.match(
+      /data-template-region="bite-main-content" style="[^"]*"/,
+    )?.[0] ?? "";
+
+  assert.match(withAttributionRegion, /top:[0-9]+px/);
+  assert.match(withAttributionRegion, /bottom:0/);
+  assert.match(withAttributionRegion, /justify-content:center/);
+
+  const topWithAttribution = Number(
+    withAttributionRegion.match(/top:([0-9]+)px/)?.[1] ?? "0",
+  );
+  const topWithoutAttribution = Number(
+    withoutAttributionRegion.match(/top:([0-9]+)px/)?.[1] ?? "0",
+  );
+
+  assert.equal(topWithAttribution, topWithoutAttribution);
+  assert.ok(topWithAttribution > 0);
+});
+
+test("intro split template renders side-aware regions with glass glow divider treatment", () => {
+  const html = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        title: "Ship Faster with Intro Split",
+        split_title_side: "left",
+        split_partition_points: "(12, 3), (9, 12), (12, 24)",
+        split_background_opacity: "55",
+        split_type_capsule: "course",
+        split_foreground_scale: "132",
+        split_foreground_x: "6",
+        split_foreground_y: "-4",
+      }}
+      tutorialImageUrl="data:image/png;base64,foreground-image"
+      overlayImageUrl="data:image/svg+xml;base64,background-svg"
+    />,
+  );
+
+  assert.match(html, /data-template-region="intro-split-divider-glow"/);
+  assert.match(html, /data-template-region="intro-split-title-left"/);
+  assert.match(html, /data-template-region="intro-split-foreground-right"/);
+  assert.match(html, /data-template-region="intro-split-type-capsule"/);
+  assert.match(html, /clip-path:polygon\(/);
+  assert.match(html, />COURSE</);
+  assert.match(html, /translate\(6%, -4%\) scale\(1\.32\)/);
+  assert.match(html, /blur\(/);
+  const titleLayerSnippet =
+    html.match(
+      /data-template-region="intro-split-title-left" style="[^"]*"/,
+    )?.[0] ?? "";
+  assert.match(titleLayerSnippet, /z-index:30/);
+  assert.doesNotMatch(titleLayerSnippet, /clip-path:/);
+  assert.match(html, /data-template-region="intro-split-type-capsule-icon"/);
+  assert.match(
+    html,
+    /data-template-region="intro-split-divider-glow"[^>]*style="[^"]*z-index:3/,
+  );
+  assert.match(html, /opacity:0\.55/);
+  assert.match(html, /Ship Faster with Intro Split/);
+  assert.doesNotMatch(html, />Intro \(Split\)</);
+});
+
+test("intro split foreground uses contain fit when scale is reduced below 100", () => {
+  const html = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        title: "Scale Down",
+        split_title_side: "left",
+        split_partition_points: "(12, 3), (12, 24)",
+        split_foreground_scale: "70",
+      }}
+      tutorialImageUrl="data:image/png;base64,foreground-image"
+    />,
+  );
+
+  assert.match(html, /object-fit:contain/);
+  assert.match(html, /translate\(0%, 0%\) scale\(0\.70\)/);
+});
+
+test("intro split type capsule uses the same scale-aware sizing as other capsules", () => {
+  const html = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        split_type_capsule: "bite",
+        capsule_size: "small",
+      }}
+    />,
+  );
+
+  const typeCapsuleSnippet =
+    html.match(
+      /data-template-region="intro-split-type-capsule" style="[^"]*"/,
+    )?.[0] ?? "";
+
+  assert.match(typeCapsuleSnippet, /padding:30px 54px/);
+  assert.match(typeCapsuleSnippet, /font-size:54px/);
+  assert.match(
+    html,
+    /data-template-region="intro-split-type-capsule-icon"[^>]*><svg width="57" height="57"/,
+  );
+});
+
+test("intro split keeps capsules above divider and title layers", () => {
+  const html = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        split_type_capsule: "bite",
+        show_duration_capsule: "true",
+        duration_capsule_text: "10 min",
+      }}
+    />,
+  );
+
+  const capsuleGroupSnippet =
+    html.match(/data-capsule-position="top-left" style="[^"]*"/)?.[0] ?? "";
+
+  assert.match(capsuleGroupSnippet, /z-index:40/);
+  assert.match(
+    html,
+    /data-template-region="intro-split-title-left" style="[^"]*z-index:30/,
+  );
+  assert.match(
+    html,
+    /data-template-region="intro-split-divider-glow"[^>]*style="[^"]*z-index:3/,
+  );
+});
+
+test("intro split supports debug mode type capsule with an icon", () => {
+  const html = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        split_type_capsule: "debug",
+      }}
+    />,
+  );
+
+  assert.match(html, />DEBUG MODE</);
+  assert.match(html, /data-template-region="intro-split-type-capsule-icon"/);
+});
+
+test("intro split renders up to three bottom-corner asset icons opposite the title side", () => {
+  const html = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...({
+        ...baseProps,
+        splitCornerIconUrls: [
+          "data:image/png;base64,icon-1",
+          "data:image/png;base64,icon-2",
+          "data:image/png;base64,icon-3",
+        ],
+        splitCornerIconSize: 100,
+      } as any)}
+      values={{
+        ...baseProps.values,
+        split_title_side: "left",
+      }}
+    />,
+  );
+
+  const cornerIconSnippet =
+    html.match(
+      /data-template-region="intro-split-corner-icons" style="[^"]*"/,
+    )?.[0] ?? "";
+
+  assert.match(cornerIconSnippet, /right:120px/);
+  assert.match(cornerIconSnippet, /bottom:108px/);
+  assert.equal(
+    Array.from(html.matchAll(/data-template-region="intro-split-corner-icon"/g))
+      .length,
+    3,
+  );
+  assert.match(
+    html,
+    /data-template-region="intro-split-corner-icon"[^>]*src="data:image\/png;base64,icon-1"/,
+  );
+  assert.match(
+    html,
+    /data-template-region="intro-split-corner-icon"[^>]*src="data:image\/png;base64,icon-2"/,
+  );
+  assert.match(
+    html,
+    /data-template-region="intro-split-corner-icon"[^>]*src="data:image\/png;base64,icon-3"/,
+  );
+});
+
+test("intro split foreground can blend selected edges into the background over the last 10 percent", () => {
+  const html = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        split_foreground_blend_left: "true",
+        split_foreground_blend_top: "true",
+      }}
+      tutorialImageUrl="data:image/png;base64,foreground-image"
+    />,
+  );
+
+  const foregroundImageSnippet =
+    html.match(/alt="Split foreground" style="[^"]*"/)?.[0] ?? "";
+
+  assert.match(
+    foregroundImageSnippet,
+    /mask-image:[^"]*linear-gradient\(to right, transparent 0%, black 10%, black 100%\)/,
+  );
+  assert.match(
+    foregroundImageSnippet,
+    /mask-image:[^"]*linear-gradient\(to bottom, transparent 0%, black 10%, black 100%\)/,
+  );
+});
+
+test("intro split template flips title and foreground regions when title side is right", () => {
+  const html = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        title: "Right Side Title",
+        split_title_side: "right",
+        split_partition_points: "(12, 3), (12, 24)",
+      }}
+      tutorialImageUrl="data:image/png;base64,foreground-image"
+    />,
+  );
+
+  assert.match(html, /data-template-region="intro-split-title-right"/);
+  assert.match(html, /data-template-region="intro-split-foreground-left"/);
+  assert.match(html, /Right Side Title/);
+});
+
 test("outro template keeps the CTA band clean for the audio-only outro flow", () => {
   const html = renderToStaticMarkup(
     <OutroThumbnailTemplate
@@ -405,70 +750,60 @@ test("outro support line stays at 80% of headline size", () => {
   );
 });
 
-test("outro can render multiple persisted arrow overlays from the shared arrow assets", () => {
-  const outroProps = {
-    ...baseProps,
-    tutorialImageUrl: "data:image/png;base64,preview-image",
-    tutorialImageSize: 118,
-    tutorialImageOpacity: 88,
-    outroArrowOverlays: [
-      {
-        id: "arrow-1",
-        type: "subscribe",
-        text: "SUBSCRIBE",
-        x: 40,
-        y: 66,
-        degree: 12,
-        isInverse: false,
-        textSize: 124,
-        arrowWidth: 142,
-        arrowHeight: 120,
-      },
-      {
-        id: "arrow-2",
-        type: "course",
-        text: "COURSE",
-        x: 80,
-        y: 76,
-        degree: 318,
-        isInverse: true,
-        textSize: 92,
-        arrowWidth: 110,
-        arrowHeight: 138,
-      },
-    ],
-  } as any;
-
+test("outro renders a background svg layer and keeps the stage free of preview-image and arrow overlays", () => {
   const html = renderToStaticMarkup(
     <OutroThumbnailTemplate
-      {...outroProps}
+      {...baseProps}
+      overlayImageUrl="data:image/svg+xml;base64,background-svg"
+      tutorialImageUrl="data:image/png;base64,preview-image"
+      outroArrowOverlays={[
+        {
+          id: "arrow-1",
+          type: "subscribe",
+          text: "SUBSCRIBE",
+          x: 40,
+          y: 66,
+          degree: 12,
+          isInverse: false,
+          textSize: 124,
+          arrowWidth: 142,
+          arrowHeight: 120,
+        },
+      ]}
       values={{
         ...baseProps.values,
         title: "Thank You for Watching",
         subtitle: "Want more? Subscribe and press the bell",
-        show_outro_image: "true",
+        outro_background_opacity: "55",
       }}
     />,
   );
 
-  assert.match(html, /data-template-region="outro-suggested-image"/);
-  assert.equal(
-    Array.from(html.matchAll(/data-template-region="outro-arrow-overlay"/g))
-      .length,
-    2,
-  );
-  assert.match(html, /data-overlay-id="arrow-1"/);
-  assert.match(html, /data-overlay-id="arrow-2"/);
-  assert.match(html, /data-overlay-text-size="124"/);
-  assert.match(html, /data-overlay-arrow-width="142"/);
-  assert.match(html, /data-overlay-arrow-height="120"/);
-  assert.match(html, />SUBSCRIBE</);
-  assert.match(html, />COURSE</);
-  assert.match(html, /alt="Suggested Course Preview"/);
-  assert.doesNotMatch(html, /lengthAdjust="spacingAndGlyphs"/);
-  assert.doesNotMatch(html, /textLength="/);
+  assert.match(html, /data-template-region="outro-background-svg"/);
+  assert.match(html, /alt="Outro background asset"/);
+  assert.match(html, /opacity:0\.55/);
+  assert.doesNotMatch(html, /data-template-region="outro-suggested-image"/);
+  assert.doesNotMatch(html, /data-template-region="outro-arrow-overlay"/);
+  assert.doesNotMatch(html, /alt="Suggested Course Preview"/);
   assert.doesNotMatch(
     html,
     /data-template-region="outro-keep-learning-callout"/,
   );
+});
+
+test("outro renders newline-delimited support lines as separate rows", () => {
+  const html = renderToStaticMarkup(
+    <OutroThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        title: "Thank You for Watching",
+        subtitle: "Keep building\nSee you in the next one",
+      }}
+    />,
+  );
+
+  assert.match(html, /data-template-region="outro-support-lines"/);
+  assert.match(html, />Keep building</);
+  assert.match(html, />See you in the next one</);
 });

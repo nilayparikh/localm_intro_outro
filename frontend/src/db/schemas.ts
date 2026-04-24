@@ -145,7 +145,7 @@ export const presetsSchema: RxJsonSchema<any> = {
 };
 
 export const assetsSchema: RxJsonSchema<any> = {
-  version: 0,
+  version: 2,
   primaryKey: "id",
   type: "object",
   properties: {
@@ -160,6 +160,13 @@ export const assetsSchema: RxJsonSchema<any> = {
     previewImagePath: { type: ["string", "null"] },
     width: { type: ["number", "null"] },
     height: { type: ["number", "null"] },
+    category: { type: "string" },
+    tags: {
+      type: "array",
+      items: {
+        type: "string",
+      },
+    },
     updatedAt: { type: "number" },
   },
   required: [
@@ -174,6 +181,8 @@ export const assetsSchema: RxJsonSchema<any> = {
     "previewImagePath",
     "width",
     "height",
+    "category",
+    "tags",
     "updatedAt",
   ],
   indexes: ["updatedAt"],
@@ -186,6 +195,17 @@ export const assetsMigrationStrategies = {
     previewImagePath: null,
     width: null,
     height: null,
+    tags: [],
+    ...documentData,
+  }),
+  2: async (documentData: Record<string, unknown>) => ({
+    sizeBytes: 0,
+    durationMs: null,
+    previewImagePath: null,
+    width: null,
+    height: null,
+    category: "",
+    tags: Array.isArray(documentData.tags) ? documentData.tags : [],
     ...documentData,
   }),
 };

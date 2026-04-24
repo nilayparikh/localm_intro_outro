@@ -12,6 +12,63 @@ import {
 import { ThumbnailCapsules } from "./ThumbnailCapsules";
 import { ThumbnailFooter, resolveFooterSize } from "./ThumbnailFooter";
 
+const INTRO_BITE_CAPSULE_LAYOUT = {
+  small: {
+    insetY: 36,
+    paddingY: 10,
+    textSize: 18,
+    iconSize: 18,
+  },
+  medium: {
+    insetY: 40,
+    paddingY: 12,
+    textSize: 22,
+    iconSize: 22,
+  },
+  large: {
+    insetY: 44,
+    paddingY: 14,
+    textSize: 26,
+    iconSize: 26,
+  },
+} as const;
+
+function isEnabled(value: string | undefined): boolean {
+  return value === "true";
+}
+
+function hasText(value: string | undefined): boolean {
+  return (value?.trim() ?? "") !== "";
+}
+
+function resolveIntroBiteCapsuleBottomInset(
+  values: Record<string, string>,
+  scale: number,
+): number {
+  const hasCapsules =
+    (isEnabled(values["show_bite_capsule"]) &&
+      hasText(values["bite_capsule_text"])) ||
+    (isEnabled(values["show_duration_capsule"]) &&
+      hasText(values["duration_capsule_text"])) ||
+    (isEnabled(values["show_speed_capsule"]) &&
+      hasText(values["speed_capsule_text"]));
+
+  if (!hasCapsules) {
+    return 0;
+  }
+
+  const capsuleSize =
+    values["capsule_size"] === "large" || values["capsule_size"] === "medium"
+      ? values["capsule_size"]
+      : "small";
+  const capsuleLayout = INTRO_BITE_CAPSULE_LAYOUT[capsuleSize];
+  const capsuleHeight =
+    capsuleLayout.paddingY * 2 +
+    Math.max(capsuleLayout.textSize, capsuleLayout.iconSize);
+
+  return Math.round((capsuleLayout.insetY + capsuleHeight) * scale);
+}
+
 function GridPattern({
   pattern,
   color,
@@ -263,6 +320,13 @@ export function IntroBiteThumbnailTemplate({
   const sourceLabel = values["source_label"]?.trim() || "BITE FROM";
   const sourceTitle =
     values["source_title"]?.trim() || "Context Engineering for GitHub Copilot";
+  const showSourceLabel = values["show_source_label"] !== "false";
+  const showSourceTitle = values["show_source_title"] !== "false";
+  const shouldRenderSourceLabel = showSourceLabel && sourceLabel !== "";
+  const shouldRenderSourceTitle = showSourceTitle && sourceTitle !== "";
+  const shouldRenderSourceRail =
+    shouldRenderSourceLabel || shouldRenderSourceTitle;
+  const contentTopInset = resolveIntroBiteCapsuleBottomInset(values, scale);
 
   if (socialRenderMode === "only") {
     return (
@@ -321,13 +385,17 @@ export function IntroBiteThumbnailTemplate({
       />
 
       <div
+        data-template-region="bite-main-content"
         style={{
           position: "absolute",
-          inset: 0,
+          left: 0,
+          right: 0,
+          top: contentTopInset,
+          bottom: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: `${Math.round(46 * scale)}px ${Math.round(64 * scale)}px`,
+          padding: `0 ${Math.round(64 * scale)}px ${Math.round(46 * scale)}px`,
           zIndex: 2,
         }}
       >
@@ -363,56 +431,62 @@ export function IntroBiteThumbnailTemplate({
             {values["title"] ?? "5 Copilot Prompts That Save Time"}
           </div>
 
-          <div
-            data-template-region="bite-source"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: Math.round(18 * scale),
-              maxWidth: "94%",
-            }}
-          >
+          {shouldRenderSourceRail ? (
             <div
+              data-template-region="bite-source"
               style={{
-                display: "inline-flex",
+                display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
-                justifyContent: "center",
-                padding: `${Math.round(14 * scale)}px ${Math.round(31 * scale)}px`,
-                borderRadius: 999,
-                border: `1px solid ${theme.accent}66`,
-                background: `linear-gradient(135deg, ${theme.accent}24, ${theme.textPrimary}10)`,
-                boxShadow: `0 ${Math.round(10 * scale)}px ${Math.round(28 * scale)}px rgba(11, 17, 32, 0.16)`,
-                fontSize: eyebrowSize,
-                fontWeight: 900,
-                letterSpacing: "0.2em",
-                color: theme.textPrimary,
-                fontFamily: primaryFont,
-                lineHeight: 1,
-                textAlign: "center",
-                textTransform: "uppercase",
-                whiteSpace: "nowrap",
+                gap: Math.round(18 * scale),
+                maxWidth: "94%",
               }}
             >
-              {sourceLabel}
-            </div>
+              {shouldRenderSourceLabel ? (
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: `${Math.round(14 * scale)}px ${Math.round(31 * scale)}px`,
+                    borderRadius: 999,
+                    border: `1px solid ${theme.accent}66`,
+                    background: `linear-gradient(135deg, ${theme.accent}24, ${theme.textPrimary}10)`,
+                    boxShadow: `0 ${Math.round(10 * scale)}px ${Math.round(28 * scale)}px rgba(11, 17, 32, 0.16)`,
+                    fontSize: eyebrowSize,
+                    fontWeight: 900,
+                    letterSpacing: "0.2em",
+                    color: theme.textPrimary,
+                    fontFamily: primaryFont,
+                    lineHeight: 1,
+                    textAlign: "center",
+                    textTransform: "uppercase",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {sourceLabel}
+                </div>
+              ) : null}
 
-            <div
-              style={{
-                fontSize: sourceTitleSize,
-                fontWeight: 760,
-                color: theme.textPrimary,
-                fontFamily: secondaryFont,
-                lineHeight: 1.08,
-                letterSpacing: "-0.02em",
-                textAlign: "center",
-                maxWidth: "100%",
-                opacity: 0.9,
-              }}
-            >
-              {sourceTitle}
+              {shouldRenderSourceTitle ? (
+                <div
+                  style={{
+                    fontSize: sourceTitleSize,
+                    fontWeight: 760,
+                    color: theme.textPrimary,
+                    fontFamily: secondaryFont,
+                    lineHeight: 1.08,
+                    letterSpacing: "-0.02em",
+                    textAlign: "center",
+                    maxWidth: "100%",
+                    opacity: 0.9,
+                  }}
+                >
+                  {sourceTitle}
+                </div>
+              ) : null}
             </div>
-          </div>
+          ) : null}
         </div>
       </div>
 

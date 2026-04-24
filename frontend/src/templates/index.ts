@@ -9,6 +9,7 @@ import { CenteredThumbnailTemplate } from "./CenteredThumbnailTemplate";
 import { CenteredCourseThumbnailTemplate } from "./CenteredCourseThumbnailTemplate";
 import { BackgroundThumbnailTemplate } from "./BackgroundThumbnailTemplate";
 import { IntroBiteThumbnailTemplate } from "./IntroBiteThumbnailTemplate";
+import { IntroSplitThumbnailTemplate } from "./IntroSplitThumbnailTemplate";
 import { OutroThumbnailTemplate } from "./OutroThumbnailTemplate";
 
 export type TemplateComponent = React.ComponentType<TemplateProps>;
@@ -118,13 +119,63 @@ const CAPSULE_SIZE_FIELD: FieldDef = {
   options: SIZE_PRESET_OPTIONS,
 };
 
-const OUTRO_IMAGE_FIELD: FieldDef = {
-  id: "show_outro_image",
-  label: "Show Suggested Preview",
-  type: "select",
-  defaultValue: "true",
-  options: CAPSULE_TOGGLE_OPTIONS,
-};
+const OUTRO_BACKGROUND_SVG_FIELDS: FieldDef[] = [
+  {
+    id: "outro_background_svg_asset_id",
+    label: "Background SVG Asset",
+    type: "select",
+    defaultValue: "",
+    options: [],
+  },
+  {
+    id: "outro_background_opacity",
+    label: "Background SVG Opacity",
+    type: "slider",
+    defaultValue: "55",
+    min: 0,
+    max: 100,
+    step: 1,
+  },
+  {
+    id: "outro_background_scale",
+    label: "Background SVG Scale",
+    type: "slider",
+    defaultValue: "100",
+    min: 50,
+    max: 180,
+    step: 1,
+  },
+  {
+    id: "outro_background_x",
+    label: "Background SVG Position X",
+    type: "slider",
+    defaultValue: "0",
+    min: -24,
+    max: 24,
+    step: 1,
+  },
+  {
+    id: "outro_background_y",
+    label: "Background SVG Position Y",
+    type: "slider",
+    defaultValue: "0",
+    min: -24,
+    max: 24,
+    step: 1,
+  },
+];
+
+const SPLIT_TITLE_SIDE_OPTIONS = [
+  { value: "left", label: "Left" },
+  { value: "right", label: "Right" },
+];
+
+const SPLIT_TYPE_CAPSULE_OPTIONS = [
+  { value: "bite", label: "Bite" },
+  { value: "course", label: "Course" },
+  { value: "mono", label: "Mono" },
+  { value: "debug", label: "Debug Mode" },
+];
 
 const CAPSULE_STYLE_FIELD: FieldDef = {
   id: "capsule_style",
@@ -476,7 +527,7 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
   },
   {
     id: "intro_bite_thumbnail",
-    name: "Intro Bite",
+    name: "Intro (Bite)",
     description:
       "Editorial teaser layout for a short bite clip with a source attribution rail and fast-read metadata capsules.",
     tool: "thumbnail",
@@ -489,10 +540,24 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
         defaultValue: "5 Copilot Prompts That Save Time",
       },
       {
+        id: "show_source_label",
+        label: "Show Bite From",
+        type: "select",
+        defaultValue: "true",
+        options: CAPSULE_TOGGLE_OPTIONS,
+      },
+      {
         id: "source_label",
         label: "Source Label",
         type: "text",
         defaultValue: "BITE FROM",
+      },
+      {
+        id: "show_source_title",
+        label: "Show Original Video Title",
+        type: "select",
+        defaultValue: "true",
+        options: CAPSULE_TOGGLE_OPTIONS,
       },
       {
         id: "source_title",
@@ -518,13 +583,170 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
     ],
   },
   {
+    id: "intro_split_thumbnail",
+    name: "Intro (Split)",
+    description:
+      "Split intro layout with zig-zag partition control, side-switched title placement, and asset-driven foreground/background composition.",
+    tool: "thumbnail",
+    hasPip: false,
+    fields: [
+      {
+        id: "title",
+        label: "Intro Title",
+        type: "text",
+        defaultValue: "AI Voice Cloning in 45 Seconds",
+      },
+      {
+        id: "split_title_side",
+        label: "Title Side",
+        type: "select",
+        defaultValue: "left",
+        options: SPLIT_TITLE_SIDE_OPTIONS,
+      },
+      {
+        id: "split_partition_points",
+        label: "Partition Points",
+        type: "text",
+        defaultValue: "(12, 3), (12, 24)",
+      },
+      {
+        id: "split_type_capsule",
+        label: "Type Capsule",
+        type: "select",
+        defaultValue: "bite",
+        options: SPLIT_TYPE_CAPSULE_OPTIONS,
+      },
+      {
+        id: "split_background_svg_asset_id",
+        label: "Background SVG Asset",
+        type: "select",
+        defaultValue: "",
+        options: [],
+      },
+      {
+        id: "split_background_opacity",
+        label: "Background SVG Opacity",
+        type: "slider",
+        defaultValue: "55",
+        min: 0,
+        max: 100,
+        step: 1,
+      },
+      {
+        id: "split_background_scale",
+        label: "Background SVG Scale",
+        type: "slider",
+        defaultValue: "100",
+        min: 50,
+        max: 180,
+        step: 1,
+      },
+      {
+        id: "split_background_x",
+        label: "Background SVG Position X",
+        type: "slider",
+        defaultValue: "0",
+        min: -24,
+        max: 24,
+        step: 1,
+      },
+      {
+        id: "split_background_y",
+        label: "Background SVG Position Y",
+        type: "slider",
+        defaultValue: "0",
+        min: -24,
+        max: 24,
+        step: 1,
+      },
+      {
+        id: "split_foreground_asset_id",
+        label: "Foreground Image Asset",
+        type: "select",
+        defaultValue: "",
+        options: [],
+      },
+      {
+        id: "split_foreground_scale",
+        label: "Foreground Scale",
+        type: "slider",
+        defaultValue: "108",
+        min: 50,
+        max: 180,
+        step: 1,
+      },
+      {
+        id: "split_foreground_x",
+        label: "Foreground Position X",
+        type: "slider",
+        defaultValue: "0",
+        min: -24,
+        max: 24,
+        step: 1,
+      },
+      {
+        id: "split_foreground_y",
+        label: "Foreground Position Y",
+        type: "slider",
+        defaultValue: "0",
+        min: -24,
+        max: 24,
+        step: 1,
+      },
+      {
+        id: "split_corner_icon_asset_id_1",
+        label: "Corner Icon 1",
+        type: "select",
+        defaultValue: "",
+        options: [],
+      },
+      {
+        id: "split_corner_icon_asset_id_2",
+        label: "Corner Icon 2",
+        type: "select",
+        defaultValue: "",
+        options: [],
+      },
+      {
+        id: "split_corner_icon_asset_id_3",
+        label: "Corner Icon 3",
+        type: "select",
+        defaultValue: "",
+        options: [],
+      },
+      {
+        id: "split_corner_icon_size",
+        label: "Corner Icon Size",
+        type: "slider",
+        defaultValue: "100",
+        min: 50,
+        max: 180,
+        step: 5,
+      },
+      {
+        id: "title_size",
+        label: "Title Size",
+        type: "select",
+        defaultValue: "lg",
+        options: TEXT_SIZE_OPTIONS,
+      },
+      ...CENTERED_CAPSULE_FIELDS,
+      SURFACE_STYLE_FIELD,
+      SURFACE_SHADOW_FIELD,
+      BORDER_STYLE_FIELD,
+      BORDER_COLOR_SECONDARY_FIELD,
+      ...gridPatternFields,
+      FOOTER_SIZE_FIELD,
+    ],
+  },
+  {
     id: "outro_thumbnail",
     name: "Outro",
     description:
       "Static end-card banner with a top gratitude CTA block and a reusable shared audio-track workflow.",
     tool: "thumbnail",
     hasPip: false,
-    supportsTutorialImage: true,
+    supportsTutorialImage: false,
     fields: [
       {
         id: "title",
@@ -537,6 +759,7 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
         label: "Support Line",
         type: "text",
         defaultValue: "Want more? Subscribe and press the bell",
+        multiline: true,
       },
       {
         id: "title_size",
@@ -546,7 +769,7 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
         options: TEXT_SIZE_OPTIONS,
       },
       SECONDARY_TEXT_SIZE_FIELD,
-      OUTRO_IMAGE_FIELD,
+      ...OUTRO_BACKGROUND_SVG_FIELDS,
       SURFACE_STYLE_FIELD,
       SURFACE_SHADOW_FIELD,
       BORDER_STYLE_FIELD,
@@ -564,6 +787,7 @@ export const TEMPLATE_COMPONENTS: Record<string, TemplateComponent> = {
   centered_thumbnail: CenteredThumbnailTemplate,
   centered_course_thumbnail: CenteredCourseThumbnailTemplate,
   intro_bite_thumbnail: IntroBiteThumbnailTemplate,
+  intro_split_thumbnail: IntroSplitThumbnailTemplate,
   outro_thumbnail: OutroThumbnailTemplate,
 };
 

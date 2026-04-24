@@ -2,6 +2,48 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createAzureCachedCollectionApi } from "@common";
 
+interface TestRecord {
+  id: string;
+  updatedAt: number;
+}
+
+test("createAzureCachedCollectionApi remove ignores a local RxDB conflict after remote deletion already succeeded", async () => {
+  let findOneCalls = 0;
+  const existingDoc = {
+    toJSON: () => ({ id: "asset-1", updatedAt: 1 }),
+    remove: async () => {
+      const error = new Error("RxDB Error-Code: CONFLICT.");
+      throw error;
+    },
+  };
+
+  const api = createAzureCachedCollectionApi<TestRecord, TestRecord>({
+    collection: {
+      find: () => ({ exec: async () => [] }),
+      findOne: () => ({
+        exec: async () => {
+          findOneCalls += 1;
+          return findOneCalls === 1 ? existingDoc : null;
+        },
+      }),
+      upsert: async () => undefined,
+    },
+    remote: {
+      list: async () => [],
+      upsert: async (record) => record,
+      delete: async () => undefined,
+    },
+    prepareForSave: (input) => input,
+  });
+
+  await assert.doesNotReject(async () => {
+    await api.remove("asset-1");
+  });
+});
+import test from "node:test";
+import assert from "node:assert/strict";
+import { createAzureCachedCollectionApi } from "@common";
+
 type FakeRecord = {
   id: string;
   updatedAt: number;

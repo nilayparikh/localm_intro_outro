@@ -30,7 +30,7 @@ export function LauncherPage() {
     <PageLayout
       header={
         <AppBar
-          title="LocalM™ Intro Outro"
+          title="LocalM™ Intro (Bite)"
           rightContent={
             <Stack direction="row" spacing={0.5}>
               <SyncMenu />

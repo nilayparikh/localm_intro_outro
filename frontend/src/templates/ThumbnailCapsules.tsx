@@ -103,11 +103,7 @@ function normalizeCapsuleText(value: string | undefined): string | null {
 }
 
 function normalizeLevel(value: string | undefined): CapsuleLevel {
-  if (
-    value === "intermediate" ||
-    value === "advanced" ||
-    value === "expert"
-  ) {
+  if (value === "intermediate" || value === "advanced" || value === "expert") {
     return value;
   }
 
@@ -250,7 +246,9 @@ function buildCapsules(
 ): CapsuleDescriptor[] {
   const capsules: CapsuleDescriptor[] = [];
   const durationText = normalizeCapsuleText(values["duration_capsule_text"]);
-  const instructorText = normalizeCapsuleText(values["instructor_capsule_text"]);
+  const instructorText = normalizeCapsuleText(
+    values["instructor_capsule_text"],
+  );
   const handsOnLabText = normalizeCapsuleText(
     values["hands_on_lab_capsule_text"],
   );
@@ -271,7 +269,11 @@ function buildCapsules(
     });
   }
 
-  if (isIntroBiteVariant && isCapsuleEnabled(values["show_bite_capsule"]) && biteText) {
+  if (
+    isIntroBiteVariant &&
+    isCapsuleEnabled(values["show_bite_capsule"]) &&
+    biteText
+  ) {
     const biteColor = capsuleColor ?? "#f97316";
 
     capsules.push({
@@ -283,7 +285,11 @@ function buildCapsules(
     });
   }
 
-  if (isIntroBiteVariant && isCapsuleEnabled(values["show_speed_capsule"]) && speedText) {
+  if (
+    isIntroBiteVariant &&
+    isCapsuleEnabled(values["show_speed_capsule"]) &&
+    speedText
+  ) {
     const speedColor = capsuleColor ?? "#f472b6";
 
     capsules.push({
@@ -337,10 +343,7 @@ function buildCapsules(
     });
   }
 
-  if (
-    isCapsuleEnabled(values["show_hands_on_lab_capsule"]) &&
-    handsOnLabText
-  ) {
+  if (isCapsuleEnabled(values["show_hands_on_lab_capsule"]) && handsOnLabText) {
     const handsOnLabColor = capsuleColor ?? "#f59e0b";
 
     capsules.push({
@@ -371,7 +374,7 @@ function buildGroupStyle({
     alignItems: "center",
     justifyContent: position === "top-right" ? "flex-end" : "flex-start",
     gap: sizing.groupGap,
-    zIndex: 4,
+    zIndex: 40,
   };
 }
 

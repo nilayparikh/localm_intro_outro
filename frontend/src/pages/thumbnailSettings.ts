@@ -11,6 +11,8 @@ import {
 } from "../themes/themeDefinitions";
 
 export const DEFAULT_COPYRIGHT_TEXT = "© 2026 LocalM™. All rights reserved.";
+const THUMBNAIL_PAGE_APP_NAME = "LocalM Media Mods";
+const THUMBNAIL_PAGE_MODULE_NAME = "Intro Outro";
 const DEFAULT_MOTION_DURATION_SECONDS = 3;
 const MIN_MOTION_DURATION_SECONDS = 1;
 const MAX_MOTION_DURATION_SECONDS = 15;
@@ -26,10 +28,12 @@ const CONTENT_FIELD_GROUPS: ReadonlyArray<readonly string[]> = [
   ["show_level_capsule", "level_capsule_value"],
   ["show_instructor_capsule", "instructor_capsule_text"],
   ["show_hands_on_lab_capsule", "hands_on_lab_capsule_text"],
-  ["source_label", "source_title"],
+  ["show_source_label", "source_label"],
+  ["show_source_title", "source_title"],
   ["show_bite_capsule", "bite_capsule_text"],
   ["show_speed_capsule", "speed_capsule_text"],
   ["title_size", "secondary_size"],
+  ["split_title_side", "title_size"],
   ["show_grid", "grid_pattern"],
 ];
 
@@ -42,6 +46,25 @@ const CONTENT_FIELD_EXCLUSIONS = new Set([
   "surface_shadow",
   "border_style",
   "border_color_secondary",
+  "split_partition_points",
+  "split_foreground_asset_id",
+  "split_foreground_scale",
+  "split_foreground_x",
+  "split_foreground_y",
+  "split_background_svg_asset_id",
+  "split_background_opacity",
+  "split_background_scale",
+  "split_background_x",
+  "split_background_y",
+  "outro_background_svg_asset_id",
+  "outro_background_opacity",
+  "outro_background_scale",
+  "outro_background_x",
+  "outro_background_y",
+  "split_corner_icon_asset_id_1",
+  "split_corner_icon_asset_id_2",
+  "split_corner_icon_asset_id_3",
+  "split_corner_icon_size",
 ]);
 
 export function clampBrandLogoSize(value: number): number {
@@ -66,16 +89,22 @@ export function resolveMotionDurationSeconds(
 
 export function resolveExportActionLoadingState(
   activeExportActions: ThumbnailExportActivityState | null | undefined,
+  preExportActions?: ThumbnailExportActivityState | null | undefined,
 ): { isImageExporting: boolean; isMotionExporting: boolean } {
   const activityState = activeExportActions ?? {
     png: 0,
     zip: 0,
     motion: 0,
   };
+  const preExportState = preExportActions ?? {
+    png: 0,
+    zip: 0,
+    motion: 0,
+  };
 
   return {
-    isImageExporting: activityState.png > 0,
-    isMotionExporting: activityState.motion > 0,
+    isImageExporting: activityState.png > 0 || preExportState.png > 0,
+    isMotionExporting: activityState.motion > 0 || preExportState.motion > 0,
   };
 }
 
@@ -142,6 +171,13 @@ export interface ThumbnailTemplateRenderInput {
   fontSize: number;
   borderWidth: number;
   borderColor: string;
+  overlayImageUrl?: string | null;
+  overlayImageScale?: number;
+  overlayImageX?: number;
+  overlayImageY?: number;
+  splitBlendImageUrl?: string | null;
+  splitCornerIconUrls?: string[];
+  splitCornerIconSize?: number;
   brandLogoUrl: string | null;
   brandLogoSize: number;
   tutorialImageUrl: string | null;
@@ -162,6 +198,14 @@ export interface BannerDialogEntry {
 export interface BannerDialogState {
   selectedBannerId: string;
   bannerName: string;
+}
+
+export interface ThumbnailTemplateAssetBindingsInput {
+  templateId: string;
+  tutorialImageUrl: string | null;
+  splitForegroundAssetUrl: string | null;
+  splitBackgroundSvgAssetUrl: string | null;
+  outroBackgroundSvgAssetUrl: string | null;
 }
 
 const TEMPLATE_AUDIO_ASSET_FIELD_IDS: Record<string, string> = {
@@ -229,6 +273,45 @@ export function getThemeBorderColor(
   return theme.borderColor || theme.accent;
 }
 
+export function buildThumbnailPageTitle(templateName?: string | null): string {
+  const baseTitle = `${THUMBNAIL_PAGE_APP_NAME} | ${THUMBNAIL_PAGE_MODULE_NAME}`;
+  const resolvedTemplateName = templateName?.trim();
+
+  return resolvedTemplateName
+    ? `${baseTitle} | ${resolvedTemplateName}`
+    : baseTitle;
+}
+
+export function resolveThumbnailTemplateAssetBindings({
+  templateId,
+  tutorialImageUrl,
+  splitForegroundAssetUrl,
+  splitBackgroundSvgAssetUrl,
+  outroBackgroundSvgAssetUrl,
+}: ThumbnailTemplateAssetBindingsInput): {
+  tutorialImageUrl: string | null;
+  overlayImageUrl: string | null;
+} {
+  if (templateId === "intro_split_thumbnail") {
+    return {
+      tutorialImageUrl: splitForegroundAssetUrl,
+      overlayImageUrl: splitBackgroundSvgAssetUrl,
+    };
+  }
+
+  if (templateId === "outro_thumbnail") {
+    return {
+      tutorialImageUrl,
+      overlayImageUrl: outroBackgroundSvgAssetUrl,
+    };
+  }
+
+  return {
+    tutorialImageUrl,
+    overlayImageUrl: null,
+  };
+}
+
 export function buildThumbnailTemplateRenderProps(
   input: ThumbnailTemplateRenderInput,
 ): TemplateProps {
@@ -245,8 +328,14 @@ export function buildThumbnailTemplateRenderProps(
     socialRenderMode: input.showCopyrightMessage ? "full" : "hidden",
     borderWidth: input.borderWidth,
     borderColor: input.borderColor,
-    overlayImageUrl: null,
+    overlayImageUrl: input.overlayImageUrl ?? null,
+    overlayImageScale: input.overlayImageScale,
+    overlayImageX: input.overlayImageX,
+    overlayImageY: input.overlayImageY,
     overlayImageSize: 180,
+    splitBlendImageUrl: input.splitBlendImageUrl ?? null,
+    splitCornerIconUrls: input.splitCornerIconUrls,
+    splitCornerIconSize: input.splitCornerIconSize,
     brandLogoUrl: input.brandLogoUrl,
     brandLogoSize: input.brandLogoSize,
     brandLogoPosition: "top-right",

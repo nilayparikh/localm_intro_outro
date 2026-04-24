@@ -222,3 +222,97 @@ test("buildThumbnailTemplateRenderProps preserves structured outro arrow overlay
     },
   ]);
 });
+
+test("buildThumbnailTemplateRenderProps preserves intro split corner icon assets and size", () => {
+  const props = buildThumbnailTemplateRenderProps({
+    width: 3840,
+    height: 2160,
+    values: {
+      title: "Intro Split",
+      split_title_side: "left",
+    },
+    theme: {
+      background: "#0b1120",
+      surface: "#111827",
+      textPrimary: "#f8fafc",
+      textSecondary: "#94a3b8",
+      accent: "#22d3ee",
+      borderColor: "#22d3ee",
+      gradientStart: "#0b1120",
+      gradientMid: "#111827",
+      gradientEnd: "#1e293b",
+      backgroundImage: "linear-gradient(135deg, #0b1120, #111827, #1e293b)",
+    },
+    primaryFontFamily: "'Outfit', sans-serif",
+    secondaryFontFamily: "'Share Tech Mono', monospace",
+    fontSize: 96,
+    borderWidth: 24,
+    borderColor: "#22d3ee",
+    brandLogoUrl: null,
+    brandLogoSize: 90,
+    tutorialImageUrl: null,
+    tutorialImageSize: 100,
+    tutorialImageBottomPadding: 24,
+    tutorialImageOpacity: 100,
+    splitCornerIconUrls: [
+      "data:image/png;base64,icon-1",
+      "data:image/png;base64,icon-2",
+      "data:image/png;base64,icon-3",
+    ],
+    splitCornerIconSize: 100,
+    showCopyrightMessage: true,
+    copyrightText: "© 2026 LocalM™",
+  } as any);
+
+  assert.deepEqual((props as any).splitCornerIconUrls, [
+    "data:image/png;base64,icon-1",
+    "data:image/png;base64,icon-2",
+    "data:image/png;base64,icon-3",
+  ]);
+  assert.equal((props as any).splitCornerIconSize, 100);
+});
+
+test("buildThumbnailTemplateRenderProps preserves background asset transform values", () => {
+  const props = buildThumbnailTemplateRenderProps({
+    width: 3840,
+    height: 2160,
+    values: {
+      title: "Outro",
+    },
+    theme: {
+      background: "#0b1120",
+      surface: "#111827",
+      textPrimary: "#f8fafc",
+      textSecondary: "#94a3b8",
+      accent: "#22d3ee",
+      borderColor: "#22d3ee",
+      gradientStart: "#0b1120",
+      gradientMid: "#111827",
+      gradientEnd: "#1e293b",
+      backgroundImage: "linear-gradient(135deg, #0b1120, #111827, #1e293b)",
+    },
+    primaryFontFamily: "'Outfit', sans-serif",
+    secondaryFontFamily: "'Share Tech Mono', monospace",
+    fontSize: 96,
+    borderWidth: 24,
+    borderColor: "#22d3ee",
+    overlayImageUrl: "data:image/svg+xml;base64,background",
+    brandLogoUrl: null,
+    brandLogoSize: 90,
+    tutorialImageUrl: null,
+    tutorialImageSize: 100,
+    tutorialImageBottomPadding: 24,
+    tutorialImageOpacity: 100,
+    showCopyrightMessage: true,
+    copyrightText: "© 2026 LocalM™",
+    ...({
+      overlayImageScale: 132,
+      overlayImageX: -12,
+      overlayImageY: 18,
+    } as any),
+  } as any);
+
+  assert.equal((props as any).overlayImageScale, 132);
+  assert.equal((props as any).overlayImageX, -12);
+  assert.equal((props as any).overlayImageY, 18);
+});

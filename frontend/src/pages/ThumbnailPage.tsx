@@ -20,6 +20,8 @@ import TextFieldsIcon from "@mui/icons-material/TextFields";
 import PaletteIcon from "@mui/icons-material/Palette";
 import SaveIcon from "@mui/icons-material/Save";
 import ImageIcon from "@mui/icons-material/Image";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import toast from "react-hot-toast";
 
 import {
@@ -30,6 +32,7 @@ import {
   SectionCard,
   SelectControl,
   SliderControl,
+  SwitchControl,
   ActionButton,
   StatusChip,
 } from "@common";
@@ -45,16 +48,10 @@ import {
   SURFACE_STYLE_OPTIONS,
 } from "../templates/index";
 import type { FieldDef } from "../templates/types";
-import {
-  OUTRO_ARROW_ASSET_RESOURCES,
-  OUTRO_ARROW_TYPE_OPTIONS,
-  createDefaultOutroArrowOverlay,
-  type OutroArrowAssetType,
-  type OutroArrowOverlay,
-} from "../templates/outroArrowAssets";
+import { type OutroArrowOverlay } from "../templates/outroArrowAssets";
 import { DEFAULT_THEME_ID } from "../themes/themeDefinitions";
-import { useExport } from "../hooks/useExport";
-import { useAssets } from "../hooks/useAssets";
+import { useExport, type ExportActivityState } from "../hooks/useExport";
+import { buildAssetOptions, filterAssets, useAssets } from "../hooks/useAssets";
 import { useBanners, type BannerDoc } from "../hooks/useBanners";
 import { useAppState, type DraftBannerState } from "../hooks/useAppState";
 import { useRenderableAssetUrl } from "../hooks/useRenderableAssetUrl";
@@ -80,7 +77,18 @@ import {
 } from "./thumbnailHistory";
 import { resolveThumbnailShortcutAction } from "./thumbnailShortcuts";
 import {
+  MAX_SPLIT_BREAKPOINTS,
+  SPLIT_PARTITION_MAX,
+  getSplitDividerDistancePx,
+  insertSplitBreakpoint,
+  removeSplitBreakpoint,
+  resolveSplitPartitionPoints,
+  serializeSplitPartitionPoints,
+  updateSplitBreakpoint,
+} from "./thumbnailSplitPartition";
+import {
   DEFAULT_COPYRIGHT_TEXT,
+  buildThumbnailPageTitle,
   buildThumbnailTemplateRenderProps,
   buildBannerDialogState,
   buildThumbnailContentFieldRows,
@@ -88,12 +96,17 @@ import {
   getTemplateAudioAssetFieldId,
   getThumbnailTemplateCapabilities,
   getThemeBorderColor,
+  resolveThumbnailTemplateAssetBindings,
   resolveExportActionLoadingState,
   resolveMotionDurationSeconds,
   resolveLoadedBrandLogoUrl,
   resolveBrandLogoUrlFromSettings,
   resolvePersistedBrandLogoUrl,
 } from "./thumbnailSettings";
+import {
+  buildSplitBlendBackground,
+  clampSplitBackgroundOpacity,
+} from "../services/splitBlend";
 
 const THUMBNAIL_TEMPLATES = getTemplatesForTool("thumbnail");
 
@@ -205,11 +218,6 @@ const CONTROL_CELL_SX = {
   minWidth: 0,
 } as const;
 
-const OUTRO_ARROW_ORIENTATION_OPTIONS = [
-  { value: "false", label: "Regular" },
-  { value: "true", label: "Inverse" },
-];
-
 const FIELD_LABEL_OVERRIDES: Record<string, string> = {
   show_duration_capsule: "Duration Capsule",
   show_level_capsule: "Skill Capsule",
@@ -217,21 +225,78 @@ const FIELD_LABEL_OVERRIDES: Record<string, string> = {
   show_hands_on_lab_capsule: "Hands-On Lab Capsule",
   show_bite_capsule: "Bite Capsule",
   show_speed_capsule: "Speed Capsule",
+  show_source_label: "Show Bite From",
   source_label: "Bite From",
+  show_source_title: "Show Original Video Title",
   source_title: "Original Video Title",
-  show_outro_image: "Suggested Preview Image",
+  outro_background_svg_asset_id: "Background SVG Asset",
+  outro_background_opacity: "Background SVG Opacity",
+  split_title_side: "Title Side",
+  split_partition_points: "Partition Points",
+  split_foreground_asset_id: "Foreground Image Asset",
+  split_foreground_scale: "Foreground Scale",
+  split_foreground_x: "Foreground Position X",
+  split_foreground_y: "Foreground Position Y",
+  split_background_svg_asset_id: "Background SVG Asset",
+  split_background_opacity: "Background SVG Opacity",
+  split_background_scale: "Background SVG Scale",
+  split_background_x: "Background SVG Position X",
+  split_background_y: "Background SVG Position Y",
+  split_corner_icon_asset_id_1: "Corner Icon 1",
+  split_corner_icon_asset_id_2: "Corner Icon 2",
+  split_corner_icon_asset_id_3: "Corner Icon 3",
+  split_corner_icon_size: "Corner Icon Size",
+  outro_background_scale: "Background SVG Scale",
+  outro_background_x: "Background SVG Position X",
+  outro_background_y: "Background SVG Position Y",
+  split_type_capsule: "Type Capsule",
   title_size: "Title Style",
   secondary_size: "Secondary Style",
 };
+const PREVIEW_DEBOUNCE_MS = 2000;
+const FONT_SIZE_MIN = 24;
+const FONT_SIZE_MAX = 120;
+const IDLE_EXPORT_ACTIVITY_STATE: ExportActivityState = {
+  png: 0,
+  zip: 0,
+  motion: 0,
+};
+const SPLIT_CORNER_ICON_FIELD_IDS = [
+  "split_corner_icon_asset_id_1",
+  "split_corner_icon_asset_id_2",
+  "split_corner_icon_asset_id_3",
+] as const;
+
+function getUsedSplitCornerIconCount(assetIds: readonly string[]): number {
+  for (let index = assetIds.length - 1; index >= 0; index -= 1) {
+    if (assetIds[index]?.trim()) {
+      return index + 1;
+    }
+  }
+
+  return 0;
+}
+
+function clampFontSize(value: number): number {
+  return Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, value));
+}
+
+function isCapsuleFieldId(fieldId: string): boolean {
+  return fieldId.includes("capsule") || fieldId === "level_capsule_value";
+}
 
 function renderTemplateFieldControl({
   field,
   value,
   onChange,
+  errorText,
+  helperText,
 }: {
   field: FieldDef;
   value: string;
   onChange: (value: string) => void;
+  errorText?: string | null;
+  helperText?: string;
 }) {
   if (field.type === "select") {
     return (
@@ -274,7 +339,15 @@ function renderTemplateFieldControl({
         size="small"
         multiline={field.multiline}
         rows={field.multiline ? 3 : undefined}
+        error={Boolean(errorText)}
+        helperText={errorText ?? helperText}
         sx={TEXT_INPUT_SX}
+        slotProps={{
+          htmlInput: {
+            name: field.id,
+            "aria-label": FIELD_LABEL_OVERRIDES[field.id] ?? field.label,
+          },
+        }}
       />
     </Box>
   );
@@ -425,9 +498,13 @@ async function cropTransparentMargins(dataUrl: string): Promise<string> {
 export function ThumbnailPage() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const { exportMotion, exportPng, activeExportActions } = useExport();
+  const [preExportActions, setPreExportActions] = useState<ExportActivityState>(
+    IDLE_EXPORT_ACTIVITY_STATE,
+  );
   const { isImageExporting, isMotionExporting } = useMemo(
-    () => resolveExportActionLoadingState(activeExportActions),
-    [activeExportActions],
+    () =>
+      resolveExportActionLoadingState(activeExportActions, preExportActions),
+    [activeExportActions, preExportActions],
   );
   const { banners, saveBanner, deleteBanner, getBanner } = useBanners();
   const {
@@ -448,6 +525,9 @@ export function ThumbnailPage() {
   const suppressDraftWriteRef = useRef(false);
   const previousSettingsLogoUrlRef = useRef<string | null>(null);
   const historyRef = useRef<ThumbnailHistory | null>(null);
+  const splitPreviewRef = useRef<SVGSVGElement | null>(null);
+  const splitDragDidMoveRef = useRef(false);
+  const skipSplitPreviewClickRef = useRef(false);
 
   // State
   const [templateId, setTemplateId] = useState(
@@ -458,6 +538,8 @@ export function ThumbnailPage() {
   const [fieldValues, setFieldValues] = useState<Record<string, string>>(
     getDefaultValues(THUMBNAIL_TEMPLATES[0]?.id ?? "tutorial_thumbnail"),
   );
+  const [previewFieldValues, setPreviewFieldValues] =
+    useState<Record<string, string>>(fieldValues);
   const [borderWidth, setBorderWidth] = useState(0);
   const [borderColor, setBorderColor] = useState(
     getThemeBorderColor(DEFAULT_THEME_ID),
@@ -490,7 +572,51 @@ export function ThumbnailPage() {
   );
   const [profileName, setProfileName] = useState("default");
   const [selectedBannerId, setSelectedBannerId] = useState("");
+  const [previewSplitBlendImageUrl, setPreviewSplitBlendImageUrl] = useState<
+    string | null
+  >(null);
+  const [exportSplitBlendImageUrl, setExportSplitBlendImageUrl] = useState<
+    string | null
+  >(null);
+  const [isSplitBreakpointEditorVisible, setIsSplitBreakpointEditorVisible] =
+    useState(false);
+  const [isCapsuleEditorVisible, setIsCapsuleEditorVisible] = useState(false);
+  const [visibleSplitCornerIconCount, setVisibleSplitCornerIconCount] =
+    useState(0);
+  const [activeSplitDragIndex, setActiveSplitDragIndex] = useState<
+    number | null
+  >(null);
   const { assets, audioAssetOptions } = useAssets();
+  const splitForegroundAssetOptions = useMemo(
+    () =>
+      buildAssetOptions(
+        filterAssets(assets, {
+          kind: "image",
+          tags: ["foreground"],
+        }),
+      ),
+    [assets],
+  );
+  const splitBackgroundSvgAssetOptions = useMemo(
+    () =>
+      buildAssetOptions(
+        filterAssets(assets, {
+          kind: "image",
+          tags: ["background"],
+        }),
+      ),
+    [assets],
+  );
+  const splitCornerIconAssetOptions = useMemo(
+    () =>
+      buildAssetOptions(
+        filterAssets(assets, {
+          kind: "image",
+          tags: ["icon"],
+        }),
+      ),
+    [assets],
+  );
   const renderableBrandLogoUrl = useRenderableAssetUrl(brandLogoUrl);
 
   const setDraftWithSuppression = useCallback((callback: () => void) => {
@@ -503,12 +629,64 @@ export function ThumbnailPage() {
 
   // Get current values
   const currentTheme = getRenderableTheme(themeId);
+  const previewTheme = useMemo(
+    () => ({
+      ...currentTheme,
+      textPrimary:
+        previewFieldValues["font_color_primary"]?.trim() ||
+        currentTheme.textPrimary,
+      textSecondary:
+        previewFieldValues["font_color_secondary"]?.trim() ||
+        currentTheme.textSecondary,
+    }),
+    [currentTheme, previewFieldValues],
+  );
   const currentThemeDefinition = getTheme(themeId);
   const currentPlatform =
     PLATFORM_PRESETS.find((p) => p.id === platformId) ?? PLATFORM_PRESETS[0]!;
   const currentTemplate = THUMBNAIL_TEMPLATES.find((t) => t.id === templateId);
   const isOutroTemplate = templateId === "outro_thumbnail";
-  const currentTemplateFields = currentTemplate?.fields ?? [];
+  const isIntroSplitTemplate = templateId === "intro_split_thumbnail";
+  const currentTemplateFields = useMemo(() => {
+    const templateFields = currentTemplate?.fields ?? [];
+
+    if (!isIntroSplitTemplate && !isOutroTemplate) {
+      return templateFields;
+    }
+
+    return templateFields.map((field) => {
+      if (isIntroSplitTemplate && field.id === "split_foreground_asset_id") {
+        return {
+          ...field,
+          options: [
+            { value: "", label: "None" },
+            ...splitForegroundAssetOptions,
+          ],
+        };
+      }
+
+      if (
+        field.id === "split_background_svg_asset_id" ||
+        field.id === "outro_background_svg_asset_id"
+      ) {
+        return {
+          ...field,
+          options: [
+            { value: "", label: "None" },
+            ...splitBackgroundSvgAssetOptions,
+          ],
+        };
+      }
+
+      return field;
+    });
+  }, [
+    currentTemplate?.fields,
+    isIntroSplitTemplate,
+    isOutroTemplate,
+    splitBackgroundSvgAssetOptions,
+    splitForegroundAssetOptions,
+  ]);
   const currentTemplateFieldMap = new Map(
     currentTemplateFields.map((field) => [field.id, field]),
   );
@@ -525,7 +703,9 @@ export function ThumbnailPage() {
     currentTemplateFieldMap.get("surface_shadow")?.defaultValue ??
     "middle";
   const secondaryBorderColorValue =
-    fieldValues["border_color_secondary"]?.trim() || currentTheme.textSecondary;
+    fieldValues["border_color_secondary"]?.trim() ||
+    currentTheme.borderColor ||
+    currentTheme.accent;
   const capsuleStyleValue =
     fieldValues["capsule_style"] ??
     currentTemplateFieldMap.get("capsule_style")?.defaultValue ??
@@ -546,6 +726,14 @@ export function ThumbnailPage() {
         .filter((field): field is FieldDef => !!field),
     )
     .filter((row) => row.length > 0);
+  const capsuleContentFieldRows = contentFieldRows.filter((row) =>
+    row.some((field) => isCapsuleFieldId(field.id)),
+  );
+  const primaryContentFieldRows = contentFieldRows.filter((row) =>
+    row.every((field) => !isCapsuleFieldId(field.id)),
+  );
+  const hasCapsuleControls =
+    capsuleContentFieldRows.length > 0 || hasCapsuleStyleControls;
   const templateCapabilities = getThumbnailTemplateCapabilities(templateId);
   const tutorialImageSectionTitle = isOutroTemplate
     ? "Suggested Preview Image"
@@ -553,17 +741,424 @@ export function ThumbnailPage() {
   const tutorialImageUploadLabel = tutorialImageUrl
     ? `Change ${tutorialImageSectionTitle}`
     : `Upload ${tutorialImageSectionTitle}`;
+  const splitPartitionValidation = resolveSplitPartitionPoints(
+    fieldValues["split_partition_points"] ?? "",
+  );
+  const splitPartitionPoints = splitPartitionValidation.points;
+  const splitPartitionError = isIntroSplitTemplate
+    ? splitPartitionValidation.error
+    : null;
+  const splitBackgroundOpacityValue = clampSplitBackgroundOpacity(
+    fieldValues["split_background_opacity"],
+  );
+  const splitBackgroundScaleValue = Math.min(
+    180,
+    Math.max(
+      50,
+      Number.parseInt(fieldValues["split_background_scale"] ?? "100", 10) ||
+        100,
+    ),
+  );
+  const splitBackgroundXValue = Math.min(
+    24,
+    Math.max(
+      -24,
+      Number.parseInt(fieldValues["split_background_x"] ?? "0", 10) || 0,
+    ),
+  );
+  const splitBackgroundYValue = Math.min(
+    24,
+    Math.max(
+      -24,
+      Number.parseInt(fieldValues["split_background_y"] ?? "0", 10) || 0,
+    ),
+  );
+  const outroBackgroundOpacityValue = Math.min(
+    100,
+    Math.max(
+      0,
+      Number.parseInt(fieldValues["outro_background_opacity"] ?? "55", 10) ||
+        55,
+    ),
+  );
+  const outroBackgroundScaleValue = Math.min(
+    180,
+    Math.max(
+      50,
+      Number.parseInt(fieldValues["outro_background_scale"] ?? "100", 10) ||
+        100,
+    ),
+  );
+  const outroBackgroundXValue = Math.min(
+    24,
+    Math.max(
+      -24,
+      Number.parseInt(fieldValues["outro_background_x"] ?? "0", 10) || 0,
+    ),
+  );
+  const outroBackgroundYValue = Math.min(
+    24,
+    Math.max(
+      -24,
+      Number.parseInt(fieldValues["outro_background_y"] ?? "0", 10) || 0,
+    ),
+  );
+  const previewSplitBackgroundScaleValue = Math.min(
+    180,
+    Math.max(
+      50,
+      Number.parseInt(
+        previewFieldValues["split_background_scale"] ?? "100",
+        10,
+      ) || 100,
+    ),
+  );
+  const previewSplitBackgroundXValue = Math.min(
+    24,
+    Math.max(
+      -24,
+      Number.parseInt(previewFieldValues["split_background_x"] ?? "0", 10) || 0,
+    ),
+  );
+  const previewSplitBackgroundYValue = Math.min(
+    24,
+    Math.max(
+      -24,
+      Number.parseInt(previewFieldValues["split_background_y"] ?? "0", 10) || 0,
+    ),
+  );
+  const previewOutroBackgroundScaleValue = Math.min(
+    180,
+    Math.max(
+      50,
+      Number.parseInt(
+        previewFieldValues["outro_background_scale"] ?? "100",
+        10,
+      ) || 100,
+    ),
+  );
+  const previewOutroBackgroundXValue = Math.min(
+    24,
+    Math.max(
+      -24,
+      Number.parseInt(previewFieldValues["outro_background_x"] ?? "0", 10) || 0,
+    ),
+  );
+  const previewOutroBackgroundYValue = Math.min(
+    24,
+    Math.max(
+      -24,
+      Number.parseInt(previewFieldValues["outro_background_y"] ?? "0", 10) || 0,
+    ),
+  );
+  const motionDurationSeconds = resolveMotionDurationSeconds(fieldValues);
   const audioAssetFieldId = getTemplateAudioAssetFieldId(templateId);
   const selectedAudioAssetId = audioAssetFieldId
     ? (fieldValues[audioAssetFieldId] ?? "")
     : "";
+  const selectedSplitForegroundAssetId = isIntroSplitTemplate
+    ? (fieldValues["split_foreground_asset_id"] ?? "")
+    : "";
+  const selectedSplitBackgroundSvgAssetId = isIntroSplitTemplate
+    ? (fieldValues["split_background_svg_asset_id"] ?? "")
+    : "";
+  const selectedOutroBackgroundSvgAssetId = isOutroTemplate
+    ? (fieldValues["outro_background_svg_asset_id"] ?? "")
+    : "";
+  const previewSplitForegroundAssetId = isIntroSplitTemplate
+    ? (previewFieldValues["split_foreground_asset_id"] ?? "")
+    : "";
+  const previewSplitBackgroundSvgAssetId = isIntroSplitTemplate
+    ? (previewFieldValues["split_background_svg_asset_id"] ?? "")
+    : "";
+  const previewOutroBackgroundSvgAssetId = isOutroTemplate
+    ? (previewFieldValues["outro_background_svg_asset_id"] ?? "")
+    : "";
+  const selectedSplitCornerIconAssetIds = isIntroSplitTemplate
+    ? SPLIT_CORNER_ICON_FIELD_IDS.map((fieldId) => fieldValues[fieldId] ?? "")
+    : ["", "", ""];
+  const usedSplitCornerIconCount = isIntroSplitTemplate
+    ? getUsedSplitCornerIconCount(selectedSplitCornerIconAssetIds)
+    : 0;
+  const previewSplitCornerIconAssetIds = isIntroSplitTemplate
+    ? SPLIT_CORNER_ICON_FIELD_IDS.map(
+        (fieldId) => previewFieldValues[fieldId] ?? "",
+      )
+    : ["", "", ""];
   const selectedAudioAsset = useMemo(
     () => assets.find((asset) => asset.id === selectedAudioAssetId) ?? null,
     [assets, selectedAudioAssetId],
   );
+  const selectedSplitForegroundAsset = useMemo(
+    () =>
+      assets.find((asset) => asset.id === selectedSplitForegroundAssetId) ??
+      null,
+    [assets, selectedSplitForegroundAssetId],
+  );
+  const selectedSplitBackgroundSvgAsset = useMemo(
+    () =>
+      assets.find((asset) => asset.id === selectedSplitBackgroundSvgAssetId) ??
+      null,
+    [assets, selectedSplitBackgroundSvgAssetId],
+  );
+  const selectedOutroBackgroundSvgAsset = useMemo(
+    () =>
+      assets.find((asset) => asset.id === selectedOutroBackgroundSvgAssetId) ??
+      null,
+    [assets, selectedOutroBackgroundSvgAssetId],
+  );
+  const selectedSplitCornerIconAssets = useMemo(
+    () =>
+      selectedSplitCornerIconAssetIds.map(
+        (assetId) => assets.find((asset) => asset.id === assetId) ?? null,
+      ),
+    [assets, selectedSplitCornerIconAssetIds],
+  );
+  const previewSplitForegroundAsset = useMemo(
+    () =>
+      assets.find((asset) => asset.id === previewSplitForegroundAssetId) ??
+      null,
+    [assets, previewSplitForegroundAssetId],
+  );
+  const previewSplitBackgroundSvgAsset = useMemo(
+    () =>
+      assets.find((asset) => asset.id === previewSplitBackgroundSvgAssetId) ??
+      null,
+    [assets, previewSplitBackgroundSvgAssetId],
+  );
+  const previewOutroBackgroundSvgAsset = useMemo(
+    () =>
+      assets.find((asset) => asset.id === previewOutroBackgroundSvgAssetId) ??
+      null,
+    [assets, previewOutroBackgroundSvgAssetId],
+  );
+  const previewSplitCornerIconAsset1 = useMemo(
+    () =>
+      assets.find((asset) => asset.id === previewSplitCornerIconAssetIds[0]) ??
+      null,
+    [assets, previewSplitCornerIconAssetIds],
+  );
+  const previewSplitCornerIconAsset2 = useMemo(
+    () =>
+      assets.find((asset) => asset.id === previewSplitCornerIconAssetIds[1]) ??
+      null,
+    [assets, previewSplitCornerIconAssetIds],
+  );
+  const previewSplitCornerIconAsset3 = useMemo(
+    () =>
+      assets.find((asset) => asset.id === previewSplitCornerIconAssetIds[2]) ??
+      null,
+    [assets, previewSplitCornerIconAssetIds],
+  );
   const renderableSelectedAudioAssetUrl = useRenderableAssetUrl(
     selectedAudioAsset?.blobPath ?? null,
   );
+  const renderableSplitForegroundAssetUrl = useRenderableAssetUrl(
+    selectedSplitForegroundAsset?.blobPath ?? null,
+  );
+  const renderableSplitBackgroundSvgAssetUrl = useRenderableAssetUrl(
+    selectedSplitBackgroundSvgAsset?.blobPath ?? null,
+  );
+  const renderableOutroBackgroundSvgAssetUrl = useRenderableAssetUrl(
+    selectedOutroBackgroundSvgAsset?.blobPath ?? null,
+  );
+  const renderablePreviewSplitCornerIconUrl1 = useRenderableAssetUrl(
+    previewSplitCornerIconAsset1?.blobPath ?? null,
+  );
+  const renderablePreviewSplitCornerIconUrl2 = useRenderableAssetUrl(
+    previewSplitCornerIconAsset2?.blobPath ?? null,
+  );
+  const renderablePreviewSplitCornerIconUrl3 = useRenderableAssetUrl(
+    previewSplitCornerIconAsset3?.blobPath ?? null,
+  );
+  const resolvedSplitForegroundAssetOptions = useMemo(() => {
+    if (
+      !selectedSplitForegroundAsset ||
+      selectedSplitForegroundAsset.kind !== "image" ||
+      splitForegroundAssetOptions.some(
+        (option) => option.value === selectedSplitForegroundAsset.id,
+      )
+    ) {
+      return splitForegroundAssetOptions;
+    }
+
+    return [
+      ...splitForegroundAssetOptions,
+      ...buildAssetOptions([selectedSplitForegroundAsset]),
+    ];
+  }, [selectedSplitForegroundAsset, splitForegroundAssetOptions]);
+  const resolvedSplitBackgroundSvgAssetOptions = useMemo(() => {
+    if (
+      !selectedSplitBackgroundSvgAsset ||
+      selectedSplitBackgroundSvgAsset.kind !== "image" ||
+      splitBackgroundSvgAssetOptions.some(
+        (option) => option.value === selectedSplitBackgroundSvgAsset.id,
+      )
+    ) {
+      return splitBackgroundSvgAssetOptions;
+    }
+
+    return [
+      ...splitBackgroundSvgAssetOptions,
+      ...buildAssetOptions([selectedSplitBackgroundSvgAsset]),
+    ];
+  }, [selectedSplitBackgroundSvgAsset, splitBackgroundSvgAssetOptions]);
+  const resolvedOutroBackgroundSvgAssetOptions = useMemo(() => {
+    if (
+      !selectedOutroBackgroundSvgAsset ||
+      selectedOutroBackgroundSvgAsset.kind !== "image" ||
+      splitBackgroundSvgAssetOptions.some(
+        (option) => option.value === selectedOutroBackgroundSvgAsset.id,
+      )
+    ) {
+      return splitBackgroundSvgAssetOptions;
+    }
+
+    return [
+      ...splitBackgroundSvgAssetOptions,
+      ...buildAssetOptions([selectedOutroBackgroundSvgAsset]),
+    ];
+  }, [selectedOutroBackgroundSvgAsset, splitBackgroundSvgAssetOptions]);
+  const resolvedSplitCornerIconAssetOptions = useMemo(() => {
+    const missingSelectedAssets = selectedSplitCornerIconAssets.filter(
+      (asset) =>
+        asset !== null &&
+        asset.kind === "image" &&
+        !splitCornerIconAssetOptions.some(
+          (option) => option.value === asset.id,
+        ),
+    );
+
+    if (missingSelectedAssets.length === 0) {
+      return splitCornerIconAssetOptions;
+    }
+
+    return [
+      ...splitCornerIconAssetOptions,
+      ...buildAssetOptions(missingSelectedAssets),
+    ];
+  }, [selectedSplitCornerIconAssets, splitCornerIconAssetOptions]);
+  const renderablePreviewSplitForegroundAssetUrl = useRenderableAssetUrl(
+    previewSplitForegroundAsset?.blobPath ?? null,
+  );
+  const renderablePreviewSplitBackgroundSvgAssetUrl = useRenderableAssetUrl(
+    previewSplitBackgroundSvgAsset?.blobPath ?? null,
+  );
+  const renderablePreviewOutroBackgroundSvgAssetUrl = useRenderableAssetUrl(
+    previewOutroBackgroundSvgAsset?.blobPath ?? null,
+  );
+  const safeSelectedSplitForegroundAssetId = useMemo(
+    () =>
+      resolvedSplitForegroundAssetOptions.some(
+        (option) => option.value === selectedSplitForegroundAssetId,
+      )
+        ? selectedSplitForegroundAssetId
+        : "",
+    [resolvedSplitForegroundAssetOptions, selectedSplitForegroundAssetId],
+  );
+  const safeSelectedSplitBackgroundSvgAssetId = useMemo(
+    () =>
+      resolvedSplitBackgroundSvgAssetOptions.some(
+        (option) => option.value === selectedSplitBackgroundSvgAssetId,
+      )
+        ? selectedSplitBackgroundSvgAssetId
+        : "",
+    [resolvedSplitBackgroundSvgAssetOptions, selectedSplitBackgroundSvgAssetId],
+  );
+  const safeSelectedOutroBackgroundSvgAssetId = useMemo(
+    () =>
+      resolvedOutroBackgroundSvgAssetOptions.some(
+        (option) => option.value === selectedOutroBackgroundSvgAssetId,
+      )
+        ? selectedOutroBackgroundSvgAssetId
+        : "",
+    [resolvedOutroBackgroundSvgAssetOptions, selectedOutroBackgroundSvgAssetId],
+  );
+  const safeSelectedSplitCornerIconAssetIds = useMemo(
+    () =>
+      selectedSplitCornerIconAssetIds.map((assetId) =>
+        resolvedSplitCornerIconAssetOptions.some(
+          (option) => option.value === assetId,
+        )
+          ? assetId
+          : "",
+      ),
+    [resolvedSplitCornerIconAssetOptions, selectedSplitCornerIconAssetIds],
+  );
+
+  useEffect(() => {
+    if (!isIntroSplitTemplate) {
+      setActiveSplitDragIndex(null);
+      setIsSplitBreakpointEditorVisible(false);
+      setPreviewSplitBlendImageUrl(null);
+      setExportSplitBlendImageUrl(null);
+      setVisibleSplitCornerIconCount(0);
+    }
+  }, [isIntroSplitTemplate]);
+
+  useEffect(() => {
+    if (!isIntroSplitTemplate) {
+      return;
+    }
+
+    const usedCount = getUsedSplitCornerIconCount(
+      selectedSplitCornerIconAssetIds,
+    );
+    setVisibleSplitCornerIconCount((currentCount) =>
+      Math.max(currentCount, usedCount),
+    );
+  }, [isIntroSplitTemplate, selectedSplitCornerIconAssetIds]);
+
+  useEffect(() => {
+    setPreviewFieldValues(fieldValues);
+  }, [templateId]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setPreviewFieldValues(fieldValues);
+    }, PREVIEW_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [fieldValues]);
+
+  useEffect(() => {
+    if (!isIntroSplitTemplate || !renderablePreviewSplitForegroundAssetUrl) {
+      setPreviewSplitBlendImageUrl(null);
+      return;
+    }
+
+    let isCancelled = false;
+
+    void (async () => {
+      const nextBlendImageUrl = await buildSplitBlendBackground({
+        foregroundImageUrl: renderablePreviewSplitForegroundAssetUrl,
+        theme: currentTheme,
+        width: currentPlatform.width,
+        height: currentPlatform.height,
+        mode: "preview",
+      });
+
+      if (isCancelled) {
+        return;
+      }
+
+      setPreviewSplitBlendImageUrl(nextBlendImageUrl);
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    currentPlatform.height,
+    currentPlatform.width,
+    currentTheme,
+    isIntroSplitTemplate,
+    renderablePreviewSplitForegroundAssetUrl,
+  ]);
+
+  useEffect(() => {
+    setIsCapsuleEditorVisible(false);
+  }, [templateId]);
   const TemplateComponent = TEMPLATE_COMPONENTS[templateId];
   const activeBannerName = profileName.trim() || "Untitled";
   const activeTemplateEntry = useMemo(
@@ -698,7 +1293,7 @@ export function ThumbnailPage() {
       setSelectedFontPairId(entry.fontPairId);
       setSecondaryFontFamily(entry.secondaryFontFamily);
       setPrimaryFontFamily(entry.primaryFontFamily);
-      setFontSize(entry.fontSize);
+      setFontSize(clampFontSize(entry.fontSize));
       setBrandLogoUrl(entry.brandLogoUrl);
       setBrandLogoSize(clampBrandLogoSize(entry.brandLogoSize));
       setShowCopyrightMessage(entry.showCopyrightMessage ?? true);
@@ -761,65 +1356,194 @@ export function ThumbnailPage() {
     setFieldValues((prev) => ({ ...prev, [fieldId]: value }));
   }, []);
 
-  const handleAddOutroArrowOverlay = useCallback(() => {
-    setOutroArrowOverlays((prev) => {
-      const nextOverlay = createDefaultOutroArrowOverlay();
-      const offset = prev.length * 4;
-
-      return [
-        ...prev,
-        {
-          ...nextOverlay,
-          x: Math.min(92, nextOverlay.x + offset),
-          y: Math.min(88, nextOverlay.y + offset),
-        },
-      ];
-    });
-  }, []);
-
-  const handleRemoveOutroArrowOverlay = useCallback((overlayId: string) => {
-    setOutroArrowOverlays((prev) =>
-      prev.filter((overlay) => overlay.id !== overlayId),
+  const handleAddSplitCornerIcon = useCallback(() => {
+    setVisibleSplitCornerIconCount((currentCount) =>
+      currentCount === 0
+        ? Math.max(1, usedSplitCornerIconCount)
+        : Math.min(SPLIT_CORNER_ICON_FIELD_IDS.length, currentCount + 1),
     );
+  }, [usedSplitCornerIconCount]);
+
+  const handleHideSplitCornerIcons = useCallback(() => {
+    setVisibleSplitCornerIconCount(0);
   }, []);
 
-  const handleOutroArrowOverlayChange = useCallback(
-    (overlayId: string, updates: Partial<OutroArrowOverlay>) => {
-      setOutroArrowOverlays((prev) =>
-        prev.map((overlay) =>
-          overlay.id === overlayId ? { ...overlay, ...updates } : overlay,
-        ),
-      );
+  const handleRemoveSplitCornerIcon = useCallback(
+    (index: number) => {
+      const fieldId = SPLIT_CORNER_ICON_FIELD_IDS[index];
+      handleFieldChange(fieldId, "");
     },
-    [],
+    [handleFieldChange],
   );
 
-  const handleOutroArrowTypeChange = useCallback(
-    (overlayId: string, nextType: OutroArrowAssetType) => {
-      setOutroArrowOverlays((prev) =>
-        prev.map((overlay) => {
-          if (overlay.id !== overlayId) {
-            return overlay;
-          }
-
-          const previousDefaultText =
-            OUTRO_ARROW_ASSET_RESOURCES[overlay.type].defaultText;
-          const nextDefaultText =
-            OUTRO_ARROW_ASSET_RESOURCES[nextType].defaultText;
-
-          return {
-            ...overlay,
-            type: nextType,
-            text:
-              !overlay.text.trim() || overlay.text === previousDefaultText
-                ? nextDefaultText
-                : overlay.text,
-          };
-        }),
+  const commitSplitPartitionPoints = useCallback(
+    (nextPoints: Array<{ x: number; y: number }>) => {
+      handleFieldChange(
+        "split_partition_points",
+        serializeSplitPartitionPoints(nextPoints),
       );
     },
-    [],
+    [handleFieldChange],
   );
+
+  const handleSplitBreakpointValueChange = useCallback(
+    (index: number, axis: "x" | "y", rawValue: string) => {
+      const parsedValue = Number.parseFloat(rawValue);
+      if (!Number.isFinite(parsedValue)) {
+        return;
+      }
+
+      const nextPoints = updateSplitBreakpoint(
+        splitPartitionPoints,
+        index,
+        axis,
+        parsedValue,
+      );
+      commitSplitPartitionPoints(nextPoints);
+    },
+    [commitSplitPartitionPoints, splitPartitionPoints],
+  );
+
+  const handleSplitBreakpointDelete = useCallback(
+    (index: number) => {
+      const nextPoints = removeSplitBreakpoint(splitPartitionPoints, index);
+      commitSplitPartitionPoints(nextPoints);
+    },
+    [commitSplitPartitionPoints, splitPartitionPoints],
+  );
+
+  const handleSplitPreviewClick = useCallback(
+    (event: React.MouseEvent<SVGSVGElement>) => {
+      if (!isSplitBreakpointEditorVisible) {
+        return;
+      }
+
+      if (skipSplitPreviewClickRef.current) {
+        skipSplitPreviewClickRef.current = false;
+        return;
+      }
+
+      const overlayRect = event.currentTarget.getBoundingClientRect();
+      if (overlayRect.width <= 0 || overlayRect.height <= 0) {
+        return;
+      }
+
+      const clickX = event.clientX - overlayRect.left;
+      const clickY = event.clientY - overlayRect.top;
+      const distanceFromDivider = getSplitDividerDistancePx(
+        splitPartitionPoints,
+        overlayRect.width,
+        overlayRect.height,
+        clickX,
+        clickY,
+      );
+
+      if (distanceFromDivider > 18) {
+        return;
+      }
+
+      if (splitPartitionPoints.length >= MAX_SPLIT_BREAKPOINTS) {
+        toast.error(`You can add up to ${MAX_SPLIT_BREAKPOINTS} breakpoints.`);
+        return;
+      }
+
+      const nextPoint = {
+        x: (clickX / overlayRect.width) * SPLIT_PARTITION_MAX,
+        y: (clickY / overlayRect.height) * SPLIT_PARTITION_MAX,
+      };
+      const hasVeryClosePoint = splitPartitionPoints.some(
+        (point) =>
+          Math.abs(point.x - nextPoint.x) < 0.25 &&
+          Math.abs(point.y - nextPoint.y) < 0.25,
+      );
+
+      if (hasVeryClosePoint) {
+        return;
+      }
+
+      const nextPoints = insertSplitBreakpoint(splitPartitionPoints, nextPoint);
+      commitSplitPartitionPoints(nextPoints);
+    },
+    [
+      commitSplitPartitionPoints,
+      isSplitBreakpointEditorVisible,
+      splitPartitionPoints,
+    ],
+  );
+
+  const handleSplitBreakpointMouseDown = useCallback(
+    (index: number, event: React.MouseEvent<SVGCircleElement>) => {
+      if (!isSplitBreakpointEditorVisible) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      splitDragDidMoveRef.current = false;
+      skipSplitPreviewClickRef.current = false;
+      setActiveSplitDragIndex(index);
+    },
+    [isSplitBreakpointEditorVisible],
+  );
+
+  useEffect(() => {
+    if (activeSplitDragIndex === null) {
+      return;
+    }
+
+    if (!isSplitBreakpointEditorVisible) {
+      setActiveSplitDragIndex(null);
+      return;
+    }
+
+    function handlePointerMove(event: MouseEvent) {
+      const overlayElement = splitPreviewRef.current;
+      if (!overlayElement || activeSplitDragIndex === null) {
+        return;
+      }
+
+      const overlayRect = overlayElement.getBoundingClientRect();
+      if (overlayRect.width <= 0) {
+        return;
+      }
+
+      const pointerX = Math.min(
+        overlayRect.width,
+        Math.max(0, event.clientX - overlayRect.left),
+      );
+      const nextX = (pointerX / overlayRect.width) * SPLIT_PARTITION_MAX;
+      const nextPoints = updateSplitBreakpoint(
+        splitPartitionPoints,
+        activeSplitDragIndex,
+        "x",
+        nextX,
+      );
+
+      splitDragDidMoveRef.current = true;
+      commitSplitPartitionPoints(nextPoints);
+    }
+
+    function handlePointerUp() {
+      setActiveSplitDragIndex(null);
+
+      if (splitDragDidMoveRef.current) {
+        skipSplitPreviewClickRef.current = true;
+      }
+    }
+
+    window.addEventListener("mousemove", handlePointerMove);
+    window.addEventListener("mouseup", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handlePointerMove);
+      window.removeEventListener("mouseup", handlePointerUp);
+    };
+  }, [
+    activeSplitDragIndex,
+    commitSplitPartitionPoints,
+    isSplitBreakpointEditorVisible,
+    splitPartitionPoints,
+  ]);
 
   const handleFontPairChange = useCallback((pairId: string) => {
     setSelectedFontPairId(pairId);
@@ -1381,30 +2105,71 @@ export function ThumbnailPage() {
     window.location.assign("/");
   }, []);
 
+  const pageTitle = buildThumbnailPageTitle(currentTemplate?.name);
+  const templateAssetBindings = resolveThumbnailTemplateAssetBindings({
+    templateId,
+    tutorialImageUrl,
+    splitForegroundAssetUrl: renderablePreviewSplitForegroundAssetUrl,
+    splitBackgroundSvgAssetUrl: renderablePreviewSplitBackgroundSvgAssetUrl,
+    outroBackgroundSvgAssetUrl: renderablePreviewOutroBackgroundSvgAssetUrl,
+  });
+
+  useEffect(() => {
+    document.title = pageTitle;
+  }, [pageTitle]);
+
   const templateRenderProps = buildThumbnailTemplateRenderProps({
     width: currentPlatform.width,
     height: currentPlatform.height,
-    values: fieldValues,
-    theme: currentTheme,
+    values: previewFieldValues,
+    theme: previewTheme,
     primaryFontFamily,
     secondaryFontFamily,
     fontSize,
     borderWidth,
     borderColor,
+    overlayImageUrl: templateAssetBindings.overlayImageUrl,
+    overlayImageScale: isIntroSplitTemplate
+      ? previewSplitBackgroundScaleValue
+      : isOutroTemplate
+        ? previewOutroBackgroundScaleValue
+        : undefined,
+    overlayImageX: isIntroSplitTemplate
+      ? previewSplitBackgroundXValue
+      : isOutroTemplate
+        ? previewOutroBackgroundXValue
+        : undefined,
+    overlayImageY: isIntroSplitTemplate
+      ? previewSplitBackgroundYValue
+      : isOutroTemplate
+        ? previewOutroBackgroundYValue
+        : undefined,
+    splitBlendImageUrl: isIntroSplitTemplate
+      ? (exportSplitBlendImageUrl ?? previewSplitBlendImageUrl)
+      : null,
+    splitCornerIconUrls: isIntroSplitTemplate
+      ? [
+          renderablePreviewSplitCornerIconUrl1,
+          renderablePreviewSplitCornerIconUrl2,
+          renderablePreviewSplitCornerIconUrl3,
+        ].filter((url): url is string => Boolean(url))
+      : undefined,
+    splitCornerIconSize: isIntroSplitTemplate
+      ? Number.parseInt(
+          previewFieldValues["split_corner_icon_size"] ?? "100",
+          10,
+        )
+      : undefined,
     brandLogoUrl: renderableBrandLogoUrl,
     brandLogoSize,
-    tutorialImageUrl,
+    tutorialImageUrl: templateAssetBindings.tutorialImageUrl,
     tutorialImageSize,
     tutorialImageBottomPadding,
     tutorialImageOpacity,
     outroArrowOverlays,
-    socialAccounts: settings.social_accounts,
     showCopyrightMessage,
     copyrightText,
   });
-
-  // Export handlers
-  const motionDurationSeconds = resolveMotionDurationSeconds(fieldValues);
 
   const handleExportMain = useCallback(async () => {
     if (!canvasRef.current) return;
@@ -1440,57 +2205,14 @@ export function ThumbnailPage() {
     selectedAudioAsset,
   ]);
 
-  // Scale for preview
   const containerWidth = 720;
   const previewScale = containerWidth / currentPlatform.width;
-
-  if (!isAppStateHydrated || !hasLoadedDraftRef.current) {
-    return (
-      <PageLayout
-        header={
-          <AppBar
-            title="Thumbnail Generator"
-            showHomeButton
-            onHomeClick={goHome}
-            rightContent={
-              <Stack direction="row" spacing={1}>
-                <SyncMenu />
-                <IconButton
-                  onClick={() => setSettingsOpen(true)}
-                  size="small"
-                  sx={{ color: "text.secondary" }}
-                >
-                  <SettingsIcon />
-                </IconButton>
-              </Stack>
-            }
-          />
-        }
-      >
-        <Box
-          sx={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            p: 4,
-          }}
-        >
-          <CircularProgress />
-        </Box>
-        <SettingsDialog
-          open={settingsOpen}
-          onClose={() => setSettingsOpen(false)}
-        />
-      </PageLayout>
-    );
-  }
 
   return (
     <PageLayout
       header={
         <AppBar
-          title="Thumbnail Generator"
+          title={pageTitle}
           showHomeButton
           onHomeClick={goHome}
           rightContent={
@@ -1595,7 +2317,7 @@ export function ThumbnailPage() {
                   defaultExpanded
                 >
                   <Stack spacing={2}>
-                    {contentFieldRows.map((row) => (
+                    {primaryContentFieldRows.map((row) => (
                       <Stack
                         key={row.map((field) => field.id).join("-")}
                         spacing={2}
@@ -1603,49 +2325,223 @@ export function ThumbnailPage() {
                       >
                         {row.map((field) => (
                           <Box key={field.id} sx={CONTROL_CELL_SX}>
-                            {renderTemplateFieldControl({
-                              field,
-                              value:
-                                fieldValues[field.id] ??
-                                field.defaultValue ??
-                                "",
-                              onChange: (nextValue) =>
-                                handleFieldChange(field.id, nextValue),
-                            })}
+                            {isOutroTemplate && field.id === "subtitle" ? (
+                              <Stack spacing={1}>
+                                {renderTemplateFieldControl({
+                                  field,
+                                  value:
+                                    fieldValues[field.id] ??
+                                    field.defaultValue ??
+                                    "",
+                                  onChange: (nextValue) =>
+                                    handleFieldChange(field.id, nextValue),
+                                })}
+                                <ActionButton
+                                  label="Add Support Line"
+                                  variant="secondary"
+                                  onClick={() =>
+                                    handleFieldChange(
+                                      "subtitle",
+                                      `${fieldValues["subtitle"] ?? field.defaultValue ?? ""}\n`,
+                                    )
+                                  }
+                                />
+                              </Stack>
+                            ) : (
+                              renderTemplateFieldControl({
+                                field,
+                                value:
+                                  fieldValues[field.id] ??
+                                  field.defaultValue ??
+                                  "",
+                                onChange: (nextValue) =>
+                                  handleFieldChange(field.id, nextValue),
+                                errorText:
+                                  field.id === "split_partition_points"
+                                    ? splitPartitionError
+                                    : null,
+                                helperText:
+                                  field.id === "split_partition_points"
+                                    ? "Use points like: (12, 3), (9, 12), (12, 24). Coordinates can be any value from 0 to 24."
+                                    : undefined,
+                              })
+                            )}
                           </Box>
                         ))}
                       </Stack>
                     ))}
-                    {hasCapsuleStyleControls && (
-                      <Stack spacing={2} {...CONTROL_ROW_SX}>
-                        <Box sx={CONTROL_CELL_SX}>
-                          <SelectControl
-                            label="Capsule Style"
-                            value={capsuleStyleValue}
-                            onChange={(value) =>
-                              handleFieldChange("capsule_style", value)
-                            }
-                            options={CAPSULE_STYLE_OPTIONS}
-                          />
-                        </Box>
-                        <Box sx={CONTROL_CELL_SX}>
-                          {renderColorTextField({
-                            label: "Capsule Color",
-                            value: capsuleColorValue,
-                            onChange: (value) =>
-                              handleFieldChange("capsule_color", value),
-                          })}
-                        </Box>
-                        <Box sx={CONTROL_CELL_SX}>
-                          <SelectControl
-                            label="Capsule Size"
-                            value={capsuleSizeValue}
-                            onChange={(value) =>
-                              handleFieldChange("capsule_size", value)
-                            }
-                            options={SIZE_PRESET_OPTIONS}
-                          />
-                        </Box>
+                    {isIntroSplitTemplate && (
+                      <Stack spacing={1.5}>
+                        <ActionButton
+                          label={
+                            isSplitBreakpointEditorVisible
+                              ? "Hide Breakpoints"
+                              : "Show Breakpoints"
+                          }
+                          variant="secondary"
+                          onClick={() =>
+                            setIsSplitBreakpointEditorVisible(
+                              (current) => !current,
+                            )
+                          }
+                        />
+                        {isSplitBreakpointEditorVisible && (
+                          <Stack spacing={1.5}>
+                            <Typography variant="subtitle2">
+                              Breakpoints
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              Click near the split line in preview to add a
+                              breakpoint. Drag points left or right to reshape
+                              the split.
+                            </Typography>
+                            {splitPartitionError && (
+                              <Typography variant="caption" color="error.main">
+                                {splitPartitionError}
+                              </Typography>
+                            )}
+                            {splitPartitionPoints.map((point, index) => (
+                              <Stack
+                                key={`split-breakpoint-${index}-${point.x}-${point.y}`}
+                                spacing={2}
+                                {...CONTROL_ROW_SX}
+                              >
+                                <Box sx={CONTROL_CELL_SX}>
+                                  <TextField
+                                    label={`Point ${index + 1} X`}
+                                    value={String(point.x)}
+                                    onChange={(event) =>
+                                      handleSplitBreakpointValueChange(
+                                        index,
+                                        "x",
+                                        event.target.value,
+                                      )
+                                    }
+                                    size="small"
+                                    fullWidth
+                                    type="number"
+                                    inputProps={{
+                                      min: 0,
+                                      max: 24,
+                                      step: 0.1,
+                                    }}
+                                    sx={TEXT_INPUT_SX}
+                                  />
+                                </Box>
+                                <Box sx={CONTROL_CELL_SX}>
+                                  <TextField
+                                    label={`Point ${index + 1} Y`}
+                                    value={String(point.y)}
+                                    onChange={(event) =>
+                                      handleSplitBreakpointValueChange(
+                                        index,
+                                        "y",
+                                        event.target.value,
+                                      )
+                                    }
+                                    size="small"
+                                    fullWidth
+                                    type="number"
+                                    inputProps={{
+                                      min: 0,
+                                      max: 24,
+                                      step: 0.1,
+                                    }}
+                                    sx={TEXT_INPUT_SX}
+                                  />
+                                </Box>
+                                <Box sx={{ pt: { xs: 0, lg: 0.8 } }}>
+                                  <IconButton
+                                    color="error"
+                                    onClick={() =>
+                                      handleSplitBreakpointDelete(index)
+                                    }
+                                    disabled={splitPartitionPoints.length <= 2}
+                                    aria-label={`Delete breakpoint ${index + 1}`}
+                                  >
+                                    <DeleteOutlineIcon />
+                                  </IconButton>
+                                </Box>
+                              </Stack>
+                            ))}
+                          </Stack>
+                        )}
+                      </Stack>
+                    )}
+                    {hasCapsuleControls && (
+                      <Stack spacing={1.5}>
+                        <ActionButton
+                          label={
+                            isCapsuleEditorVisible
+                              ? "Hide Capsules"
+                              : "Show Capsules"
+                          }
+                          variant="secondary"
+                          onClick={() =>
+                            setIsCapsuleEditorVisible((current) => !current)
+                          }
+                        />
+                        {isCapsuleEditorVisible && (
+                          <Stack spacing={2}>
+                            {capsuleContentFieldRows.map((row) => (
+                              <Stack
+                                key={row.map((field) => field.id).join("-")}
+                                spacing={2}
+                                {...CONTROL_ROW_SX}
+                              >
+                                {row.map((field) => (
+                                  <Box key={field.id} sx={CONTROL_CELL_SX}>
+                                    {renderTemplateFieldControl({
+                                      field,
+                                      value:
+                                        fieldValues[field.id] ??
+                                        field.defaultValue ??
+                                        "",
+                                      onChange: (nextValue) =>
+                                        handleFieldChange(field.id, nextValue),
+                                    })}
+                                  </Box>
+                                ))}
+                              </Stack>
+                            ))}
+
+                            {hasCapsuleStyleControls && (
+                              <Stack spacing={2} {...CONTROL_ROW_SX}>
+                                <Box sx={CONTROL_CELL_SX}>
+                                  <SelectControl
+                                    label="Capsule Style"
+                                    value={capsuleStyleValue}
+                                    onChange={(value) =>
+                                      handleFieldChange("capsule_style", value)
+                                    }
+                                    options={CAPSULE_STYLE_OPTIONS}
+                                  />
+                                </Box>
+                                <Box sx={CONTROL_CELL_SX}>
+                                  {renderColorTextField({
+                                    label: "Capsule Color",
+                                    value: capsuleColorValue,
+                                    onChange: (value) =>
+                                      handleFieldChange("capsule_color", value),
+                                  })}
+                                </Box>
+                                <Box sx={CONTROL_CELL_SX}>
+                                  <SelectControl
+                                    label="Capsule Size"
+                                    value={capsuleSizeValue}
+                                    onChange={(value) =>
+                                      handleFieldChange("capsule_size", value)
+                                    }
+                                    options={SIZE_PRESET_OPTIONS}
+                                  />
+                                </Box>
+                              </Stack>
+                            )}
+                          </Stack>
+                        )}
                       </Stack>
                     )}
                   </Stack>
@@ -1758,12 +2654,34 @@ export function ThumbnailPage() {
                       />
                     </Box>
                   </Stack>
+                  <Stack spacing={2} {...CONTROL_ROW_SX}>
+                    <Box sx={CONTROL_CELL_SX}>
+                      {renderColorTextField({
+                        label: "Primary Font Color",
+                        value:
+                          fieldValues["font_color_primary"]?.trim() ||
+                          currentTheme.textPrimary,
+                        onChange: (value) =>
+                          handleFieldChange("font_color_primary", value),
+                      })}
+                    </Box>
+                    <Box sx={CONTROL_CELL_SX}>
+                      {renderColorTextField({
+                        label: "Secondary Font Color",
+                        value:
+                          fieldValues["font_color_secondary"]?.trim() ||
+                          currentTheme.textSecondary,
+                        onChange: (value) =>
+                          handleFieldChange("font_color_secondary", value),
+                      })}
+                    </Box>
+                  </Stack>
                   <SliderControl
                     label="Font Size"
                     value={fontSize}
-                    onChange={setFontSize}
-                    min={24}
-                    max={96}
+                    onChange={(value) => setFontSize(clampFontSize(value))}
+                    min={FONT_SIZE_MIN}
+                    max={FONT_SIZE_MAX}
                     step={2}
                     formatValue={(v) => `${v}px`}
                     tooltip="Base font size in pixels"
@@ -2028,6 +2946,537 @@ export function ThumbnailPage() {
                       )}
                     </Stack>
                   )}
+                  {isIntroSplitTemplate && (
+                    <Stack spacing={1.5}>
+                      <Typography variant="subtitle2">Split Assets</Typography>
+                      <SelectControl
+                        label="Foreground Image Asset"
+                        value={safeSelectedSplitForegroundAssetId}
+                        onChange={(value) =>
+                          handleFieldChange("split_foreground_asset_id", value)
+                        }
+                        options={[
+                          { value: "", label: "None" },
+                          ...resolvedSplitForegroundAssetOptions,
+                        ]}
+                        tooltip="Shows image assets tagged with split from Asset Library"
+                      />
+                      {renderableSplitForegroundAssetUrl && (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "center",
+                            p: 1,
+                            bgcolor: "background.default",
+                            borderRadius: 1,
+                          }}
+                        >
+                          <img
+                            src={renderableSplitForegroundAssetUrl}
+                            alt="Split foreground preview"
+                            style={{
+                              maxWidth: 160,
+                              maxHeight: 100,
+                              objectFit: "contain",
+                            }}
+                          />
+                        </Box>
+                      )}
+                      <Stack spacing={2} {...CONTROL_ROW_SX}>
+                        <Box sx={CONTROL_CELL_SX}>
+                          <SliderControl
+                            label="Foreground Scale"
+                            value={Math.min(
+                              180,
+                              Math.max(
+                                50,
+                                Number.parseInt(
+                                  fieldValues["split_foreground_scale"] ??
+                                    "108",
+                                  10,
+                                ) || 108,
+                              ),
+                            )}
+                            onChange={(value) =>
+                              handleFieldChange(
+                                "split_foreground_scale",
+                                String(Math.round(value)),
+                              )
+                            }
+                            min={50}
+                            max={180}
+                            step={1}
+                            formatValue={(value) => `${value}%`}
+                            tooltip="Scale for split foreground image"
+                          />
+                        </Box>
+                        <Box sx={CONTROL_CELL_SX}>
+                          <SliderControl
+                            label="Foreground X"
+                            value={Math.min(
+                              24,
+                              Math.max(
+                                -24,
+                                Number.parseInt(
+                                  fieldValues["split_foreground_x"] ?? "0",
+                                  10,
+                                ) || 0,
+                              ),
+                            )}
+                            onChange={(value) =>
+                              handleFieldChange(
+                                "split_foreground_x",
+                                String(Math.round(value)),
+                              )
+                            }
+                            min={-24}
+                            max={24}
+                            step={1}
+                            formatValue={(value) => `${value}%`}
+                            tooltip="Horizontal offset for split foreground image"
+                          />
+                        </Box>
+                        <Box sx={CONTROL_CELL_SX}>
+                          <SliderControl
+                            label="Foreground Y"
+                            value={Math.min(
+                              24,
+                              Math.max(
+                                -24,
+                                Number.parseInt(
+                                  fieldValues["split_foreground_y"] ?? "0",
+                                  10,
+                                ) || 0,
+                              ),
+                            )}
+                            onChange={(value) =>
+                              handleFieldChange(
+                                "split_foreground_y",
+                                String(Math.round(value)),
+                              )
+                            }
+                            min={-24}
+                            max={24}
+                            step={1}
+                            formatValue={(value) => `${value}%`}
+                            tooltip="Vertical offset for split foreground image"
+                          />
+                        </Box>
+                      </Stack>
+                      <SelectControl
+                        label="Background SVG Asset"
+                        value={safeSelectedSplitBackgroundSvgAssetId}
+                        onChange={(value) =>
+                          handleFieldChange(
+                            "split_background_svg_asset_id",
+                            value,
+                          )
+                        }
+                        options={[
+                          { value: "", label: "None" },
+                          ...resolvedSplitBackgroundSvgAssetOptions,
+                        ]}
+                        tooltip="Shows image assets tagged with background from Asset Library"
+                      />
+                      {renderableSplitBackgroundSvgAssetUrl && (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "center",
+                            p: 1,
+                            bgcolor: "background.default",
+                            borderRadius: 1,
+                          }}
+                        >
+                          <img
+                            src={renderableSplitBackgroundSvgAssetUrl}
+                            alt="Split background preview"
+                            style={{
+                              maxWidth: 160,
+                              maxHeight: 100,
+                              objectFit: "contain",
+                            }}
+                          />
+                        </Box>
+                      )}
+                      <Stack spacing={2} {...CONTROL_ROW_SX}>
+                        <Box sx={CONTROL_CELL_SX}>
+                          <SliderControl
+                            label="Background SVG Scale"
+                            value={splitBackgroundScaleValue}
+                            onChange={(value) =>
+                              handleFieldChange(
+                                "split_background_scale",
+                                String(
+                                  Math.round(
+                                    Math.min(180, Math.max(50, value)),
+                                  ),
+                                ),
+                              )
+                            }
+                            min={50}
+                            max={180}
+                            step={1}
+                            formatValue={(value) => `${value}%`}
+                            tooltip="Scale for split background asset"
+                          />
+                        </Box>
+                        <Box sx={CONTROL_CELL_SX}>
+                          <SliderControl
+                            label="Background SVG X"
+                            value={splitBackgroundXValue}
+                            onChange={(value) =>
+                              handleFieldChange(
+                                "split_background_x",
+                                String(
+                                  Math.round(
+                                    Math.min(24, Math.max(-24, value)),
+                                  ),
+                                ),
+                              )
+                            }
+                            min={-24}
+                            max={24}
+                            step={1}
+                            formatValue={(value) => `${value}%`}
+                            tooltip="Horizontal offset for split background asset"
+                          />
+                        </Box>
+                        <Box sx={CONTROL_CELL_SX}>
+                          <SliderControl
+                            label="Background SVG Y"
+                            value={splitBackgroundYValue}
+                            onChange={(value) =>
+                              handleFieldChange(
+                                "split_background_y",
+                                String(
+                                  Math.round(
+                                    Math.min(24, Math.max(-24, value)),
+                                  ),
+                                ),
+                              )
+                            }
+                            min={-24}
+                            max={24}
+                            step={1}
+                            formatValue={(value) => `${value}%`}
+                            tooltip="Vertical offset for split background asset"
+                          />
+                        </Box>
+                      </Stack>
+                      <SliderControl
+                        label="Background SVG Opacity"
+                        value={splitBackgroundOpacityValue}
+                        onChange={(value) =>
+                          handleFieldChange(
+                            "split_background_opacity",
+                            String(
+                              Math.min(100, Math.max(0, Math.round(value))),
+                            ),
+                          )
+                        }
+                        min={0}
+                        max={100}
+                        step={1}
+                        formatValue={(v) => `${v}%`}
+                        tooltip="Controls visibility of the split background SVG layer"
+                      />
+                      <Stack spacing={1}>
+                        <Typography sx={CONTROL_LABEL_SX}>
+                          Foreground Edge Blend
+                        </Typography>
+                        <Stack spacing={2} {...CONTROL_ROW_SX}>
+                          <Box sx={CONTROL_CELL_SX}>
+                            <SwitchControl
+                              label="Blend Top"
+                              checked={
+                                fieldValues["split_foreground_blend_top"] ===
+                                "true"
+                              }
+                              onChange={(checked) =>
+                                handleFieldChange(
+                                  "split_foreground_blend_top",
+                                  checked ? "true" : "false",
+                                )
+                              }
+                              tooltip="Fade the top 10% of the foreground image into the background"
+                            />
+                          </Box>
+                          <Box sx={CONTROL_CELL_SX}>
+                            <SwitchControl
+                              label="Blend Bottom"
+                              checked={
+                                fieldValues["split_foreground_blend_bottom"] ===
+                                "true"
+                              }
+                              onChange={(checked) =>
+                                handleFieldChange(
+                                  "split_foreground_blend_bottom",
+                                  checked ? "true" : "false",
+                                )
+                              }
+                              tooltip="Fade the bottom 10% of the foreground image into the background"
+                            />
+                          </Box>
+                        </Stack>
+                        <Stack spacing={2} {...CONTROL_ROW_SX}>
+                          <Box sx={CONTROL_CELL_SX}>
+                            <SwitchControl
+                              label="Blend Left"
+                              checked={
+                                fieldValues["split_foreground_blend_left"] ===
+                                "true"
+                              }
+                              onChange={(checked) =>
+                                handleFieldChange(
+                                  "split_foreground_blend_left",
+                                  checked ? "true" : "false",
+                                )
+                              }
+                              tooltip="Fade the left 10% of the foreground image into the background"
+                            />
+                          </Box>
+                          <Box sx={CONTROL_CELL_SX}>
+                            <SwitchControl
+                              label="Blend Right"
+                              checked={
+                                fieldValues["split_foreground_blend_right"] ===
+                                "true"
+                              }
+                              onChange={(checked) =>
+                                handleFieldChange(
+                                  "split_foreground_blend_right",
+                                  checked ? "true" : "false",
+                                )
+                              }
+                              tooltip="Fade the right 10% of the foreground image into the background"
+                            />
+                          </Box>
+                        </Stack>
+                      </Stack>
+                      {visibleSplitCornerIconCount > 0 && (
+                        <Stack spacing={2} {...CONTROL_ROW_SX}>
+                          {SPLIT_CORNER_ICON_FIELD_IDS.slice(
+                            0,
+                            visibleSplitCornerIconCount,
+                          ).map((fieldId, index) => (
+                            <Box key={fieldId} sx={CONTROL_CELL_SX}>
+                              <Stack
+                                direction="row"
+                                spacing={1}
+                                alignItems="flex-start"
+                              >
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                  <SelectControl
+                                    label={`Corner Icon ${index + 1}`}
+                                    value={
+                                      safeSelectedSplitCornerIconAssetIds[
+                                        index
+                                      ] ?? ""
+                                    }
+                                    onChange={(value) =>
+                                      handleFieldChange(fieldId, value)
+                                    }
+                                    options={[
+                                      { value: "", label: "None" },
+                                      ...resolvedSplitCornerIconAssetOptions,
+                                    ]}
+                                    tooltip="Select a shared icon asset tagged with icon to place in the bottom corner opposite the title"
+                                  />
+                                </Box>
+                                <IconButton
+                                  aria-label={`Remove Icon ${index + 1}`}
+                                  onClick={() =>
+                                    handleRemoveSplitCornerIcon(index)
+                                  }
+                                  size="small"
+                                  sx={{ mt: 0.75 }}
+                                >
+                                  <DeleteOutlineIcon />
+                                </IconButton>
+                              </Stack>
+                            </Box>
+                          ))}
+                        </Stack>
+                      )}
+                      <Stack spacing={2} {...CONTROL_ROW_SX}>
+                        {visibleSplitCornerIconCount <
+                          SPLIT_CORNER_ICON_FIELD_IDS.length && (
+                          <Box sx={CONTROL_CELL_SX}>
+                            <ActionButton
+                              label="Add Icon"
+                              variant="secondary"
+                              icon={<AddCircleOutlineIcon />}
+                              onClick={handleAddSplitCornerIcon}
+                            />
+                          </Box>
+                        )}
+                        {visibleSplitCornerIconCount > 0 && (
+                          <Box sx={CONTROL_CELL_SX}>
+                            <ActionButton
+                              label="Hide Icons"
+                              variant="secondary"
+                              onClick={handleHideSplitCornerIcons}
+                            />
+                          </Box>
+                        )}
+                      </Stack>
+                      <SliderControl
+                        label="Corner Icon Size"
+                        value={Math.min(
+                          180,
+                          Math.max(
+                            50,
+                            Number.parseInt(
+                              fieldValues["split_corner_icon_size"] ?? "100",
+                              10,
+                            ) || 100,
+                          ),
+                        )}
+                        onChange={(value) =>
+                          handleFieldChange(
+                            "split_corner_icon_size",
+                            String(Math.round(value)),
+                          )
+                        }
+                        min={50}
+                        max={180}
+                        step={5}
+                        formatValue={(value) => `${value}%`}
+                        tooltip="Scale the bottom-corner split icons"
+                      />
+                      <ActionButton
+                        label="Open Asset Library"
+                        variant="secondary"
+                        onClick={() => window.location.assign("/assets")}
+                      />
+                    </Stack>
+                  )}
+                  {isOutroTemplate && (
+                    <Stack spacing={1.5}>
+                      <Typography variant="subtitle2">
+                        Background SVG Asset
+                      </Typography>
+                      <SelectControl
+                        label="Background SVG Asset"
+                        value={safeSelectedOutroBackgroundSvgAssetId}
+                        onChange={(value) =>
+                          handleFieldChange(
+                            "outro_background_svg_asset_id",
+                            value,
+                          )
+                        }
+                        options={[
+                          { value: "", label: "None" },
+                          ...resolvedOutroBackgroundSvgAssetOptions,
+                        ]}
+                        tooltip="Shows image assets tagged with background from Asset Library"
+                      />
+                      {renderableOutroBackgroundSvgAssetUrl && (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "center",
+                            p: 1,
+                            bgcolor: "background.default",
+                            borderRadius: 1,
+                          }}
+                        >
+                          <img
+                            src={renderableOutroBackgroundSvgAssetUrl}
+                            alt="Outro background preview"
+                            style={{
+                              maxWidth: 160,
+                              maxHeight: 100,
+                              objectFit: "contain",
+                            }}
+                          />
+                        </Box>
+                      )}
+                      <Stack spacing={2} {...CONTROL_ROW_SX}>
+                        <Box sx={CONTROL_CELL_SX}>
+                          <SliderControl
+                            label="Background SVG Scale"
+                            value={outroBackgroundScaleValue}
+                            onChange={(value) =>
+                              handleFieldChange(
+                                "outro_background_scale",
+                                String(
+                                  Math.round(
+                                    Math.min(180, Math.max(50, value)),
+                                  ),
+                                ),
+                              )
+                            }
+                            min={50}
+                            max={180}
+                            step={1}
+                            formatValue={(value) => `${value}%`}
+                            tooltip="Scale for outro background asset"
+                          />
+                        </Box>
+                        <Box sx={CONTROL_CELL_SX}>
+                          <SliderControl
+                            label="Background SVG X"
+                            value={outroBackgroundXValue}
+                            onChange={(value) =>
+                              handleFieldChange(
+                                "outro_background_x",
+                                String(
+                                  Math.round(
+                                    Math.min(24, Math.max(-24, value)),
+                                  ),
+                                ),
+                              )
+                            }
+                            min={-24}
+                            max={24}
+                            step={1}
+                            formatValue={(value) => `${value}%`}
+                            tooltip="Horizontal offset for outro background asset"
+                          />
+                        </Box>
+                        <Box sx={CONTROL_CELL_SX}>
+                          <SliderControl
+                            label="Background SVG Y"
+                            value={outroBackgroundYValue}
+                            onChange={(value) =>
+                              handleFieldChange(
+                                "outro_background_y",
+                                String(
+                                  Math.round(
+                                    Math.min(24, Math.max(-24, value)),
+                                  ),
+                                ),
+                              )
+                            }
+                            min={-24}
+                            max={24}
+                            step={1}
+                            formatValue={(value) => `${value}%`}
+                            tooltip="Vertical offset for outro background asset"
+                          />
+                        </Box>
+                      </Stack>
+                      <SliderControl
+                        label="Background SVG Opacity"
+                        value={outroBackgroundOpacityValue}
+                        onChange={(value) =>
+                          handleFieldChange(
+                            "outro_background_opacity",
+                            String(
+                              Math.min(100, Math.max(0, Math.round(value))),
+                            ),
+                          )
+                        }
+                        min={0}
+                        max={100}
+                        step={1}
+                        formatValue={(value) => `${value}%`}
+                        tooltip="Controls visibility of the outro background SVG layer"
+                      />
+                    </Stack>
+                  )}
                   {templateCapabilities.showsSharedAudioAsset &&
                     audioAssetFieldId && (
                       <Stack spacing={1.5}>
@@ -2090,202 +3539,6 @@ export function ThumbnailPage() {
                     )}
                 </Stack>
               </SectionCard>
-
-              {isOutroTemplate && (
-                <SectionCard
-                  title="Outro Arrows"
-                  icon={<ImageIcon />}
-                  collapsible
-                  defaultExpanded
-                >
-                  <Stack spacing={2}>
-                    <Typography variant="body2" color="text.secondary">
-                      Add any number of shared arrow overlays, then place and
-                      rotate each one independently for the outro layout.
-                    </Typography>
-                    <ActionButton
-                      label="Add Arrow"
-                      variant="secondary"
-                      onClick={handleAddOutroArrowOverlay}
-                    />
-                    {outroArrowOverlays.length === 0 ? (
-                      <Typography variant="body2" color="text.secondary">
-                        No arrow overlays added yet.
-                      </Typography>
-                    ) : (
-                      outroArrowOverlays.map((overlay, index) => (
-                        <Box
-                          key={overlay.id}
-                          sx={{
-                            p: 2,
-                            border: "1px solid",
-                            borderColor: "divider",
-                            borderRadius: 2,
-                            bgcolor: "background.default",
-                          }}
-                        >
-                          <Stack spacing={2}>
-                            <Stack
-                              direction={{ xs: "column", sm: "row" }}
-                              spacing={1}
-                              justifyContent="space-between"
-                              alignItems={{ xs: "flex-start", sm: "center" }}
-                            >
-                              <Typography variant="subtitle2">
-                                Arrow {index + 1}
-                              </Typography>
-                              <ActionButton
-                                label="Remove Arrow"
-                                variant="secondary"
-                                onClick={() =>
-                                  handleRemoveOutroArrowOverlay(overlay.id)
-                                }
-                              />
-                            </Stack>
-                            <Box sx={{ py: 1 }}>
-                              <Typography sx={CONTROL_LABEL_SX}>
-                                Text
-                              </Typography>
-                              <TextField
-                                value={overlay.text}
-                                onChange={(event) =>
-                                  handleOutroArrowOverlayChange(overlay.id, {
-                                    text: event.target.value,
-                                  })
-                                }
-                                size="small"
-                                fullWidth
-                                sx={TEXT_INPUT_SX}
-                              />
-                            </Box>
-                            <Stack spacing={2} {...CONTROL_ROW_SX}>
-                              <Box sx={CONTROL_CELL_SX}>
-                                <SelectControl
-                                  label="Arrow Type"
-                                  value={overlay.type}
-                                  onChange={(value) =>
-                                    handleOutroArrowTypeChange(
-                                      overlay.id,
-                                      value as OutroArrowAssetType,
-                                    )
-                                  }
-                                  options={OUTRO_ARROW_TYPE_OPTIONS}
-                                />
-                              </Box>
-                              <Box sx={CONTROL_CELL_SX}>
-                                <SelectControl
-                                  label="Orientation"
-                                  value={overlay.isInverse ? "true" : "false"}
-                                  onChange={(value) =>
-                                    handleOutroArrowOverlayChange(overlay.id, {
-                                      isInverse: value === "true",
-                                    })
-                                  }
-                                  options={OUTRO_ARROW_ORIENTATION_OPTIONS}
-                                />
-                              </Box>
-                            </Stack>
-                            <Stack spacing={2} {...CONTROL_ROW_SX}>
-                              <Box sx={CONTROL_CELL_SX}>
-                                <SliderControl
-                                  label="X Position"
-                                  value={overlay.x}
-                                  onChange={(value) =>
-                                    handleOutroArrowOverlayChange(overlay.id, {
-                                      x: value,
-                                    })
-                                  }
-                                  min={0}
-                                  max={100}
-                                  step={1}
-                                  formatValue={(value) => `${value}%`}
-                                />
-                              </Box>
-                              <Box sx={CONTROL_CELL_SX}>
-                                <SliderControl
-                                  label="Y Position"
-                                  value={overlay.y}
-                                  onChange={(value) =>
-                                    handleOutroArrowOverlayChange(overlay.id, {
-                                      y: value,
-                                    })
-                                  }
-                                  min={0}
-                                  max={100}
-                                  step={1}
-                                  formatValue={(value) => `${value}%`}
-                                />
-                              </Box>
-                              <Box sx={CONTROL_CELL_SX}>
-                                <SliderControl
-                                  label="Rotation"
-                                  value={overlay.degree}
-                                  onChange={(value) =>
-                                    handleOutroArrowOverlayChange(overlay.id, {
-                                      degree: value,
-                                    })
-                                  }
-                                  min={0}
-                                  max={360}
-                                  step={1}
-                                  formatValue={(value) => `${value}°`}
-                                />
-                              </Box>
-                            </Stack>
-                            <Stack spacing={2} {...CONTROL_ROW_SX}>
-                              <Box sx={CONTROL_CELL_SX}>
-                                <SliderControl
-                                  label="Arrow Width"
-                                  value={overlay.arrowWidth}
-                                  onChange={(value) =>
-                                    handleOutroArrowOverlayChange(overlay.id, {
-                                      arrowWidth: value,
-                                    })
-                                  }
-                                  min={25}
-                                  max={250}
-                                  step={1}
-                                  formatValue={(value) => `${value}%`}
-                                />
-                              </Box>
-                              <Box sx={CONTROL_CELL_SX}>
-                                <SliderControl
-                                  label="Arrow Height"
-                                  value={overlay.arrowHeight}
-                                  onChange={(value) =>
-                                    handleOutroArrowOverlayChange(overlay.id, {
-                                      arrowHeight: value,
-                                    })
-                                  }
-                                  min={25}
-                                  max={250}
-                                  step={1}
-                                  formatValue={(value) => `${value}%`}
-                                />
-                              </Box>
-                              <Box sx={CONTROL_CELL_SX}>
-                                <SliderControl
-                                  label="Text Size"
-                                  value={overlay.textSize}
-                                  onChange={(value) =>
-                                    handleOutroArrowOverlayChange(overlay.id, {
-                                      textSize: value,
-                                    })
-                                  }
-                                  min={25}
-                                  max={300}
-                                  step={1}
-                                  formatValue={(value) => `${value}%`}
-                                />
-                              </Box>
-                            </Stack>
-                          </Stack>
-                        </Box>
-                      ))
-                    )}
-                  </Stack>
-                </SectionCard>
-              )}
             </Stack>
 
             <Box sx={{ mt: 2 }}>
@@ -2345,26 +3598,108 @@ export function ThumbnailPage() {
                 transformOrigin: "center center",
               }}
             >
-              <div ref={canvasRef}>
-                {TemplateComponent ? (
-                  <TemplateComponent {...templateRenderProps} />
-                ) : (
-                  <Box
-                    sx={{
-                      width: currentPlatform.width,
-                      height: currentPlatform.height,
-                      bgcolor: "background.paper",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Typography color="text.secondary">
-                      Select a template
-                    </Typography>
-                  </Box>
-                )}
-              </div>
+              <Box
+                sx={{
+                  position: "relative",
+                  width: currentPlatform.width,
+                  height: currentPlatform.height,
+                }}
+              >
+                <div ref={canvasRef}>
+                  {TemplateComponent ? (
+                    <TemplateComponent {...templateRenderProps} />
+                  ) : (
+                    <Box
+                      sx={{
+                        width: currentPlatform.width,
+                        height: currentPlatform.height,
+                        bgcolor: "background.paper",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Typography color="text.secondary">
+                        Select a template
+                      </Typography>
+                    </Box>
+                  )}
+                </div>
+                {isIntroSplitTemplate &&
+                  TemplateComponent &&
+                  isSplitBreakpointEditorVisible && (
+                    <svg
+                      ref={splitPreviewRef}
+                      width={currentPlatform.width}
+                      height={currentPlatform.height}
+                      onClick={handleSplitPreviewClick}
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        zIndex: 20,
+                        cursor: "crosshair",
+                      }}
+                    >
+                      <polyline
+                        points={splitPartitionPoints
+                          .map((point) => {
+                            const x =
+                              (point.x / SPLIT_PARTITION_MAX) *
+                              currentPlatform.width;
+                            const y =
+                              (point.y / SPLIT_PARTITION_MAX) *
+                              currentPlatform.height;
+                            return `${x.toFixed(2)},${y.toFixed(2)}`;
+                          })
+                          .join(" ")}
+                        fill="none"
+                        stroke="rgba(255,255,255,0.4)"
+                        strokeWidth={Math.max(
+                          2,
+                          currentPlatform.width * 0.0012,
+                        )}
+                        strokeDasharray={`${Math.max(8, currentPlatform.width * 0.004)} ${Math.max(6, currentPlatform.width * 0.0028)}`}
+                        opacity={0.8}
+                        pointerEvents="none"
+                      />
+                      {splitPartitionPoints.map((point, index) => {
+                        const x =
+                          (point.x / SPLIT_PARTITION_MAX) *
+                          currentPlatform.width;
+                        const y =
+                          (point.y / SPLIT_PARTITION_MAX) *
+                          currentPlatform.height;
+
+                        return (
+                          <g
+                            key={`split-preview-point-${index}-${point.x}-${point.y}`}
+                          >
+                            <circle
+                              cx={x}
+                              cy={y}
+                              r={Math.max(8, currentPlatform.width * 0.0032)}
+                              fill="rgba(34, 211, 238, 0.55)"
+                              stroke="rgba(255,255,255,0.95)"
+                              strokeWidth={Math.max(
+                                1.5,
+                                currentPlatform.width * 0.0009,
+                              )}
+                              onMouseDown={(event) =>
+                                handleSplitBreakpointMouseDown(index, event)
+                              }
+                              style={{
+                                cursor:
+                                  activeSplitDragIndex === index
+                                    ? "grabbing"
+                                    : "ew-resize",
+                              }}
+                            />
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  )}
+              </Box>
             </Box>
           </Box>
         }

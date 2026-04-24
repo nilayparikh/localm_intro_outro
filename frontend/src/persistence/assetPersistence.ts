@@ -16,11 +16,18 @@ export interface AssetDoc {
   previewImagePath: string | null;
   width: number | null;
   height: number | null;
+  category: string;
+  tags: string[];
   updatedAt: number;
 }
 
-export type AssetSaveInput = Omit<AssetDoc, "id" | "updatedAt"> & {
+export type AssetSaveInput = Omit<
+  AssetDoc,
+  "id" | "updatedAt" | "tags" | "category"
+> & {
   id?: string;
+  category?: string;
+  tags?: string[];
 };
 
 export const ASSET_SORT: Array<Record<string, "asc" | "desc">> = [
@@ -103,6 +110,42 @@ export function formatAssetOptionLabel({
   return baseLabel;
 }
 
+export function normalizeAssetTags(tags: string[] | undefined): string[] {
+  if (!Array.isArray(tags)) {
+    return [];
+  }
+
+  const uniqueTags = new Set<string>();
+  const normalizedTags: string[] = [];
+
+  for (const tag of tags) {
+    const normalizedTag = tag.trim().replace(/\s+/g, " ").toLowerCase();
+
+    if (!normalizedTag || uniqueTags.has(normalizedTag)) {
+      continue;
+    }
+
+    uniqueTags.add(normalizedTag);
+    normalizedTags.push(normalizedTag);
+  }
+
+  return normalizedTags;
+}
+
+export function normalizeAssetCategory(
+  category: string | undefined | null,
+): string {
+  return category?.trim().replace(/\s+/g, " ").toLowerCase() ?? "";
+}
+
+export function normalizeAssetCategoryKey(
+  category: string | undefined | null,
+): string {
+  return normalizeAssetCategory(category)
+    .replace(/[\s_]+/g, "-")
+    .replace(/-+/g, "-");
+}
+
 export function prepareAssetForSave(input: AssetSaveInput): AssetDoc {
   return {
     ...input,
@@ -124,6 +167,8 @@ export function prepareAssetForSave(input: AssetSaveInput): AssetDoc {
       typeof input.height === "number" && Number.isFinite(input.height)
         ? Math.max(0, Math.round(input.height))
         : null,
+    category: normalizeAssetCategory(input.category),
+    tags: normalizeAssetTags(input.tags),
     updatedAt: Date.now(),
   };
 }

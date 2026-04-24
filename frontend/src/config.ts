@@ -26,6 +26,6 @@ export const SECRET_KEYS = {
 
 /** App metadata */
 export const APP_CONFIG = {
-  name: "LocalM™ Intro Outro",
+  name: "LocalM™ Intro (Bite)",
   version: "1.0.0",
 } as const;

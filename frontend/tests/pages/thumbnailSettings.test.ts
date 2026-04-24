@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   DEFAULT_COPYRIGHT_TEXT,
+  buildThumbnailPageTitle,
   buildThumbnailContentFieldRows,
   buildBannerDialogState,
   clampBrandLogoSize,
@@ -9,6 +10,7 @@ import {
   getTemplateAudioAssetFieldId,
   getThumbnailTemplateCapabilities,
   getThemeBorderColor,
+  resolveThumbnailTemplateAssetBindings,
   resolveMotionDurationSeconds,
   resolveLoadedBrandLogoUrl,
   resolveBrandLogoUrlFromSettings,
@@ -82,11 +84,20 @@ test("intro bite and outro stay on the shared audio workflow without youtube ove
 
   assert.deepEqual(getThumbnailTemplateCapabilities("outro_thumbnail"), {
     showsBrandLogo: false,
-    showsTutorialImage: true,
+    showsTutorialImage: false,
     showsTutorialImageBottomPadding: false,
-    showsTutorialImageOpacity: true,
+    showsTutorialImageOpacity: false,
     showsYoutubeOverlayAsset: false,
     showsSharedAudioAsset: true,
+  });
+
+  assert.deepEqual(getThumbnailTemplateCapabilities("intro_split_thumbnail"), {
+    showsBrandLogo: false,
+    showsTutorialImage: false,
+    showsTutorialImageBottomPadding: false,
+    showsTutorialImageOpacity: false,
+    showsYoutubeOverlayAsset: false,
+    showsSharedAudioAsset: false,
   });
 });
 
@@ -224,6 +235,32 @@ test("export action loading state only marks the currently running export contro
       isMotionExporting: false,
     },
   );
+
+  assert.deepEqual(
+    (
+      resolveExportActionLoadingState as unknown as (
+        activeActions: unknown,
+        preExportActions: unknown,
+      ) => unknown
+    )({ png: 0, zip: 0, motion: 0 }, { png: 1, zip: 0, motion: 0 }),
+    {
+      isImageExporting: true,
+      isMotionExporting: false,
+    },
+  );
+
+  assert.deepEqual(
+    (
+      resolveExportActionLoadingState as unknown as (
+        activeActions: unknown,
+        preExportActions: unknown,
+      ) => unknown
+    )({ png: 0, zip: 0, motion: 0 }, { png: 0, zip: 0, motion: 1 }),
+    {
+      isImageExporting: false,
+      isMotionExporting: true,
+    },
+  );
 });
 
 test("copyright defaults stay aligned across thumbnail templates", () => {
@@ -311,7 +348,17 @@ test("content field rows keep intro bite attribution and capsule controls paired
   assert.deepEqual(
     buildThumbnailContentFieldRows([
       { id: "title", label: "Bite Title", type: "text" },
+      {
+        id: "show_source_label",
+        label: "Show Bite From",
+        type: "select",
+      },
       { id: "source_label", label: "Source Label", type: "text" },
+      {
+        id: "show_source_title",
+        label: "Show Original Title",
+        type: "select",
+      },
       { id: "source_title", label: "Source Title", type: "text" },
       {
         id: "show_bite_capsule",
@@ -338,13 +385,154 @@ test("content field rows keep intro bite attribution and capsule controls paired
     ]),
     [
       ["title"],
-      ["source_label", "source_title"],
+      ["show_source_label", "source_label"],
+      ["show_source_title", "source_title"],
       ["show_bite_capsule", "bite_capsule_text"],
       ["show_duration_capsule", "duration_capsule_text"],
       ["show_speed_capsule", "speed_capsule_text"],
       ["title_size", "secondary_size"],
       ["show_grid", "grid_pattern"],
     ],
+  );
+});
+
+test("content field rows keep intro split partition and asset controls paired", () => {
+  assert.deepEqual(
+    buildThumbnailContentFieldRows([
+      { id: "title", label: "Title", type: "text" },
+      { id: "split_title_side", label: "Title Side", type: "select" },
+      {
+        id: "split_partition_points",
+        label: "Split Partition Points",
+        type: "text",
+      },
+      {
+        id: "split_type_capsule",
+        label: "Type Capsule",
+        type: "select",
+      },
+      {
+        id: "split_background_svg_asset_id",
+        label: "Background SVG Asset",
+        type: "select",
+      },
+      {
+        id: "split_foreground_asset_id",
+        label: "Foreground Image Asset",
+        type: "select",
+      },
+      {
+        id: "split_background_opacity",
+        label: "Background SVG Opacity",
+        type: "slider",
+      },
+      {
+        id: "split_background_scale",
+        label: "Background SVG Scale",
+        type: "slider",
+      },
+      {
+        id: "split_background_x",
+        label: "Background SVG Position X",
+        type: "slider",
+      },
+      {
+        id: "split_background_y",
+        label: "Background SVG Position Y",
+        type: "slider",
+      },
+      { id: "title_size", label: "Title Size", type: "select" },
+      { id: "show_grid", label: "Show Grid Pattern", type: "select" },
+      { id: "grid_pattern", label: "Grid Pattern", type: "select" },
+    ]),
+    [
+      ["title"],
+      ["split_title_side", "title_size"],
+      ["split_type_capsule"],
+      ["show_grid", "grid_pattern"],
+    ],
+  );
+});
+
+test("content field rows keep outro background asset controls out of the content section", () => {
+  assert.deepEqual(
+    buildThumbnailContentFieldRows([
+      { id: "title", label: "Headline", type: "text" },
+      { id: "subtitle", label: "Support Line", type: "text" },
+      {
+        id: "outro_background_svg_asset_id",
+        label: "Background SVG Asset",
+        type: "select",
+      },
+      {
+        id: "outro_background_opacity",
+        label: "Background SVG Opacity",
+        type: "slider",
+      },
+      {
+        id: "outro_background_scale",
+        label: "Background SVG Scale",
+        type: "slider",
+      },
+      {
+        id: "outro_background_x",
+        label: "Background SVG Position X",
+        type: "slider",
+      },
+      {
+        id: "outro_background_y",
+        label: "Background SVG Position Y",
+        type: "slider",
+      },
+      { id: "title_size", label: "Title Size", type: "select" },
+      { id: "secondary_size", label: "Secondary Size", type: "select" },
+      { id: "show_grid", label: "Show Grid Pattern", type: "select" },
+      { id: "grid_pattern", label: "Grid Pattern", type: "select" },
+    ]),
+    [
+      ["title"],
+      ["subtitle"],
+      ["title_size", "secondary_size"],
+      ["show_grid", "grid_pattern"],
+    ],
+  );
+});
+
+test("thumbnail page title includes app, module, and active template name", () => {
+  assert.equal(buildThumbnailPageTitle(), "LocalM Media Mods | Intro Outro");
+  assert.equal(
+    buildThumbnailPageTitle("Outro"),
+    "LocalM Media Mods | Intro Outro | Outro",
+  );
+});
+
+test("split templates bind the selected foreground asset to the rendered foreground image", () => {
+  assert.deepEqual(
+    resolveThumbnailTemplateAssetBindings({
+      templateId: "intro_split_thumbnail",
+      tutorialImageUrl: "data:image/png;base64,manual-upload",
+      splitForegroundAssetUrl: "data:image/png;base64,split-foreground",
+      splitBackgroundSvgAssetUrl: "data:image/svg+xml;base64,split-background",
+      outroBackgroundSvgAssetUrl: "data:image/svg+xml;base64,outro-background",
+    }),
+    {
+      tutorialImageUrl: "data:image/png;base64,split-foreground",
+      overlayImageUrl: "data:image/svg+xml;base64,split-background",
+    },
+  );
+
+  assert.deepEqual(
+    resolveThumbnailTemplateAssetBindings({
+      templateId: "outro_thumbnail",
+      tutorialImageUrl: "data:image/png;base64,manual-upload",
+      splitForegroundAssetUrl: "data:image/png;base64,split-foreground",
+      splitBackgroundSvgAssetUrl: "data:image/svg+xml;base64,split-background",
+      outroBackgroundSvgAssetUrl: "data:image/svg+xml;base64,outro-background",
+    }),
+    {
+      tutorialImageUrl: "data:image/png;base64,manual-upload",
+      overlayImageUrl: "data:image/svg+xml;base64,outro-background",
+    },
   );
 });
 

@@ -18,6 +18,8 @@ test("prepareAssetForSave preserves an existing id and stamps updatedAt", () => 
     previewImagePath: null,
     width: null,
     height: null,
+    category: "marketing",
+    tags: ["music"],
   });
 
   assert.equal(asset.id, "asset-1");
@@ -37,23 +39,27 @@ test("prepareAssetForSave normalizes display metadata for remote persistence", (
     previewImagePath: null,
     width: null,
     height: null,
+    category: "  Social Clips  ",
+    tags: ["  Outro  ", "music", "outro", "MUSIC"],
   });
 
   assert.equal(asset.name, "Outro Theme");
   assert.equal(asset.blobPath, "assets/audio/outro-theme.mp3");
   assert.equal(asset.durationMs, 9000);
+  assert.equal(asset.category, "social clips");
+  assert.deepEqual(asset.tags, ["outro", "music"]);
 });
 
-test("assets schema version increments when shared asset records are introduced", () => {
-  assert.equal(assetsSchema.version, 0);
+test("assets schema version increments when category metadata is introduced", () => {
+  assert.equal(assetsSchema.version, 2);
 });
 
-test("asset migration backfills optional metadata fields for cached records", async () => {
-  const migrateFromV0 = assetsMigrationStrategies[1];
+test("asset migration backfills optional metadata fields, category, and tags for cached records", async () => {
+  const migrateFromV1 = assetsMigrationStrategies[2];
 
-  assert.equal(typeof migrateFromV0, "function");
+  assert.equal(typeof migrateFromV1, "function");
 
-  const migrated = await migrateFromV0({
+  const migrated = await migrateFromV1({
     id: "asset-legacy",
     name: "Legacy Asset",
     fileName: "legacy.mp3",
@@ -66,4 +72,6 @@ test("asset migration backfills optional metadata fields for cached records", as
   assert.equal(migrated.sizeBytes, 0);
   assert.equal(migrated.durationMs, null);
   assert.equal(migrated.previewImagePath, null);
+  assert.equal(migrated.category, "");
+  assert.deepEqual(migrated.tags, []);
 });

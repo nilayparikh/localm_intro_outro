@@ -1,6 +1,5 @@
 import type { TemplateProps } from "./types";
 import { textSizeToMultiplier } from "./index";
-import { OUTRO_ARROW_ASSET_RESOURCES } from "./outroArrowAssets";
 import {
   buildTemplateFrameStyle,
   buildTemplatePanelStyle,
@@ -211,139 +210,6 @@ function GridPattern({
 const DEFAULT_OUTRO_TITLE = "Thank You for Watching";
 const DEFAULT_OUTRO_SUBTITLE = "Want more? Subscribe and press the bell";
 
-function sanitizeSvgId(value: string): string {
-  return value.replace(/[^a-zA-Z0-9_-]/g, "-");
-}
-
-function OutroArrowOverlays({
-  width,
-  overlays,
-  textFontFamily,
-  theme,
-}: {
-  width: number;
-  overlays: TemplateProps["outroArrowOverlays"];
-  textFontFamily: string;
-  theme: TemplateProps["theme"];
-}) {
-  if (!overlays || overlays.length === 0) {
-    return null;
-  }
-
-  const svgScale = width / 1300;
-
-  return (
-    <>
-      {overlays.map((overlay) => {
-        const asset = OUTRO_ARROW_ASSET_RESOURCES[overlay.type];
-        const variant = overlay.isInverse ? asset.inverse : asset.regular;
-        const overlayId = sanitizeSvgId(overlay.id);
-        const textPathId = `outro-arrow-text-${overlayId}`;
-        const strokeGradientId = `outro-arrow-stroke-${overlayId}`;
-        const fillGradientId = `outro-arrow-fill-${overlayId}`;
-        const widthScale = overlay.arrowWidth / 100;
-        const heightScale = overlay.arrowHeight / 100;
-        const averageScale = (widthScale + heightScale) / 2;
-        const textScale = overlay.textSize / 100;
-        const svgWidth = Math.round(
-          variant.referenceWidth * svgScale * widthScale,
-        );
-        const svgHeight = Math.round(
-          variant.referenceHeight * svgScale * heightScale,
-        );
-        const fontSize = Math.max(
-          16,
-          Math.round(variant.fontSize * svgScale * averageScale * textScale),
-        );
-        const strokeWidth = Math.max(
-          2,
-          Number((2.4 * svgScale * averageScale).toFixed(2)),
-        );
-
-        return (
-          <div
-            key={overlay.id}
-            data-template-region="outro-arrow-overlay"
-            data-overlay-id={overlay.id}
-            data-overlay-text-size={overlay.textSize}
-            data-overlay-arrow-width={overlay.arrowWidth}
-            data-overlay-arrow-height={overlay.arrowHeight}
-            style={{
-              position: "absolute",
-              left: `${overlay.x}%`,
-              top: `${overlay.y}%`,
-              width: `${svgWidth}px`,
-              height: `${svgHeight}px`,
-              transform: `translate(-50%, -50%) rotate(${overlay.degree}deg)`,
-              transformOrigin: "center center",
-              pointerEvents: "none",
-              zIndex: 3,
-            }}
-          >
-            <svg
-              width={svgWidth}
-              height={svgHeight}
-              viewBox={variant.viewBox}
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              style={{
-                overflow: "visible",
-                filter: `drop-shadow(0 ${Math.round(Math.max(8, svgScale * 10))}px ${Math.round(Math.max(14, svgScale * 18))}px ${colorWithAlpha(theme.background, 0.55)})`,
-              }}
-            >
-              <defs>
-                <linearGradient
-                  id={fillGradientId}
-                  x1="0%"
-                  y1="0%"
-                  x2="100%"
-                  y2="0%"
-                >
-                  <stop offset="0%" stopColor={asset.fillStart} />
-                  <stop offset="100%" stopColor={asset.fillEnd} />
-                </linearGradient>
-                <linearGradient
-                  id={strokeGradientId}
-                  x1="0%"
-                  y1="0%"
-                  x2="100%"
-                  y2="0%"
-                >
-                  <stop offset="0%" stopColor={asset.strokeStart} />
-                  <stop offset="100%" stopColor={asset.strokeEnd} />
-                </linearGradient>
-                <path id={textPathId} d={variant.textPathD} />
-              </defs>
-              <path
-                d={variant.arrowPathD}
-                fill={`url(#${fillGradientId})`}
-                stroke={`url(#${strokeGradientId})`}
-                strokeWidth={strokeWidth}
-              />
-              <text
-                fontFamily={textFontFamily}
-                fontSize={fontSize}
-                fontWeight={600}
-                fill="#ffffff"
-                letterSpacing="0.06em"
-              >
-                <textPath
-                  href={`#${textPathId}`}
-                  startOffset="50%"
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                >
-                  {overlay.text}
-                </textPath>
-              </text>
-            </svg>
-          </div>
-        );
-      })}
-    </>
-  );
-}
-
 export function OutroThumbnailTemplate({
   width,
   height,
@@ -356,11 +222,11 @@ export function OutroThumbnailTemplate({
   socialRenderMode = "full",
   borderWidth,
   borderColor,
+  overlayImageUrl,
+  overlayImageScale,
+  overlayImageX,
+  overlayImageY,
   transparentBackground = false,
-  tutorialImageUrl,
-  tutorialImageSize = 100,
-  tutorialImageOpacity = 100,
-  outroArrowOverlays,
   copyrightText,
 }: TemplateProps) {
   const scale = width / 1280;
@@ -382,24 +248,33 @@ export function OutroThumbnailTemplate({
     14,
   );
   const showGrid = values["show_grid"] !== "false";
-  const showSuggestedImage = values["show_outro_image"] !== "false";
   const gridPattern = values["grid_pattern"] ?? "dots";
   const surfaceStyle = resolveTemplateSurfaceStyle(values["surface_style"]);
   const surfaceShadow = resolveTemplateSurfaceShadowStyle(
     values["surface_shadow"],
   );
   const borderStyle = resolveTemplateBorderStyle(values["border_style"]);
+  const backgroundSvgOpacity =
+    Math.min(
+      100,
+      Math.max(
+        0,
+        Number.parseFloat(values["outro_background_opacity"] ?? "55"),
+      ),
+    ) / 100;
+  const resolvedBackgroundScale =
+    Math.min(180, Math.max(50, overlayImageScale ?? 100)) / 100;
+  const resolvedBackgroundX = Math.min(24, Math.max(-24, overlayImageX ?? 0));
+  const resolvedBackgroundY = Math.min(24, Math.max(-24, overlayImageY ?? 0));
+  const supportLines = (values["subtitle"] ?? DEFAULT_OUTRO_SUBTITLE)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const resolvedSupportLines =
+    supportLines.length > 0 ? supportLines : [DEFAULT_OUTRO_SUBTITLE];
   const borderColorSecondary =
     values["border_color_secondary"]?.trim() || undefined;
   const footerSize = resolveFooterSize(values["footer_size"]);
-  const tutorialScalePercent = Math.min(180, Math.max(55, tutorialImageSize));
-  const imageOpacity = Math.min(100, Math.max(0, tutorialImageOpacity)) / 100;
-  const tutorialImageSource = tutorialImageUrl?.trim()
-    ? tutorialImageUrl.trim()
-    : null;
-  const suggestedImageWidth = Math.round(
-    width * 0.27 * (tutorialScalePercent / 100),
-  );
   const contentPanelStyle = buildTemplatePanelStyle({
     surfaceStyle,
     theme,
@@ -455,37 +330,23 @@ export function OutroThumbnailTemplate({
         />
       )}
 
-      {showSuggestedImage && tutorialImageSource && (
-        <div
-          data-template-region="outro-suggested-image"
+      {overlayImageUrl?.trim() && (
+        <img
+          data-template-region="outro-background-svg"
+          src={overlayImageUrl}
+          alt="Outro background asset"
           style={{
             position: "absolute",
-            right: `${Math.round(72 * scale)}px`,
-            bottom: `${Math.round(138 * scale)}px`,
-            width: `${suggestedImageWidth}px`,
-            padding: `${Math.round(18 * scale)}px`,
-            borderRadius: `${Math.round(30 * scale)}px`,
-            background: `linear-gradient(180deg, ${colorWithAlpha(theme.surface, 0.56)}, ${colorWithAlpha(theme.background, 0.34)})`,
-            border: `1px solid ${colorWithAlpha(theme.textPrimary, 0.18)}`,
-            boxShadow: `0 ${Math.round(18 * scale)}px ${Math.round(44 * scale)}px ${colorWithAlpha(theme.background, 0.34)}`,
-            backdropFilter: `blur(${Math.round(26 * scale)}px)`,
-            WebkitBackdropFilter: `blur(${Math.round(26 * scale)}px)`,
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            opacity: backgroundSvgOpacity,
+            transform: `translate(${resolvedBackgroundX}%, ${resolvedBackgroundY}%) scale(${resolvedBackgroundScale.toFixed(2)})`,
+            transformOrigin: "center center",
             zIndex: 1,
           }}
-        >
-          <img
-            src={tutorialImageSource}
-            alt="Suggested Course Preview"
-            style={{
-              width: "100%",
-              height: "auto",
-              display: "block",
-              borderRadius: `${Math.round(20 * scale)}px`,
-              objectFit: "cover",
-              opacity: imageOpacity,
-            }}
-          />
-        </div>
+        />
       )}
 
       <div
@@ -529,25 +390,32 @@ export function OutroThumbnailTemplate({
         </div>
 
         <div
+          data-template-region="outro-support-lines"
           style={{
-            fontSize: subtitleSize,
-            fontWeight: 600,
-            color: theme.textSecondary,
-            lineHeight: 1.24,
-            fontFamily: primaryFont,
+            display: "flex",
+            flexDirection: "column",
+            gap: `${Math.round(10 * scale)}px`,
+            alignItems: "center",
             maxWidth: "74%",
           }}
         >
-          {values["subtitle"] ?? DEFAULT_OUTRO_SUBTITLE}
+          {resolvedSupportLines.map((line, index) => (
+            <div
+              key={`${line}-${index}`}
+              style={{
+                fontSize: subtitleSize,
+                fontWeight: 600,
+                color: theme.textSecondary,
+                lineHeight: 1.24,
+                fontFamily: primaryFont,
+                maxWidth: "100%",
+              }}
+            >
+              {line}
+            </div>
+          ))}
         </div>
       </div>
-
-      <OutroArrowOverlays
-        width={width}
-        overlays={outroArrowOverlays}
-        textFontFamily={secondaryFont}
-        theme={theme}
-      />
 
       <ThumbnailFooter
         width={width}

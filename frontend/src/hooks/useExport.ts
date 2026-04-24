@@ -78,7 +78,6 @@ const WEBM_MIME_TYPES = [
   "video/webm;codecs=vp8",
   "video/webm",
 ] as const;
-const MOTION_MIME_TYPES = [...MP4_MIME_TYPES, ...WEBM_MIME_TYPES] as const;
 const STILL_FRAME_WEBM_FRAME_RATE = 30;
 const EXPORT_SUPERSAMPLE_SCALE = 2;
 const FOUR_K_MIN_DIMENSION = 2160;
@@ -123,7 +122,7 @@ export function buildCaptureOptions(
     pixelRatio: 1,
     skipAutoScale: true,
     skipFonts: false,
-    cacheBust: true,
+    cacheBust: false,
     preferredFontFormat: "woff2",
     ...getCaptureDimensions(element),
   };

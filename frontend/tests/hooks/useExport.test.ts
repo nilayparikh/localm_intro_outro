@@ -18,7 +18,7 @@ test("buildCaptureOptions keeps fonts enabled so export text matches preview wra
     pixelRatio: 1,
     skipAutoScale: true,
     skipFonts: false,
-    cacheBust: true,
+    cacheBust: false,
     preferredFontFormat: "woff2",
   });
 });
@@ -29,7 +29,7 @@ test("buildCaptureOptions keeps explicit quality overrides", () => {
     pixelRatio: 1,
     skipAutoScale: true,
     skipFonts: false,
-    cacheBust: true,
+    cacheBust: false,
     preferredFontFormat: "woff2",
   });
 });
@@ -45,7 +45,7 @@ test("buildCaptureOptions locks export dimensions to the rendered canvas size", 
     pixelRatio: 1,
     skipAutoScale: true,
     skipFonts: false,
-    cacheBust: true,
+    cacheBust: false,
     preferredFontFormat: "woff2",
     width: 1280,
     height: 720,
@@ -65,7 +65,7 @@ test("buildSupersampledCaptureOptions renders a larger internal canvas while pre
     pixelRatio: 1,
     skipAutoScale: true,
     skipFonts: false,
-    cacheBust: true,
+    cacheBust: false,
     preferredFontFormat: "woff2",
     width: 1280,
     height: 720,

@@ -238,13 +238,21 @@ export function buildTemplateFrameStyle({
   }
 
   if (borderStyle === "gradient") {
+    const frameBackground = transparentBackground
+      ? "transparent"
+      : (theme.backgroundImage ??
+        `linear-gradient(135deg, ${theme.gradientStart}, ${theme.gradientMid}, ${theme.gradientEnd})`);
+    const resolvedSecondaryBorderColor =
+      borderColorSecondary ?? theme.borderColor ?? theme.accent;
+
     return {
       ...baseStyle,
       borderWidth: `${scaledBorderWidth}px`,
       borderStyle: "solid",
       borderColor: "transparent",
-      borderImageSource: `linear-gradient(135deg, ${borderColor}, ${borderColorSecondary ?? theme.textSecondary})`,
-      borderImageSlice: 1,
+      backgroundImage: `${frameBackground}, linear-gradient(135deg, ${borderColor}, ${resolvedSecondaryBorderColor})`,
+      backgroundOrigin: "border-box",
+      backgroundClip: "padding-box, border-box",
       boxShadow: `0 ${Math.round(width * 0.015)}px ${Math.round(width * 0.04)}px ${colorWithAlpha(theme.background, 0.28)}`,
     };
   }

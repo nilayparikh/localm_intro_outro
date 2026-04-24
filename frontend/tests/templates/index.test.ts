@@ -17,11 +17,19 @@ test("intro bite and outro templates are registered for thumbnail exports", () =
 
   assert.ok(introTemplate);
   assert.equal(introTemplate?.tool, "thumbnail");
-  assert.equal(introTemplate?.name, "Intro Bite");
+  assert.equal(introTemplate?.name, "Intro (Bite)");
 
   assert.ok(outroTemplate);
   assert.equal(outroTemplate?.tool, "thumbnail");
   assert.equal(outroTemplate?.name, "Outro");
+});
+
+test("intro split template is registered for thumbnail exports", () => {
+  const splitTemplate = getTemplateDef("intro_split_thumbnail");
+
+  assert.ok(splitTemplate);
+  assert.equal(splitTemplate?.tool, "thumbnail");
+  assert.equal(splitTemplate?.name, "Intro (Split)");
 });
 
 test("background template defaults keep only background-specific controls", () => {
@@ -161,7 +169,11 @@ test("intro bite and outro templates expose specialized banner defaults", () => 
   assert.deepEqual(
     {
       title: getDefaultValues("intro_bite_thumbnail").title,
+      show_source_label: getDefaultValues("intro_bite_thumbnail")
+        .show_source_label,
       source_label: getDefaultValues("intro_bite_thumbnail").source_label,
+      show_source_title: getDefaultValues("intro_bite_thumbnail")
+        .show_source_title,
       source_title: getDefaultValues("intro_bite_thumbnail").source_title,
       show_bite_capsule: getDefaultValues("intro_bite_thumbnail")
         .show_bite_capsule,
@@ -191,7 +203,9 @@ test("intro bite and outro templates expose specialized banner defaults", () => 
     },
     {
       title: "5 Copilot Prompts That Save Time",
+      show_source_label: "true",
       source_label: "BITE FROM",
+      show_source_title: "true",
       source_title: "Context Engineering for GitHub Copilot",
       show_bite_capsule: "true",
       bite_capsule_text: "BITE",
@@ -219,7 +233,11 @@ test("intro bite and outro templates expose specialized banner defaults", () => 
     subtitle: "Want more? Subscribe and press the bell",
     title_size: "lg",
     secondary_size: "md",
-    show_outro_image: "true",
+    outro_background_svg_asset_id: "",
+    outro_background_opacity: "55",
+    outro_background_scale: "100",
+    outro_background_x: "0",
+    outro_background_y: "0",
     surface_style: "standard",
     surface_shadow: "middle",
     border_style: "solid",
@@ -234,13 +252,119 @@ test("intro bite and outro templates expose specialized banner defaults", () => 
     "border_style",
     "footer_size",
     "grid_pattern",
+    "outro_background_opacity",
+    "outro_background_scale",
+    "outro_background_svg_asset_id",
+    "outro_background_x",
+    "outro_background_y",
     "secondary_size",
     "show_grid",
-    "show_outro_image",
     "subtitle",
     "surface_shadow",
     "surface_style",
     "title",
     "title_size",
   ]);
+});
+
+test("intro split template exposes partition, side and split-asset defaults", () => {
+  assert.deepEqual(
+    {
+      title: getDefaultValues("intro_split_thumbnail").title,
+      title_size: getDefaultValues("intro_split_thumbnail").title_size,
+      split_title_side: getDefaultValues("intro_split_thumbnail")
+        .split_title_side,
+      split_partition_points: getDefaultValues("intro_split_thumbnail")
+        .split_partition_points,
+      split_background_svg_asset_id: getDefaultValues("intro_split_thumbnail")
+        .split_background_svg_asset_id,
+      split_background_opacity: getDefaultValues("intro_split_thumbnail")
+        .split_background_opacity,
+      split_background_scale: getDefaultValues("intro_split_thumbnail")
+        .split_background_scale,
+      split_background_x: getDefaultValues("intro_split_thumbnail")
+        .split_background_x,
+      split_background_y: getDefaultValues("intro_split_thumbnail")
+        .split_background_y,
+      split_foreground_asset_id: getDefaultValues("intro_split_thumbnail")
+        .split_foreground_asset_id,
+      split_foreground_scale: getDefaultValues("intro_split_thumbnail")
+        .split_foreground_scale,
+      split_foreground_x: getDefaultValues("intro_split_thumbnail")
+        .split_foreground_x,
+      split_foreground_y: getDefaultValues("intro_split_thumbnail")
+        .split_foreground_y,
+      split_type_capsule: getDefaultValues("intro_split_thumbnail")
+        .split_type_capsule,
+      split_corner_icon_asset_id_1: getDefaultValues("intro_split_thumbnail")
+        .split_corner_icon_asset_id_1,
+      split_corner_icon_asset_id_2: getDefaultValues("intro_split_thumbnail")
+        .split_corner_icon_asset_id_2,
+      split_corner_icon_asset_id_3: getDefaultValues("intro_split_thumbnail")
+        .split_corner_icon_asset_id_3,
+      split_corner_icon_size: getDefaultValues("intro_split_thumbnail")
+        .split_corner_icon_size,
+      show_duration_capsule: getDefaultValues("intro_split_thumbnail")
+        .show_duration_capsule,
+      show_level_capsule: getDefaultValues("intro_split_thumbnail")
+        .show_level_capsule,
+      show_instructor_capsule: getDefaultValues("intro_split_thumbnail")
+        .show_instructor_capsule,
+      show_hands_on_lab_capsule: getDefaultValues("intro_split_thumbnail")
+        .show_hands_on_lab_capsule,
+      capsule_style: getDefaultValues("intro_split_thumbnail").capsule_style,
+      capsule_size: getDefaultValues("intro_split_thumbnail").capsule_size,
+      surface_style: getDefaultValues("intro_split_thumbnail").surface_style,
+      surface_shadow: getDefaultValues("intro_split_thumbnail").surface_shadow,
+      border_style: getDefaultValues("intro_split_thumbnail").border_style,
+      border_color_secondary: getDefaultValues("intro_split_thumbnail")
+        .border_color_secondary,
+      show_grid: getDefaultValues("intro_split_thumbnail").show_grid,
+      grid_pattern: getDefaultValues("intro_split_thumbnail").grid_pattern,
+      footer_size: getDefaultValues("intro_split_thumbnail").footer_size,
+    },
+    {
+      title: "AI Voice Cloning in 45 Seconds",
+      title_size: "lg",
+      split_title_side: "left",
+      split_partition_points: "(12, 3), (12, 24)",
+      split_background_svg_asset_id: "",
+      split_background_opacity: "55",
+      split_background_scale: "100",
+      split_background_x: "0",
+      split_background_y: "0",
+      split_foreground_asset_id: "",
+      split_foreground_scale: "108",
+      split_foreground_x: "0",
+      split_foreground_y: "0",
+      split_type_capsule: "bite",
+      split_corner_icon_asset_id_1: "",
+      split_corner_icon_asset_id_2: "",
+      split_corner_icon_asset_id_3: "",
+      split_corner_icon_size: "100",
+      show_duration_capsule: "false",
+      show_level_capsule: "false",
+      show_instructor_capsule: "false",
+      show_hands_on_lab_capsule: "false",
+      capsule_style: "glass",
+      capsule_size: "small",
+      surface_style: "standard",
+      surface_shadow: "middle",
+      border_style: "solid",
+      border_color_secondary: "",
+      show_grid: "true",
+      grid_pattern: "dots",
+      footer_size: "small",
+    },
+  );
+
+  const introSplitTemplate = getTemplateDef("intro_split_thumbnail");
+  const splitTypeField = introSplitTemplate?.fields.find(
+    (field) => field.id === "split_type_capsule",
+  );
+
+  assert.deepEqual(
+    splitTypeField?.options?.map((option) => option.value),
+    ["bite", "course", "mono", "debug"],
+  );
 });
