@@ -29,6 +29,7 @@ export function useBanners() {
     collection: db.banners as unknown as CachedCrudCollection<BannerDoc>,
     remote,
     loadStrategy: remote ? "remote-first" : "cache-first",
+    reconcileStrategy: remote ? "merge-remote" : "mirror-remote",
     prepareForSave: prepareBannerForSave,
     sort: BANNER_SORT,
   });

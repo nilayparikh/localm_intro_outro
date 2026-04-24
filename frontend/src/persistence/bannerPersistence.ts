@@ -86,7 +86,7 @@ export function prepareBannerForSave(input: BannerSaveInput): BannerDoc {
     ...input,
     outroArrowOverlays,
     ...(templateEntries.length > 0 ? { templateEntries } : {}),
-    id: input.id ?? uuidv4(),
+    id: input.id?.trim() || uuidv4(),
     updatedAt: Date.now(),
   };
 }

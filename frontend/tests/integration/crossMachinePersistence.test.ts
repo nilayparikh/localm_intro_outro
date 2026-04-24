@@ -179,17 +179,84 @@ test("New Banner created on machine A appears on machine B after refresh", async
   assert.equal(remote.snapshot()[0]?.name, "New Banner");
   assert.equal(machineBCollection.snapshot()[0]?.name, "New Banner");
   assert.deepEqual(
-    machineBCollection.snapshot()[0]?.templateEntries?.map(
-      (entry) => entry.templateId,
-    ),
+    machineBCollection
+      .snapshot()[0]
+      ?.templateEntries?.map((entry) => entry.templateId),
     ["tutorial_thumbnail", "outro_thumbnail"],
   );
   assert.equal(
-    machineBCollection.snapshot()[0]?.templateEntries?.find(
-      (entry) => entry.templateId === "outro_thumbnail",
-    )?.fieldValues.title,
+    machineBCollection
+      .snapshot()[0]
+      ?.templateEntries?.find((entry) => entry.templateId === "outro_thumbnail")
+      ?.fieldValues.title,
     "Final Outro",
   );
+});
+
+test("remote-first banner loading preserves local-only banners while merging remote records", async () => {
+  const remote = createMemoryRemoteAdapter<BannerDoc>();
+  const localOnlyBanner = prepareBannerForSave({
+    id: "local-only-banner",
+    name: "Local Only Banner",
+    templateId: "tutorial_thumbnail",
+    themeId: "dark",
+    platformId: "landscape_4k",
+    fieldValues: { title: "Stored Locally" },
+    borderWidth: 0,
+    borderColor: "#ffffff",
+    fontPairId: "pair-1",
+    primaryFontFamily: "Inter",
+    secondaryFontFamily: "Roboto",
+    fontSize: 48,
+    brandLogoUrl: null,
+    brandLogoSize: 80,
+    showCopyrightMessage: true,
+    copyrightText: "Copyright",
+    tutorialImageUrl: null,
+    tutorialImageSize: 100,
+    tutorialImageBottomPadding: 0,
+    tutorialImageOpacity: 100,
+  });
+  const remoteBanner = prepareBannerForSave({
+    id: "remote-banner",
+    name: "Remote Banner",
+    templateId: "outro_thumbnail",
+    themeId: "dark",
+    platformId: "landscape_4k",
+    fieldValues: { title: "Stored Remotely" },
+    borderWidth: 0,
+    borderColor: "#ffffff",
+    fontPairId: "pair-1",
+    primaryFontFamily: "Inter",
+    secondaryFontFamily: "Roboto",
+    fontSize: 48,
+    brandLogoUrl: null,
+    brandLogoSize: 80,
+    showCopyrightMessage: true,
+    copyrightText: "Copyright",
+    tutorialImageUrl: null,
+    tutorialImageSize: 100,
+    tutorialImageBottomPadding: 0,
+    tutorialImageOpacity: 100,
+  });
+
+  await remote.adapter.upsert(remoteBanner);
+
+  const localCollection = createFakeRxCollection<BannerDoc>([localOnlyBanner]);
+  const api = createAzureCachedCollectionApi<BannerDoc, BannerSaveInput>({
+    collection: localCollection,
+    remote: remote.adapter,
+    prepareForSave: prepareBannerForSave,
+    loadStrategy: "remote-first",
+    reconcileStrategy: "merge-remote",
+  });
+
+  const records = await api.load();
+
+  assert.deepEqual(records.map((record) => record.id).sort(), [
+    "local-only-banner",
+    "remote-banner",
+  ]);
 });
 
 test("Dark Duplicate theme created on machine A appears on machine B after refresh", async () => {

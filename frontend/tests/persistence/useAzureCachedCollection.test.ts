@@ -141,3 +141,39 @@ test("load in remote-first mode ignores cached records and refreshes server data
   assert.deepEqual(loadedRecords, remoteRecords);
   assert.deepEqual(cache.snapshot(), remoteRecords);
 });
+
+test("load in merge-remote mode preserves local records while adding server data", async () => {
+  const remoteRecords: FakeRecord[] = [
+    { id: "theme-2", updatedAt: 300, name: "Server Theme" },
+  ];
+  const remote = {
+    list: async () => remoteRecords,
+    upsert: async (record: FakeRecord) => record,
+    delete: async () => {},
+  };
+
+  const cache = createFakeRxCollection([
+    { id: "theme-1", updatedAt: 100, name: "Local Theme" },
+  ]);
+  const api = createAzureCachedCollectionApi<FakeRecord, FakeRecord>({
+    collection: cache,
+    remote,
+    prepareForSave: (record) => record,
+    loadStrategy: "remote-first",
+    reconcileStrategy: "merge-remote",
+  });
+
+  const loadedRecords = await api.load();
+
+  assert.deepEqual(loadedRecords.map((record) => record.id).sort(), [
+    "theme-1",
+    "theme-2",
+  ]);
+  assert.deepEqual(
+    cache
+      .snapshot()
+      .map((record) => record.id)
+      .sort(),
+    ["theme-1", "theme-2"],
+  );
+});

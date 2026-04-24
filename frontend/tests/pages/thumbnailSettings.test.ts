@@ -6,11 +6,14 @@ import {
   buildThumbnailContentFieldRows,
   buildBannerDialogState,
   clampBrandLogoSize,
+  type BannerDialogState,
   resolveExportActionLoadingState,
   getTemplateAudioAssetFieldId,
+  getTemplateAudioStartFieldId,
   getThumbnailTemplateCapabilities,
   getThemeBorderColor,
   resolveThumbnailTemplateAssetBindings,
+  resolveMotionAudioStartSeconds,
   resolveMotionDurationSeconds,
   resolveLoadedBrandLogoUrl,
   resolveBrandLogoUrlFromSettings,
@@ -111,6 +114,44 @@ test("intro and outro templates persist shared audio selections under stable fie
     "outro_audio_asset_id",
   );
   assert.equal(getTemplateAudioAssetFieldId("tutorial_thumbnail"), null);
+
+  assert.equal(
+    getTemplateAudioStartFieldId("intro_bite_thumbnail"),
+    "intro_audio_start_seconds",
+  );
+  assert.equal(
+    getTemplateAudioStartFieldId("outro_thumbnail"),
+    "outro_audio_start_seconds",
+  );
+  assert.equal(getTemplateAudioStartFieldId("tutorial_thumbnail"), null);
+});
+
+test("motion audio start offset defaults to 2 seconds and clamps to the available range", () => {
+  assert.equal(resolveMotionAudioStartSeconds({}, null, 12), 0);
+  assert.equal(
+    resolveMotionAudioStartSeconds({}, "outro_audio_start_seconds", 12),
+    2,
+  );
+  assert.equal(
+    resolveMotionAudioStartSeconds(
+      { outro_audio_start_seconds: "9" },
+      "outro_audio_start_seconds",
+      6,
+    ),
+    6,
+  );
+  assert.equal(
+    resolveMotionAudioStartSeconds(
+      { outro_audio_start_seconds: "-4" },
+      "outro_audio_start_seconds",
+      6,
+    ),
+    0,
+  );
+  assert.equal(
+    resolveMotionAudioStartSeconds({}, "outro_audio_start_seconds", 1),
+    1,
+  );
 });
 
 test("save dialog starts from the current banner and keeps overwrite intent explicit", () => {
@@ -127,6 +168,26 @@ test("save dialog starts from the current banner and keeps overwrite intent expl
     {
       selectedBannerId: "banner-2",
       bannerName: "RAG Intro",
+      saveAction: "overwrite",
+    },
+  );
+});
+
+test("save dialog defaults to a new copy when the draft is not linked to a saved banner", () => {
+  assert.deepEqual(
+    buildBannerDialogState({
+      mode: "save",
+      profileName: "New Draft",
+      selectedBannerId: "",
+      banners: [
+        { id: "banner-1", name: "Banner One" },
+        { id: "banner-2", name: "Banner Two" },
+      ],
+    }) satisfies BannerDialogState,
+    {
+      selectedBannerId: "",
+      bannerName: "New Draft",
+      saveAction: "save-as-new",
     },
   );
 });
@@ -401,10 +462,16 @@ test("content field rows keep intro split partition and asset controls paired", 
     buildThumbnailContentFieldRows([
       { id: "title", label: "Title", type: "text" },
       { id: "split_title_side", label: "Title Side", type: "select" },
+      { id: "split_title_width", label: "Title Width", type: "slider" },
       {
         id: "split_partition_points",
         label: "Split Partition Points",
         type: "text",
+      },
+      {
+        id: "split_breakpoint_effect",
+        label: "Breakpoint Effect",
+        type: "select",
       },
       {
         id: "split_type_capsule",
@@ -447,8 +514,53 @@ test("content field rows keep intro split partition and asset controls paired", 
     ]),
     [
       ["title"],
-      ["split_title_side", "title_size"],
+      ["split_title_side", "title_size", "split_title_width"],
       ["split_type_capsule"],
+      ["show_grid", "grid_pattern"],
+    ],
+  );
+});
+
+test("content field rows keep intro split course controls grouped with the type capsule", () => {
+  assert.deepEqual(
+    buildThumbnailContentFieldRows([
+      { id: "title", label: "Title", type: "text" },
+      {
+        id: "split_type_capsule",
+        label: "Type Capsule",
+        type: "select",
+      },
+      {
+        id: "split_course_block_size",
+        label: "Course Block Size",
+        type: "slider",
+      },
+      {
+        id: "split_course_title",
+        label: "Course Title",
+        type: "text",
+      },
+      {
+        id: "split_course_lesson_current",
+        label: "Lesson Number",
+        type: "text",
+      },
+      {
+        id: "split_course_lesson_total",
+        label: "Total Lessons",
+        type: "text",
+      },
+      { id: "show_grid", label: "Show Grid Pattern", type: "select" },
+      { id: "grid_pattern", label: "Grid Pattern", type: "select" },
+    ]),
+    [
+      ["title"],
+      ["split_type_capsule", "split_course_title"],
+      [
+        "split_course_lesson_current",
+        "split_course_lesson_total",
+        "split_course_block_size",
+      ],
       ["show_grid", "grid_pattern"],
     ],
   );

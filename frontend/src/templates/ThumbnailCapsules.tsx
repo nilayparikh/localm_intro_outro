@@ -1,6 +1,8 @@
 import type { CSSProperties, ReactNode } from "react";
 import {
   colorWithAlpha,
+  getTemplateGlassIntensity,
+  interpolateGlassValue,
   resolveTemplateSurfaceStyle,
   type TemplateSurfaceStyle,
 } from "./rendering";
@@ -408,7 +410,24 @@ function buildCapsuleStyle({
     };
   }
 
-  const isStrongGlass = stylePreset === "glass-strong";
+  const glassIntensity = getTemplateGlassIntensity(stylePreset);
+
+  if (glassIntensity === null) {
+    return {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: sizing.capsuleGap,
+      padding: `${sizing.paddingY}px ${sizing.paddingX}px`,
+      borderRadius: Math.round(999 * scale),
+      background: colorWithAlpha(accentColor, 0.22),
+      border: `1px solid ${colorWithAlpha(accentColor, 0.52)}`,
+      boxShadow: `0 ${Math.round(sizing.shadowY * 0.65)}px ${Math.round(sizing.shadowBlur * 0.75)}px ${colorWithAlpha(accentColor, 0.18)}`,
+      color: theme.textPrimary,
+      fontWeight: 700,
+      letterSpacing: "0.03em",
+      whiteSpace: "nowrap",
+    };
+  }
 
   return {
     display: "inline-flex",
@@ -416,12 +435,10 @@ function buildCapsuleStyle({
     gap: sizing.capsuleGap,
     padding: `${sizing.paddingY}px ${sizing.paddingX}px`,
     borderRadius: Math.round(999 * scale),
-    background: isStrongGlass
-      ? `linear-gradient(145deg, ${colorWithAlpha(theme.surface, 0.76)}, ${colorWithAlpha(theme.background, 0.58)})`
-      : `linear-gradient(145deg, ${colorWithAlpha(theme.surface, 0.62)}, ${colorWithAlpha(theme.background, 0.4)})`,
-    border: `1px solid ${colorWithAlpha(accentColor, isStrongGlass ? 0.48 : 0.4)}`,
-    boxShadow: `0 ${sizing.shadowY}px ${sizing.shadowBlur}px ${colorWithAlpha(theme.background, isStrongGlass ? 0.34 : 0.26)}`,
-    backdropFilter: `blur(${isStrongGlass ? Math.round(24 * scale) : Math.round(16 * scale)}px) saturate(${isStrongGlass ? 165 : 145}%)`,
+    background: `linear-gradient(145deg, ${colorWithAlpha(theme.surface, interpolateGlassValue(glassIntensity, 0.5, 0.76))}, ${colorWithAlpha(theme.background, interpolateGlassValue(glassIntensity, 0.28, 0.58))})`,
+    border: `1px solid ${colorWithAlpha(accentColor, interpolateGlassValue(glassIntensity, 0.32, 0.48))}`,
+    boxShadow: `0 ${sizing.shadowY}px ${sizing.shadowBlur}px ${colorWithAlpha(theme.background, interpolateGlassValue(glassIntensity, 0.22, 0.34))}`,
+    backdropFilter: `blur(${Math.round(interpolateGlassValue(glassIntensity, 10, 24) * scale)}px) saturate(${Math.round(interpolateGlassValue(glassIntensity, 136, 165))}%)`,
     color: theme.textPrimary,
     fontWeight: 700,
     letterSpacing: "0.03em",

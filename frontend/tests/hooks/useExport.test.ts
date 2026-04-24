@@ -5,6 +5,7 @@ import {
   buildStillFrameMp4Args,
   buildSupersampledCaptureOptions,
   buildStillFrameWebmPlan,
+  resolveMotionExportStrategy,
   resolveSupersampleScaleForDimensions,
   resolveMotionFileExtension,
   resolveSupportedMotionMimeType,
@@ -132,6 +133,18 @@ test("resolveSupportedMotionMimeType prefers WEBM for browser fallback recording
   );
 });
 
+test("resolveSupportedMotionMimeType prefers MP4 when explicitly requested", () => {
+  assert.equal(
+    resolveSupportedMotionMimeType(
+      (type) =>
+        type === "video/mp4;codecs=avc1.42E01E,mp4a.40.2" ||
+        type === "video/webm;codecs=vp9",
+      "mp4",
+    ),
+    "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+  );
+});
+
 test("resolveMotionFileExtension returns mp4 for MP4 recordings and webm otherwise", () => {
   assert.equal(
     resolveMotionFileExtension("video/mp4;codecs=avc1.42E01E,mp4a.40.2"),
@@ -256,5 +269,102 @@ test("buildStillFrameMp4Args maps a front-aligned padded audio track to the full
       "+faststart",
       "motion.mp4",
     ],
+  );
+});
+
+test("buildStillFrameMp4Args can start the audio input from a configured skip offset", () => {
+  assert.deepEqual(
+    buildStillFrameMp4Args({
+      imageInputName: "frame.png",
+      audioInputName: "audio.mp3",
+      outputName: "motion.mp4",
+      durationSeconds: 5,
+      width: 3840,
+      height: 2160,
+      frameRate: 30,
+      audioStartSeconds: 2,
+    }),
+    [
+      "-loop",
+      "1",
+      "-framerate",
+      "30",
+      "-i",
+      "frame.png",
+      "-ss",
+      "2",
+      "-i",
+      "audio.mp3",
+      "-t",
+      "5",
+      "-vf",
+      "scale=3840:2160:flags=lanczos,format=yuv420p",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "slow",
+      "-tune",
+      "stillimage",
+      "-crf",
+      "12",
+      "-maxrate",
+      "80M",
+      "-bufsize",
+      "160M",
+      "-profile:v",
+      "high",
+      "-level:v",
+      "5.2",
+      "-pix_fmt",
+      "yuv420p",
+      "-colorspace",
+      "bt709",
+      "-color_primaries",
+      "bt709",
+      "-color_trc",
+      "bt709",
+      "-filter_complex",
+      "[1:a]apad=pad_dur=5,atrim=duration=5[padded_audio]",
+      "-map",
+      "0:v:0",
+      "-map",
+      "[padded_audio]",
+      "-c:a",
+      "aac",
+      "-b:a",
+      "192k",
+      "-movflags",
+      "+faststart",
+      "motion.mp4",
+    ],
+  );
+});
+
+test("resolveMotionExportStrategy avoids FFmpeg MP4 for 4K motion exports", () => {
+  assert.equal(
+    resolveMotionExportStrategy({
+      requestedExtension: "mp4",
+      width: 3840,
+      height: 2160,
+    }),
+    "browser-webm",
+  );
+
+  assert.equal(
+    resolveMotionExportStrategy({
+      requestedExtension: "mp4",
+      width: 2048,
+      height: 1152,
+    }),
+    "ffmpeg-mp4",
+  );
+
+  assert.equal(
+    resolveMotionExportStrategy({
+      requestedExtension: "webm",
+      width: 3840,
+      height: 2160,
+    }),
+    "browser-webm",
   );
 });

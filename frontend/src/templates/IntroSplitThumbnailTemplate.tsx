@@ -25,7 +25,19 @@ function resolveTitleSide(value: string | undefined): "left" | "right" {
   return value === "right" ? "right" : "left";
 }
 
+type SplitBreakpointEffect = "none" | "glass" | "opaque" | "cracked";
+
 type SplitTypeCapsule = "bite" | "course" | "mono" | "debug";
+
+function resolveSplitBreakpointEffect(
+  value: string | undefined,
+): SplitBreakpointEffect {
+  if (value === "none" || value === "opaque" || value === "cracked") {
+    return value;
+  }
+
+  return "glass";
+}
 
 function resolveSplitTypeCapsuleValue(
   value: string | undefined,
@@ -51,6 +63,38 @@ function resolveSplitTypeCapsuleLabel(value: SplitTypeCapsule): string {
   }
 
   return "BITE";
+}
+
+function formatCourseLessonValue(
+  value: string | undefined,
+  fallback: string,
+): string {
+  const trimmedValue = value?.trim();
+
+  if (!trimmedValue) {
+    return fallback;
+  }
+
+  if (/^\d+$/.test(trimmedValue)) {
+    return trimmedValue.padStart(2, "0");
+  }
+
+  return trimmedValue;
+}
+
+function resolveCourseLessonLabel(
+  current: string | undefined,
+  total: string | undefined,
+): string {
+  return `${formatCourseLessonValue(current, "01")} of ${formatCourseLessonValue(total, "10")}`;
+}
+
+function resolveSplitTitleWidthPercent(value: string | undefined): number {
+  return clamp(Number.parseFloat(value ?? "46"), 30, 72);
+}
+
+function resolveSplitCourseBlockScale(value: string | undefined): number {
+  return clamp(Number.parseFloat(value ?? "100"), 70, 180) / 100;
 }
 
 function isEnabled(value: string | undefined): boolean {
@@ -106,6 +150,232 @@ function buildSplitForegroundMaskStyles(values: TemplateProps["values"]) {
         }
       : {}),
   };
+}
+
+function mapSplitPointToCanvas(
+  point: { x: number; y: number },
+  width: number,
+  height: number,
+): { x: number; y: number } {
+  return {
+    x: (point.x / 24) * width,
+    y: (point.y / 24) * height,
+  };
+}
+
+function buildSplitCrackBranchSegments(
+  points: Array<{ x: number; y: number }>,
+  width: number,
+  height: number,
+): string[] {
+  const canvasPoints = points.map((point) =>
+    mapSplitPointToCanvas(point, width, height),
+  );
+  const branchLength = Math.max(
+    40,
+    Math.round(Math.min(width, height) * 0.022),
+  );
+
+  return canvasPoints.flatMap((point, index) => {
+    const previousPoint = canvasPoints[index - 1];
+    const nextPoint = canvasPoints[index + 1];
+    const referencePoint = nextPoint ?? previousPoint;
+
+    if (!referencePoint) {
+      return [];
+    }
+
+    const deltaX = referencePoint.x - point.x;
+    const deltaY = referencePoint.y - point.y;
+    const segmentLength = Math.hypot(deltaX, deltaY) || 1;
+    const normalX = -deltaY / segmentLength;
+    const normalY = deltaX / segmentLength;
+    const direction = index % 2 === 0 ? 1 : -1;
+    const startX = point.x + normalX * 12 * direction;
+    const startY = point.y + normalY * 12 * direction;
+    const midX = point.x + normalX * branchLength * 0.55 * direction;
+    const midY = point.y + normalY * branchLength * 0.55 * direction;
+    const endX = point.x + normalX * branchLength * direction;
+    const endY = point.y + normalY * branchLength * direction;
+
+    return [`${startX},${startY} ${midX},${midY} ${endX},${endY}`];
+  });
+}
+
+function renderSplitDividerEffect({
+  effect,
+  width,
+  height,
+  scale,
+  theme,
+  points,
+}: {
+  effect: SplitBreakpointEffect;
+  width: number;
+  height: number;
+  scale: number;
+  theme: TemplateProps["theme"];
+  points: Array<{ x: number; y: number }>;
+}) {
+  if (effect === "none") {
+    return null;
+  }
+
+  const polylinePoints = buildSplitDividerPolylinePoints(points, width, height);
+
+  if (effect === "opaque") {
+    return (
+      <svg
+        data-template-region="intro-split-divider-opaque"
+        width={width}
+        height={height}
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 3,
+          pointerEvents: "none",
+        }}
+      >
+        <polyline
+          points={polylinePoints}
+          fill="none"
+          stroke="rgba(15, 23, 42, 0.82)"
+          strokeWidth={Math.max(34, Math.round(38 * scale))}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        <polyline
+          points={polylinePoints}
+          fill="none"
+          stroke={theme.textPrimary}
+          strokeWidth={Math.max(18, Math.round(20 * scale))}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          opacity={0.92}
+        />
+        <polyline
+          points={polylinePoints}
+          fill="none"
+          stroke={theme.accent}
+          strokeWidth={Math.max(6, Math.round(7 * scale))}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          opacity={0.48}
+        />
+      </svg>
+    );
+  }
+
+  if (effect === "cracked") {
+    const crackBranchSegments = buildSplitCrackBranchSegments(
+      points,
+      width,
+      height,
+    );
+
+    return (
+      <svg
+        data-template-region="intro-split-divider-cracked"
+        width={width}
+        height={height}
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 3,
+          pointerEvents: "none",
+        }}
+      >
+        <polyline
+          points={polylinePoints}
+          fill="none"
+          stroke="rgba(15, 23, 42, 0.88)"
+          strokeWidth={Math.max(24, Math.round(26 * scale))}
+          strokeLinejoin="miter"
+          strokeLinecap="round"
+        />
+        <polyline
+          points={polylinePoints}
+          fill="none"
+          stroke={theme.textPrimary}
+          strokeWidth={Math.max(8, Math.round(10 * scale))}
+          strokeLinejoin="miter"
+          strokeLinecap="round"
+          strokeDasharray={`${Math.max(18, Math.round(20 * scale))} ${Math.max(10, Math.round(12 * scale))}`}
+          opacity={0.95}
+        />
+        <polyline
+          points={polylinePoints}
+          fill="none"
+          stroke={theme.accent}
+          strokeWidth={Math.max(3, Math.round(4 * scale))}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          opacity={0.42}
+        />
+        {crackBranchSegments.map((segment, index) => (
+          <polyline
+            key={`${segment}-${index}`}
+            data-template-region="intro-split-divider-crack-branch"
+            points={segment}
+            fill="none"
+            stroke={theme.textPrimary}
+            strokeWidth={Math.max(3, Math.round(4 * scale))}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            opacity={0.88}
+          />
+        ))}
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      data-template-region="intro-split-divider-glow"
+      width={width}
+      height={height}
+      style={{
+        position: "absolute",
+        inset: 0,
+        zIndex: 3,
+        pointerEvents: "none",
+      }}
+    >
+      <defs>
+        <linearGradient
+          id="intro-split-glass-gradient"
+          x1="0%"
+          y1="0%"
+          x2="100%"
+          y2="0%"
+        >
+          <stop offset="0%" stopColor="rgba(255,255,255,0)" />
+          <stop offset="50%" stopColor="rgba(255,255,255,0.9)" />
+          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+        </linearGradient>
+      </defs>
+      <polyline
+        points={polylinePoints}
+        fill="none"
+        stroke="url(#intro-split-glass-gradient)"
+        strokeWidth={Math.max(20, Math.round(24 * scale))}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        opacity={0.14}
+        style={{ filter: `blur(${Math.max(4, Math.round(5 * scale))}px)` }}
+      />
+      <polyline
+        points={polylinePoints}
+        fill="none"
+        stroke={theme.accent}
+        strokeWidth={Math.max(10, Math.round(14 * scale))}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        opacity={0.08}
+        style={{ filter: `blur(${Math.max(3, Math.round(4 * scale))}px)` }}
+      />
+    </svg>
+  );
 }
 
 function SplitTypeCapsuleIcon({
@@ -508,7 +778,25 @@ export function IntroSplitThumbnailTemplate({
   const splitTypeCapsuleLabel = resolveSplitTypeCapsuleLabel(
     splitTypeCapsuleValue,
   );
+  const splitBreakpointEffect = resolveSplitBreakpointEffect(
+    values["split_breakpoint_effect"],
+  );
+  const isCourseSplitType = splitTypeCapsuleValue === "course";
+  const splitCourseTitle =
+    values["split_course_title"]?.trim() || "GitHub Copilot Bootcamp";
+  const splitCourseLessonLabel = resolveCourseLessonLabel(
+    values["split_course_lesson_current"],
+    values["split_course_lesson_total"],
+  );
   const titleSide = resolveTitleSide(values["split_title_side"]);
+  const titleContentAlignment =
+    titleSide === "left" ? "flex-start" : "flex-end";
+  const splitTitleWidthPercent = resolveSplitTitleWidthPercent(
+    values["split_title_width"],
+  );
+  const splitCourseBlockScale = resolveSplitCourseBlockScale(
+    values["split_course_block_size"],
+  );
   const splitForegroundScale =
     clamp(
       Number.parseFloat(values["split_foreground_scale"] ?? "108"),
@@ -538,6 +826,31 @@ export function IntroSplitThumbnailTemplate({
   const splitForegroundFit = splitForegroundScale < 1 ? "contain" : "cover";
   const splitTypeCapsuleSizing =
     SPLIT_TYPE_CAPSULE_SIZING[resolveCapsuleSizePreset(values["capsule_size"])];
+  const courseBlockTextSize = Math.max(
+    18,
+    Math.round(splitTypeCapsuleSizing.textSize * scale * splitCourseBlockScale),
+  );
+  const courseMetaTextSize = Math.max(
+    16,
+    Math.round(courseBlockTextSize * 0.72),
+  );
+  const courseMetaGap = Math.max(8, Math.round(courseMetaTextSize * 0.28));
+  const courseBlockGap = Math.max(
+    8,
+    Math.round(splitTypeCapsuleSizing.groupGap * scale * splitCourseBlockScale),
+  );
+  const courseBlockMarginBottom = 0;
+  const resolvedTypeCapsuleScale = 1;
+  const splitTypeCapsuleTextSize = Math.max(
+    18,
+    Math.round(
+      splitTypeCapsuleSizing.textSize * scale * resolvedTypeCapsuleScale,
+    ),
+  );
+  const splitTypeCapsuleIconSize = Math.max(
+    16,
+    Math.round(splitTypeCapsuleTextSize * 1.25),
+  );
   const resolvedSplitCornerIconSize = clamp(
     splitCornerIconSize ?? 100,
     50,
@@ -575,6 +888,21 @@ export function IntroSplitThumbnailTemplate({
     scale,
     shadowStyle: surfaceShadow,
   });
+  const typeCapsuleBaseStyle = {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Math.max(8, Math.round(10 * scale * resolvedTypeCapsuleScale)),
+    borderRadius: 999,
+    border: `1px solid ${theme.accent}5C`,
+    background: "rgba(15, 23, 42, 0.48)",
+    backdropFilter: `blur(${Math.max(4, Math.round(5 * scale))}px)`,
+    padding: `${Math.round(splitTypeCapsuleSizing.paddingY * scale * resolvedTypeCapsuleScale)}px ${Math.round(splitTypeCapsuleSizing.paddingX * scale * resolvedTypeCapsuleScale)}px`,
+    color: theme.textPrimary,
+    fontSize: splitTypeCapsuleTextSize,
+    fontWeight: 700,
+    fontFamily: primaryFont,
+  } as const;
 
   if (socialRenderMode === "only") {
     return (
@@ -725,9 +1053,13 @@ export function IntroSplitThumbnailTemplate({
         }}
       >
         <div
+          data-template-region="intro-split-title-panel"
           style={{
-            width: `${Math.round(width * 0.46)}px`,
-            maxWidth: "46%",
+            width: `${Math.round(width * (splitTitleWidthPercent / 100))}px`,
+            maxWidth: `${splitTitleWidthPercent}%`,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: titleContentAlignment,
             padding:
               surfaceStyle === "standard"
                 ? `${Math.round(20 * scale)}px 0`
@@ -738,52 +1070,138 @@ export function IntroSplitThumbnailTemplate({
             textAlign: titleSide,
           }}
         >
-          <div
-            data-template-region="intro-split-type-capsule"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: Math.max(8, Math.round(10 * scale)),
-              borderRadius: 999,
-              border: `1px solid ${theme.accent}5C`,
-              background: "rgba(15, 23, 42, 0.48)",
-              backdropFilter: `blur(${Math.max(4, Math.round(5 * scale))}px)`,
-              padding: `${Math.round(splitTypeCapsuleSizing.paddingY * scale)}px ${Math.round(splitTypeCapsuleSizing.paddingX * scale)}px`,
-              color: theme.textPrimary,
-              fontSize: Math.round(splitTypeCapsuleSizing.textSize * scale),
-              fontWeight: 700,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              marginBottom: Math.round(
-                splitTypeCapsuleSizing.marginBottom * scale,
-              ),
-              fontFamily: primaryFont,
-            }}
-          >
-            <span
-              data-template-region="intro-split-type-capsule-icon"
-              style={{ display: "inline-flex", alignItems: "center" }}
+          {isCourseSplitType ? (
+            <div
+              data-template-region="intro-split-course-block"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: titleContentAlignment,
+                gap: Math.max(
+                  10,
+                  Math.round(10 * scale * splitCourseBlockScale),
+                ),
+                marginBottom: courseBlockMarginBottom,
+                textAlign: titleSide,
+                fontSize: courseBlockTextSize,
+                width: "100%",
+              }}
             >
-              <SplitTypeCapsuleIcon
-                type={splitTypeCapsuleValue}
-                size={Math.max(
-                  16,
-                  Math.round(splitTypeCapsuleSizing.textSize * scale * 1.05),
-                )}
-                color={theme.accent}
-              />
-            </span>
-            <span>{splitTypeCapsuleLabel}</span>
-          </div>
+              <div
+                data-template-region="intro-split-type-capsule"
+                style={{
+                  ...typeCapsuleBaseStyle,
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                }}
+              >
+                <span
+                  data-template-region="intro-split-type-capsule-icon"
+                  style={{ display: "inline-flex", alignItems: "center" }}
+                >
+                  <SplitTypeCapsuleIcon
+                    type={splitTypeCapsuleValue}
+                    size={splitTypeCapsuleIconSize}
+                    color={theme.accent}
+                  />
+                </span>
+                <span>{splitTypeCapsuleLabel}</span>
+              </div>
+              <div
+                data-template-region="intro-split-course-meta"
+                style={{
+                  color: theme.textSecondary,
+                  fontFamily: secondaryFont,
+                  fontWeight: 400,
+                  fontSize: `${courseMetaTextSize}px`,
+                  lineHeight: 1.08,
+                  letterSpacing: "-0.01em",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent:
+                    titleSide === "left" ? "flex-start" : "flex-end",
+                  gap: courseMetaGap,
+                  flexWrap: "wrap",
+                  width: "100%",
+                }}
+              >
+                <span
+                  data-template-region="intro-split-course-name"
+                  style={{
+                    fontWeight: 800,
+                    textShadow: "0.012em 0 0 currentColor",
+                  }}
+                >
+                  {splitCourseTitle}
+                </span>
+                <span
+                  data-template-region="intro-split-course-meta-divider"
+                  style={{
+                    fontWeight: 400,
+                    opacity: 0.72,
+                  }}
+                >
+                  |
+                </span>
+                <span
+                  data-template-region="intro-split-course-progress"
+                  style={{
+                    fontWeight: 400,
+                  }}
+                >
+                  {splitCourseLessonLabel}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div
+              data-template-region="intro-split-type-capsule-group"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent:
+                  titleSide === "left" ? "flex-start" : "flex-end",
+                gap: Math.round(splitTypeCapsuleSizing.groupGap * scale),
+                flexWrap: "wrap",
+                marginBottom: Math.round(
+                  splitTypeCapsuleSizing.marginBottom * scale,
+                ),
+                width: "100%",
+              }}
+            >
+              <div
+                data-template-region="intro-split-type-capsule"
+                style={{
+                  ...typeCapsuleBaseStyle,
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                }}
+              >
+                <span
+                  data-template-region="intro-split-type-capsule-icon"
+                  style={{ display: "inline-flex", alignItems: "center" }}
+                >
+                  <SplitTypeCapsuleIcon
+                    type={splitTypeCapsuleValue}
+                    size={splitTypeCapsuleIconSize}
+                    color={theme.accent}
+                  />
+                </span>
+                <span>{splitTypeCapsuleLabel}</span>
+              </div>
+            </div>
+          )}
           <div
+            data-template-region="intro-split-title-text"
             style={{
               color: theme.textPrimary,
               fontSize: titleSize,
               fontWeight: 820,
               lineHeight: 1.1,
               letterSpacing: "-0.01em",
-              fontFamily: secondaryFont,
+              fontFamily: isCourseSplitType ? primaryFont : secondaryFont,
+              width: "100%",
+              textAlign: titleSide,
             }}
           >
             {title}
@@ -791,59 +1209,14 @@ export function IntroSplitThumbnailTemplate({
         </div>
       </div>
 
-      <svg
-        data-template-region="intro-split-divider-glow"
-        width={width}
-        height={height}
-        style={{
-          position: "absolute",
-          inset: 0,
-          zIndex: 3,
-          pointerEvents: "none",
-        }}
-      >
-        <defs>
-          <linearGradient
-            id="intro-split-glass-gradient"
-            x1="0%"
-            y1="0%"
-            x2="100%"
-            y2="0%"
-          >
-            <stop offset="0%" stopColor="rgba(255,255,255,0)" />
-            <stop offset="50%" stopColor="rgba(255,255,255,0.9)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-          </linearGradient>
-        </defs>
-        <polyline
-          points={buildSplitDividerPolylinePoints(
-            splitPartition.points,
-            width,
-            height,
-          )}
-          fill="none"
-          stroke="url(#intro-split-glass-gradient)"
-          strokeWidth={Math.max(20, Math.round(24 * scale))}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-          opacity={0.14}
-          style={{ filter: `blur(${Math.max(4, Math.round(5 * scale))}px)` }}
-        />
-        <polyline
-          points={buildSplitDividerPolylinePoints(
-            splitPartition.points,
-            width,
-            height,
-          )}
-          fill="none"
-          stroke={theme.accent}
-          strokeWidth={Math.max(10, Math.round(14 * scale))}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-          opacity={0.08}
-          style={{ filter: `blur(${Math.max(3, Math.round(4 * scale))}px)` }}
-        />
-      </svg>
+      {renderSplitDividerEffect({
+        effect: splitBreakpointEffect,
+        width,
+        height,
+        scale,
+        theme,
+        points: splitPartition.points,
+      })}
 
       <ThumbnailCapsules
         values={values}

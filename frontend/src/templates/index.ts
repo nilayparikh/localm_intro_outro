@@ -11,6 +11,11 @@ import { BackgroundThumbnailTemplate } from "./BackgroundThumbnailTemplate";
 import { IntroBiteThumbnailTemplate } from "./IntroBiteThumbnailTemplate";
 import { IntroSplitThumbnailTemplate } from "./IntroSplitThumbnailTemplate";
 import { OutroThumbnailTemplate } from "./OutroThumbnailTemplate";
+import {
+  GLASS_INTENSITY_STEPS,
+  DEFAULT_GLASS_STYLE,
+  buildTemplateGlassStyle,
+} from "./rendering";
 
 export type TemplateComponent = React.ComponentType<TemplateProps>;
 
@@ -28,10 +33,14 @@ export const SIZE_PRESET_OPTIONS = [
   { value: "large", label: "Large" },
 ];
 
+const GLASS_STYLE_OPTIONS = GLASS_INTENSITY_STEPS.map((intensity) => ({
+  value: buildTemplateGlassStyle(intensity),
+  label: `Glass (${intensity}%)`,
+}));
+
 export const SURFACE_STYLE_OPTIONS = [
   { value: "standard", label: "Standard" },
-  { value: "glass", label: "Glass" },
-  { value: "glass-strong", label: "Glass Strong" },
+  ...GLASS_STYLE_OPTIONS,
 ];
 
 export const SURFACE_SHADOW_OPTIONS = [
@@ -43,13 +52,12 @@ export const SURFACE_SHADOW_OPTIONS = [
 export const BORDER_STYLE_OPTIONS = [
   { value: "solid", label: "Solid" },
   { value: "gradient", label: "Gradient" },
-  { value: "glass", label: "Glass" },
+  ...GLASS_STYLE_OPTIONS,
 ];
 
 export const CAPSULE_STYLE_OPTIONS = [
   { value: "standard", label: "Standard" },
-  { value: "glass", label: "Glass" },
-  { value: "glass-strong", label: "Glass Strong" },
+  ...GLASS_STYLE_OPTIONS,
 ];
 
 const SECONDARY_TEXT_SIZE_FIELD: FieldDef = {
@@ -177,11 +185,18 @@ const SPLIT_TYPE_CAPSULE_OPTIONS = [
   { value: "debug", label: "Debug Mode" },
 ];
 
+const SPLIT_BREAKPOINT_EFFECT_OPTIONS = [
+  { value: "none", label: "None" },
+  { value: "glass", label: "Glass" },
+  { value: "opaque", label: "Opaque" },
+  { value: "cracked", label: "Cracked" },
+];
+
 const CAPSULE_STYLE_FIELD: FieldDef = {
   id: "capsule_style",
   label: "Capsule Style",
   type: "select",
-  defaultValue: "glass",
+  defaultValue: DEFAULT_GLASS_STYLE,
   options: CAPSULE_STYLE_OPTIONS,
 };
 
@@ -610,11 +625,54 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
         defaultValue: "(12, 3), (12, 24)",
       },
       {
+        id: "split_breakpoint_effect",
+        label: "Breakpoint Effect",
+        type: "select",
+        defaultValue: "glass",
+        options: SPLIT_BREAKPOINT_EFFECT_OPTIONS,
+      },
+      {
         id: "split_type_capsule",
         label: "Type Capsule",
         type: "select",
         defaultValue: "bite",
         options: SPLIT_TYPE_CAPSULE_OPTIONS,
+      },
+      {
+        id: "split_title_width",
+        label: "Title Width",
+        type: "slider",
+        defaultValue: "46",
+        min: 30,
+        max: 72,
+        step: 1,
+      },
+      {
+        id: "split_course_title",
+        label: "Course Title",
+        type: "text",
+        defaultValue: "GitHub Copilot Bootcamp",
+      },
+      {
+        id: "split_course_lesson_current",
+        label: "Lesson Number",
+        type: "text",
+        defaultValue: "01",
+      },
+      {
+        id: "split_course_lesson_total",
+        label: "Total Lessons",
+        type: "text",
+        defaultValue: "10",
+      },
+      {
+        id: "split_course_block_size",
+        label: "Course Block Size",
+        type: "slider",
+        defaultValue: "100",
+        min: 70,
+        max: 180,
+        step: 1,
       },
       {
         id: "split_background_svg_asset_id",

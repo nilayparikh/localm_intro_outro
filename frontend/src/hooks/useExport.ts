@@ -13,6 +13,7 @@ interface ExportOptions {
 interface MotionExportOptions extends ExportOptions {
   durationSeconds?: number;
   audioUrl?: string | null;
+  audioStartSeconds?: number;
 }
 
 interface StillFrameWebmPlan {
@@ -25,6 +26,7 @@ interface StillFrameWebmPlan {
 interface StillFrameMp4ArgsOptions {
   imageInputName: string;
   audioInputName?: string;
+  audioStartSeconds?: number;
   outputName: string;
   durationSeconds: number;
   width: number;
@@ -57,6 +59,7 @@ interface MotionFfmpegContext {
 type CaptureElement = Pick<HTMLElement, "scrollWidth" | "scrollHeight">;
 type MimeTypeSupportChecker = (type: string) => boolean;
 type MotionFileExtension = "mp4" | "webm";
+type MotionExportStrategy = "ffmpeg-mp4" | "browser-webm";
 export type ExportAction = "png" | "zip" | "motion";
 export type ExportActivityState = Record<ExportAction, number>;
 
@@ -182,15 +185,16 @@ export function resolveSupportedWebmMimeType(
 
 export function resolveSupportedMotionMimeType(
   isTypeSupported?: MimeTypeSupportChecker,
+  preferredExtension: MotionFileExtension = "webm",
 ): string | null {
   if (!isTypeSupported) {
     return null;
   }
 
-  const browserFallbackPreferenceOrder = [
-    ...WEBM_MIME_TYPES,
-    ...MP4_MIME_TYPES,
-  ] as const;
+  const browserFallbackPreferenceOrder =
+    preferredExtension === "mp4"
+      ? ([...MP4_MIME_TYPES, ...WEBM_MIME_TYPES] as const)
+      : ([...WEBM_MIME_TYPES, ...MP4_MIME_TYPES] as const);
 
   return (
     browserFallbackPreferenceOrder.find((type) => isTypeSupported(type)) ?? null
@@ -304,6 +308,24 @@ function resolveRequestedMotionFileExtension(
   return filename.toLowerCase().endsWith(".webm") ? "webm" : "mp4";
 }
 
+export function resolveMotionExportStrategy({
+  requestedExtension,
+  width,
+  height,
+}: {
+  requestedExtension: MotionFileExtension;
+  width: number;
+  height: number;
+}): MotionExportStrategy {
+  if (requestedExtension === "webm") {
+    return "browser-webm";
+  }
+
+  return Math.max(width, height) >= FOUR_K_MIN_DIMENSION
+    ? "browser-webm"
+    : "ffmpeg-mp4";
+}
+
 function resolveMotionAssetExtension(
   source: string,
   contentType?: string | null,
@@ -372,6 +394,7 @@ function hasActiveExports(activityState: ExportActivityState): boolean {
 export function buildStillFrameMp4Args({
   imageInputName,
   audioInputName,
+  audioStartSeconds,
   outputName,
   durationSeconds,
   width,
@@ -382,7 +405,9 @@ export function buildStillFrameMp4Args({
   const sanitizedWidth = Math.max(2, Math.round(width));
   const sanitizedHeight = Math.max(2, Math.round(height));
   const sanitizedFrameRate = Math.max(1, Math.round(frameRate));
+  const sanitizedAudioStartSeconds = Math.max(0, audioStartSeconds ?? 0);
   const durationArg = formatMotionDurationSeconds(durationSeconds);
+  const audioStartArg = formatMotionDurationSeconds(sanitizedAudioStartSeconds);
   const qualitySettings = resolveStillFrameMp4QualitySettings(
     sanitizedWidth,
     sanitizedHeight,
@@ -416,7 +441,13 @@ export function buildStillFrameMp4Args({
     `${sanitizedFrameRate}`,
     "-i",
     imageInputName,
-    ...(audioInputName ? ["-i", audioInputName] : []),
+    ...(audioInputName
+      ? [
+          ...(sanitizedAudioStartSeconds > 0 ? ["-ss", audioStartArg] : []),
+          "-i",
+          audioInputName,
+        ]
+      : []),
     "-t",
     durationArg,
     "-vf",
@@ -517,6 +548,7 @@ async function recordStillFrameMp4(
   sourceCanvas: HTMLCanvasElement,
   plan: StillFrameWebmPlan,
   audioUrl?: string | null,
+  audioStartSeconds = 0,
 ): Promise<Blob> {
   const { ffmpeg, fetchFile } = await loadMotionFfmpeg();
   const tempFilePrefix = createMotionTempFilePrefix();
@@ -553,6 +585,7 @@ async function recordStillFrameMp4(
     const mp4ArgsOptions = {
       imageInputName,
       audioInputName,
+      audioStartSeconds,
       outputName,
       durationSeconds: plan.durationMs / 1000,
       width: plan.width,
@@ -758,6 +791,8 @@ async function recordStillFrameWebm(
   sourceCanvas: HTMLCanvasElement,
   plan: StillFrameWebmPlan,
   audioUrl?: string | null,
+  preferredExtension: MotionFileExtension = "webm",
+  audioStartSeconds = 0,
 ): Promise<{ blob: Blob; mimeType: string | null }> {
   const MediaRecorderCtor = globalThis.MediaRecorder;
   if (!MediaRecorderCtor) {
@@ -772,6 +807,7 @@ async function recordStillFrameWebm(
   const videoStream = recordingCanvas.captureStream(plan.frameRate);
   const mimeType = resolveSupportedMotionMimeType(
     MediaRecorderCtor.isTypeSupported?.bind(MediaRecorderCtor),
+    preferredExtension,
   );
   const videoBitsPerSecond = resolveStillFrameWebmBitrate(plan);
   const AudioContextCtor =
@@ -895,7 +931,7 @@ async function recordStillFrameWebm(
         void (async () => {
           try {
             await audioContext.resume();
-            audioElement.currentTime = 0;
+            audioElement.currentTime = Math.max(0, audioStartSeconds);
             await audioElement.play();
           } catch (error) {
             cleanup();
@@ -1023,15 +1059,21 @@ export function useExport() {
         const baseFilename = filename.replace(/\.[^.]+$/, "");
         const requestedExtension =
           resolveRequestedMotionFileExtension(filename);
+        const exportStrategy = resolveMotionExportStrategy({
+          requestedExtension,
+          width: plan.width,
+          height: plan.height,
+        });
         let resolvedFilename = `${baseFilename}.${requestedExtension}`;
         let blob: Blob;
 
-        if (requestedExtension === "mp4") {
+        if (exportStrategy === "ffmpeg-mp4") {
           try {
             blob = await recordStillFrameMp4(
               stillFrameCanvas,
               plan,
               options.audioUrl,
+              options.audioStartSeconds,
             );
           } catch (ffmpegError) {
             console.warn(
@@ -1043,6 +1085,8 @@ export function useExport() {
               stillFrameCanvas,
               plan,
               options.audioUrl,
+              requestedExtension,
+              options.audioStartSeconds,
             );
             const fileExtension = resolveMotionFileExtension(
               recordedMotion.mimeType,
@@ -1056,6 +1100,8 @@ export function useExport() {
             stillFrameCanvas,
             plan,
             options.audioUrl,
+            requestedExtension,
+            options.audioStartSeconds,
           );
           const fileExtension = resolveMotionFileExtension(
             recordedMotion.mimeType,

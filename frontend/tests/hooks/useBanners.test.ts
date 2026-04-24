@@ -64,6 +64,34 @@ test("prepareBannerForSave preserves an existing id and stamps updatedAt", () =>
   assert.ok(banner.updatedAt >= before);
 });
 
+test("prepareBannerForSave replaces a blank id with a generated id", () => {
+  const banner = prepareBannerForSave({
+    id: "",
+    name: "Blank Id Banner",
+    templateId: "tutorial_thumbnail",
+    themeId: "dark",
+    platformId: "landscape_4k",
+    fieldValues: { title: "Blank Id" },
+    borderWidth: 0,
+    borderColor: "#ffffff",
+    fontPairId: "pair-1",
+    primaryFontFamily: "Inter",
+    secondaryFontFamily: "Roboto",
+    fontSize: 48,
+    brandLogoUrl: null,
+    brandLogoSize: 80,
+    showCopyrightMessage: true,
+    copyrightText: "Copyright",
+    tutorialImageUrl: null,
+    tutorialImageSize: 100,
+    tutorialImageBottomPadding: 0,
+    tutorialImageOpacity: 100,
+  });
+
+  assert.notEqual(banner.id, "");
+  assert.ok(banner.id.length > 0);
+});
+
 test("prepareBannerForSave keeps one full entry per template type", () => {
   const banner = prepareBannerForSave({
     id: "banner-bundle",

@@ -10,6 +10,8 @@ import { OutroThumbnailTemplate } from "../../src/templates/OutroThumbnailTempla
 import {
   buildTemplateFrameStyle,
   buildTemplatePanelStyle,
+  resolveTemplateBorderStyle,
+  resolveTemplateSurfaceStyle,
 } from "../../src/templates/rendering";
 import type { TemplateProps } from "../../src/templates/types";
 
@@ -151,13 +153,60 @@ test("frame backgrounds use the configured theme background without adding extra
 
 test("panel shadows can be pushed farther from the title surface", () => {
   const style = buildTemplatePanelStyle({
-    surfaceStyle: "glass",
+    surfaceStyle: resolveTemplateSurfaceStyle("glass"),
     theme: baseTheme,
     scale: 3,
     shadowStyle: "distance",
   });
 
   assert.match(String(style.boxShadow), /0 66px 192px rgba\(11, 17, 32,/);
+});
+
+test("glass percentage values produce graduated panel and border treatments", () => {
+  const softPanelStyle = buildTemplatePanelStyle({
+    surfaceStyle: resolveTemplateSurfaceStyle("glass-30"),
+    theme: baseTheme,
+    scale: 1,
+    shadowStyle: "middle",
+  });
+  const strongPanelStyle = buildTemplatePanelStyle({
+    surfaceStyle: resolveTemplateSurfaceStyle("glass-100"),
+    theme: baseTheme,
+    scale: 1,
+    shadowStyle: "middle",
+  });
+
+  assert.match(String(softPanelStyle.backdropFilter), /blur\(/);
+  assert.match(String(strongPanelStyle.backdropFilter), /blur\(/);
+  assert.notEqual(
+    softPanelStyle.backdropFilter,
+    strongPanelStyle.backdropFilter,
+  );
+  assert.notEqual(softPanelStyle.background, strongPanelStyle.background);
+
+  const softBorderStyle = buildTemplateFrameStyle({
+    width: 3840,
+    height: 2160,
+    fontFamily: "'Outfit', sans-serif",
+    theme: baseTheme,
+    borderWidth: 24,
+    borderColor: "#22d3ee",
+    borderStyle: resolveTemplateBorderStyle("glass-30"),
+  });
+  const strongBorderStyle = buildTemplateFrameStyle({
+    width: 3840,
+    height: 2160,
+    fontFamily: "'Outfit', sans-serif",
+    theme: baseTheme,
+    borderWidth: 24,
+    borderColor: "#22d3ee",
+    borderStyle: resolveTemplateBorderStyle("glass-100"),
+  });
+
+  assert.match(String(softBorderStyle.borderColor), /rgba\(/);
+  assert.match(String(softBorderStyle.boxShadow), /inset 0 1px 0 rgba/);
+  assert.notEqual(softBorderStyle.borderColor, strongBorderStyle.borderColor);
+  assert.notEqual(softBorderStyle.boxShadow, strongBorderStyle.boxShadow);
 });
 
 test("centered course metadata honors secondary text size scaling", () => {
@@ -258,6 +307,23 @@ test("centered templates apply capsule style and color overrides", () => {
 
   assert.match(html, /background:rgba\(255, 136, 0, 0\.220\)/);
   assert.match(html, /border:1px solid rgba\(255, 136, 0, 0\.520\)/);
+});
+
+test("centered templates accept percentage-based glass capsule styles", () => {
+  const html = renderToStaticMarkup(
+    <CenteredCourseThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        show_duration_capsule: "true",
+        duration_capsule_text: "10 min",
+        capsule_style: "glass-40",
+      }}
+    />,
+  );
+
+  assert.match(html, /backdrop-filter:blur\(/);
+  assert.match(html, /linear-gradient\(145deg, rgba\(/);
 });
 
 test("centered templates keep capsules hidden when their toggles stay off", () => {
@@ -456,6 +522,9 @@ test("intro split template renders side-aware regions with glass glow divider tr
         split_partition_points: "(12, 3), (9, 12), (12, 24)",
         split_background_opacity: "55",
         split_type_capsule: "course",
+        split_course_title: "GitHub Copilot Bootcamp",
+        split_course_lesson_current: "01",
+        split_course_lesson_total: "10",
         split_foreground_scale: "132",
         split_foreground_x: "6",
         split_foreground_y: "-4",
@@ -468,9 +537,15 @@ test("intro split template renders side-aware regions with glass glow divider tr
   assert.match(html, /data-template-region="intro-split-divider-glow"/);
   assert.match(html, /data-template-region="intro-split-title-left"/);
   assert.match(html, /data-template-region="intro-split-foreground-right"/);
-  assert.match(html, /data-template-region="intro-split-type-capsule"/);
+  assert.match(html, /data-template-region="intro-split-course-block"/);
   assert.match(html, /clip-path:polygon\(/);
   assert.match(html, />COURSE</);
+  assert.match(html, />GitHub Copilot Bootcamp</);
+  assert.match(html, />01 of 10</);
+  assert.match(html, />\|</);
+  assert.match(html, /data-template-region="intro-split-course-meta"/);
+  assert.match(html, /data-template-region="intro-split-course-name"/);
+  assert.match(html, /data-template-region="intro-split-course-progress"/);
   assert.match(html, /translate\(6%, -4%\) scale\(1\.32\)/);
   assert.match(html, /blur\(/);
   const titleLayerSnippet =
@@ -487,6 +562,117 @@ test("intro split template renders side-aware regions with glass glow divider tr
   assert.match(html, /opacity:0\.55/);
   assert.match(html, /Ship Faster with Intro Split/);
   assert.doesNotMatch(html, />Intro \(Split\)</);
+});
+
+test("intro split supports adjustable title width and side-aware combined course blocks", () => {
+  const leftHtml = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        title: "AI Agent That Improves Itself",
+        split_title_side: "left",
+        split_title_width: "58",
+        split_type_capsule: "course",
+        split_course_title: "GitHub Copilot Bootcamp",
+        split_course_lesson_current: "1",
+        split_course_lesson_total: "12",
+        split_course_block_size: "100",
+      }}
+    />,
+  );
+  const rightHtml = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        title: "AI Agent That Improves Itself",
+        split_title_side: "right",
+        split_title_width: "62",
+        split_type_capsule: "course",
+        split_course_title: "GitHub Copilot Bootcamp",
+        split_course_lesson_current: "1",
+        split_course_lesson_total: "12",
+        split_course_block_size: "150",
+      }}
+    />,
+  );
+
+  const leftPanelSnippet =
+    leftHtml.match(
+      /data-template-region="intro-split-title-panel" style="[^"]*"/,
+    )?.[0] ?? "";
+  const leftCourseBlockSnippet =
+    leftHtml.match(
+      /data-template-region="intro-split-course-block" style="[^"]*"/,
+    )?.[0] ?? "";
+  const leftCourseMetaSnippet =
+    leftHtml.match(
+      /data-template-region="intro-split-course-meta" style="[^"]*"/,
+    )?.[0] ?? "";
+  const leftCourseNameSnippet =
+    leftHtml.match(
+      /data-template-region="intro-split-course-name" style="[^"]*"/,
+    )?.[0] ?? "";
+  const leftCourseProgressSnippet =
+    leftHtml.match(
+      /data-template-region="intro-split-course-progress" style="[^"]*"/,
+    )?.[0] ?? "";
+  const leftTitleSnippet =
+    leftHtml.match(
+      /data-template-region="intro-split-title-text" style="[^"]*"/,
+    )?.[0] ?? "";
+  const rightPanelSnippet =
+    rightHtml.match(
+      /data-template-region="intro-split-title-panel" style="[^"]*"/,
+    )?.[0] ?? "";
+  const rightCourseBlockSnippet =
+    rightHtml.match(
+      /data-template-region="intro-split-course-block" style="[^"]*"/,
+    )?.[0] ?? "";
+  const rightCourseMetaSnippet =
+    rightHtml.match(
+      /data-template-region="intro-split-course-meta" style="[^"]*"/,
+    )?.[0] ?? "";
+  const rightTypeCapsuleSnippet =
+    rightHtml.match(
+      /data-template-region="intro-split-type-capsule" style="[^"]*"/,
+    )?.[0] ?? "";
+  const rightTitleSnippet =
+    rightHtml.match(
+      /data-template-region="intro-split-title-text" style="[^"]*"/,
+    )?.[0] ?? "";
+
+  assert.match(leftPanelSnippet, /width:2227px/);
+  assert.match(leftPanelSnippet, /max-width:58%/);
+  assert.match(leftCourseBlockSnippet, /align-items:flex-start/);
+  assert.match(leftCourseBlockSnippet, /text-align:left/);
+  assert.match(leftCourseBlockSnippet, /margin-bottom:0/);
+  assert.match(leftCourseMetaSnippet, /justify-content:flex-start/);
+  assert.match(
+    leftCourseMetaSnippet,
+    /font-family:&#x27;Share Tech Mono&#x27;, monospace/,
+  );
+  assert.match(leftCourseNameSnippet, /font-weight:800/);
+  assert.match(leftCourseNameSnippet, /text-shadow:/);
+  assert.match(leftCourseProgressSnippet, /font-weight:400/);
+  assert.match(leftTitleSnippet, /text-align:left/);
+  assert.match(leftTitleSnippet, /font-family:&#x27;Outfit&#x27;, sans-serif/);
+
+  assert.match(rightPanelSnippet, /width:2381px/);
+  assert.match(rightPanelSnippet, /max-width:62%/);
+  assert.match(rightCourseBlockSnippet, /align-items:flex-end/);
+  assert.match(rightCourseBlockSnippet, /text-align:right/);
+  assert.match(rightCourseBlockSnippet, /margin-bottom:0/);
+  assert.match(rightCourseMetaSnippet, /justify-content:flex-end/);
+  assert.match(rightCourseBlockSnippet, /font-size:81px/);
+  assert.match(rightTypeCapsuleSnippet, /font-size:54px/);
+  assert.match(rightTitleSnippet, /text-align:right/);
+
+  assert.match(rightHtml, />COURSE</);
+  assert.match(rightHtml, />GitHub Copilot Bootcamp</);
+  assert.match(rightHtml, />01 of 12</);
+  assert.match(rightHtml, /data-template-region="intro-split-course-meta"/);
 });
 
 test("intro split foreground uses contain fit when scale is reduced below 100", () => {
@@ -506,6 +692,50 @@ test("intro split foreground uses contain fit when scale is reduced below 100", 
 
   assert.match(html, /object-fit:contain/);
   assert.match(html, /translate\(0%, 0%\) scale\(0\.70\)/);
+});
+
+test("intro split template switches breakpoint divider effects", () => {
+  const opaqueHtml = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        split_breakpoint_effect: "opaque",
+        split_partition_points: "(12, 3), (9, 12), (12, 24)",
+      }}
+    />,
+  );
+  const crackedHtml = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        split_breakpoint_effect: "cracked",
+        split_partition_points: "(12, 3), (9, 12), (12, 24)",
+      }}
+    />,
+  );
+  const noneHtml = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        split_breakpoint_effect: "none",
+        split_partition_points: "(12, 3), (9, 12), (12, 24)",
+      }}
+    />,
+  );
+
+  assert.match(opaqueHtml, /data-template-region="intro-split-divider-opaque"/);
+  assert.match(
+    crackedHtml,
+    /data-template-region="intro-split-divider-cracked"/,
+  );
+  assert.match(
+    crackedHtml,
+    /data-template-region="intro-split-divider-crack-branch"/,
+  );
+  assert.doesNotMatch(noneHtml, /data-template-region="intro-split-divider-/);
 });
 
 test("intro split type capsule uses the same scale-aware sizing as other capsules", () => {
@@ -529,7 +759,7 @@ test("intro split type capsule uses the same scale-aware sizing as other capsule
   assert.match(typeCapsuleSnippet, /font-size:54px/);
   assert.match(
     html,
-    /data-template-region="intro-split-type-capsule-icon"[^>]*><svg width="57" height="57"/,
+    /data-template-region="intro-split-type-capsule-icon"[^>]*><svg width="68" height="68"/,
   );
 });
 

@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getDefaultValues, getTemplateDef } from "../../src/templates";
+import {
+  BORDER_STYLE_OPTIONS,
+  CAPSULE_STYLE_OPTIONS,
+  SURFACE_STYLE_OPTIONS,
+  getDefaultValues,
+  getTemplateDef,
+} from "../../src/templates";
 
 test("background template is registered for thumbnail exports", () => {
   const template = getTemplateDef("background_thumbnail");
@@ -117,7 +123,7 @@ test("tutorial and centered course templates expose secondary size and advanced 
       show_hands_on_lab_capsule: "false",
       hands_on_lab_capsule_text: "Hands-On Lab",
       capsule_size: "small",
-      capsule_style: "glass",
+      capsule_style: "glass-40",
       capsule_color: "",
       footer_size: "small",
     },
@@ -158,7 +164,7 @@ test("tutorial and centered course templates expose secondary size and advanced 
       show_hands_on_lab_capsule: "false",
       hands_on_lab_capsule_text: "Hands-On Lab",
       capsule_size: "small",
-      capsule_style: "glass",
+      capsule_style: "glass-40",
       capsule_color: "",
       footer_size: "small",
     },
@@ -216,7 +222,7 @@ test("intro bite and outro templates expose specialized banner defaults", () => 
       title_size: "lg",
       secondary_size: "md",
       capsule_size: "small",
-      capsule_style: "glass",
+      capsule_style: "glass-40",
       capsule_color: "",
       surface_style: "standard",
       surface_shadow: "middle",
@@ -267,6 +273,30 @@ test("intro bite and outro templates expose specialized banner defaults", () => 
   ]);
 });
 
+test("glass configuration options use percentage-based labels across surfaces, capsules, and borders", () => {
+  const expectedGlassValues = Array.from({ length: 10 }, (_, index) => {
+    const intensity = (index + 1) * 10;
+
+    return {
+      value: `glass-${intensity}`,
+      label: `Glass (${intensity}%)`,
+    };
+  });
+
+  assert.deepEqual(SURFACE_STYLE_OPTIONS, [
+    { value: "standard", label: "Standard" },
+    ...expectedGlassValues,
+  ]);
+  assert.deepEqual(CAPSULE_STYLE_OPTIONS, [
+    { value: "standard", label: "Standard" },
+    ...expectedGlassValues,
+  ]);
+  assert.deepEqual(BORDER_STYLE_OPTIONS, [
+    { value: "solid", label: "Solid" },
+    { value: "gradient", label: "Gradient" },
+    ...expectedGlassValues,
+  ]);
+});
 test("intro split template exposes partition, side and split-asset defaults", () => {
   assert.deepEqual(
     {
@@ -276,6 +306,8 @@ test("intro split template exposes partition, side and split-asset defaults", ()
         .split_title_side,
       split_partition_points: getDefaultValues("intro_split_thumbnail")
         .split_partition_points,
+      split_breakpoint_effect: getDefaultValues("intro_split_thumbnail")
+        .split_breakpoint_effect,
       split_background_svg_asset_id: getDefaultValues("intro_split_thumbnail")
         .split_background_svg_asset_id,
       split_background_opacity: getDefaultValues("intro_split_thumbnail")
@@ -296,6 +328,16 @@ test("intro split template exposes partition, side and split-asset defaults", ()
         .split_foreground_y,
       split_type_capsule: getDefaultValues("intro_split_thumbnail")
         .split_type_capsule,
+      split_title_width: getDefaultValues("intro_split_thumbnail")
+        .split_title_width,
+      split_course_title: getDefaultValues("intro_split_thumbnail")
+        .split_course_title,
+      split_course_lesson_current: getDefaultValues("intro_split_thumbnail")
+        .split_course_lesson_current,
+      split_course_lesson_total: getDefaultValues("intro_split_thumbnail")
+        .split_course_lesson_total,
+      split_course_block_size: getDefaultValues("intro_split_thumbnail")
+        .split_course_block_size,
       split_corner_icon_asset_id_1: getDefaultValues("intro_split_thumbnail")
         .split_corner_icon_asset_id_1,
       split_corner_icon_asset_id_2: getDefaultValues("intro_split_thumbnail")
@@ -328,6 +370,7 @@ test("intro split template exposes partition, side and split-asset defaults", ()
       title_size: "lg",
       split_title_side: "left",
       split_partition_points: "(12, 3), (12, 24)",
+      split_breakpoint_effect: "glass",
       split_background_svg_asset_id: "",
       split_background_opacity: "55",
       split_background_scale: "100",
@@ -338,6 +381,11 @@ test("intro split template exposes partition, side and split-asset defaults", ()
       split_foreground_x: "0",
       split_foreground_y: "0",
       split_type_capsule: "bite",
+      split_title_width: "46",
+      split_course_title: "GitHub Copilot Bootcamp",
+      split_course_lesson_current: "01",
+      split_course_lesson_total: "10",
+      split_course_block_size: "100",
       split_corner_icon_asset_id_1: "",
       split_corner_icon_asset_id_2: "",
       split_corner_icon_asset_id_3: "",
@@ -346,7 +394,7 @@ test("intro split template exposes partition, side and split-asset defaults", ()
       show_level_capsule: "false",
       show_instructor_capsule: "false",
       show_hands_on_lab_capsule: "false",
-      capsule_style: "glass",
+      capsule_style: "glass-40",
       capsule_size: "small",
       surface_style: "standard",
       surface_shadow: "middle",
@@ -362,9 +410,36 @@ test("intro split template exposes partition, side and split-asset defaults", ()
   const splitTypeField = introSplitTemplate?.fields.find(
     (field) => field.id === "split_type_capsule",
   );
+  const splitBreakpointEffectField = introSplitTemplate?.fields.find(
+    (field) => field.id === "split_breakpoint_effect",
+  );
+  const splitCourseTitleField = introSplitTemplate?.fields.find(
+    (field) => field.id === "split_course_title",
+  );
+  const splitTitleWidthField = introSplitTemplate?.fields.find(
+    (field) => field.id === "split_title_width",
+  );
+  const splitCourseLessonCurrentField = introSplitTemplate?.fields.find(
+    (field) => field.id === "split_course_lesson_current",
+  );
+  const splitCourseLessonTotalField = introSplitTemplate?.fields.find(
+    (field) => field.id === "split_course_lesson_total",
+  );
+  const splitCourseBlockSizeField = introSplitTemplate?.fields.find(
+    (field) => field.id === "split_course_block_size",
+  );
 
   assert.deepEqual(
     splitTypeField?.options?.map((option) => option.value),
     ["bite", "course", "mono", "debug"],
   );
+  assert.deepEqual(
+    splitBreakpointEffectField?.options?.map((option) => option.value),
+    ["none", "glass", "opaque", "cracked"],
+  );
+  assert.equal(splitCourseTitleField?.defaultValue, "GitHub Copilot Bootcamp");
+  assert.equal(splitTitleWidthField?.defaultValue, "46");
+  assert.equal(splitCourseLessonCurrentField?.defaultValue, "01");
+  assert.equal(splitCourseLessonTotalField?.defaultValue, "10");
+  assert.equal(splitCourseBlockSizeField?.defaultValue, "100");
 });

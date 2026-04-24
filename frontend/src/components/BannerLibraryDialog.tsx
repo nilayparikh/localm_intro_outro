@@ -26,9 +26,10 @@ interface BannerLibraryDialogProps {
   banners: BannerLibraryDialogItem[];
   selectedBannerId: string;
   bannerName: string;
+  saveAction?: "overwrite" | "save-as-new";
   onBannerNameChange: (value: string) => void;
   onSelectBanner: (bannerId: string) => void;
-  onClearSelection: () => void;
+  onSelectSaveAction: (action: "overwrite" | "save-as-new") => void;
   onClose: () => void;
   onConfirm: () => void;
   onDeleteSelected: () => void;
@@ -40,58 +41,74 @@ export function BannerLibraryDialog({
   banners,
   selectedBannerId,
   bannerName,
+  saveAction = "save-as-new",
   onBannerNameChange,
   onSelectBanner,
-  onClearSelection,
+  onSelectSaveAction,
   onClose,
   onConfirm,
   onDeleteSelected,
 }: BannerLibraryDialogProps) {
   const selectedBanner =
     banners.find((banner) => banner.id === selectedBannerId) ?? null;
+  const isOverwriteMode = mode === "save" && saveAction === "overwrite";
   const confirmLabel =
     mode === "load"
       ? "Load Banner"
-      : selectedBanner
+      : isOverwriteMode
         ? "Overwrite Banner"
-        : "Save Banner";
+        : "Save New Banner";
+  const showDeleteButton =
+    selectedBanner && (mode === "load" || isOverwriteMode);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        {mode === "load" ? "Load Saved Banner" : "Save Current Banner"}
+        {mode === "load" ? "Load Saved Banner" : "Save Banner"}
       </DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
           <Typography variant="body2" color="text.secondary">
             {mode === "load"
               ? "Choose a saved banner to restore its full setup, then continue editing from there."
-              : "Save the full editor state. Type a new name for a new banner, or select an existing one below to overwrite it."}
+              : "Save the full editor state. Overwrite updates the selected banner in place, while Save As New Copy creates a separate saved banner from the current draft."}
           </Typography>
 
           {mode === "save" && (
-            <TextField
-              label="Banner Name"
-              value={bannerName}
-              onChange={(event) => onBannerNameChange(event.target.value)}
-              fullWidth
-              size="small"
-              helperText={
-                selectedBanner
-                  ? "The selected banner will be overwritten with the current editor settings."
-                  : "Saving without a selected banner creates a new saved banner."
-              }
-            />
-          )}
-
-          {mode === "save" && selectedBanner && (
-            <Button
-              onClick={onClearSelection}
-              size="small"
-              sx={{ alignSelf: "flex-start" }}
-            >
-              Save As New Banner
-            </Button>
+            <Stack spacing={1.5}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                <Button
+                  variant={isOverwriteMode ? "contained" : "outlined"}
+                  onClick={() => onSelectSaveAction("overwrite")}
+                  disabled={!selectedBanner}
+                >
+                  Overwrite Selected Banner
+                </Button>
+                <Button
+                  variant={!isOverwriteMode ? "contained" : "outlined"}
+                  onClick={() => onSelectSaveAction("save-as-new")}
+                >
+                  Save As New Copy
+                </Button>
+              </Stack>
+              <TextField
+                label="Banner Name"
+                value={
+                  isOverwriteMode
+                    ? (selectedBanner?.name ?? bannerName)
+                    : bannerName
+                }
+                onChange={(event) => onBannerNameChange(event.target.value)}
+                fullWidth
+                size="small"
+                disabled={isOverwriteMode}
+                helperText={
+                  isOverwriteMode
+                    ? "Overwrite replaces the selected banner in place. Switch to Save As New Copy to create a separate banner."
+                    : "Save As New Copy keeps the selected banner untouched and creates a new saved banner from the current editor state."
+                }
+              />
+            </Stack>
           )}
 
           <Stack spacing={1}>
@@ -125,8 +142,20 @@ export function BannerLibraryDialog({
                         />
                         {isSelected && (
                           <StatusChip
-                            label={mode === "load" ? "Selected" : "Overwrite"}
-                            status={mode === "load" ? "info" : "warning"}
+                            label={
+                              mode === "load"
+                                ? "Selected"
+                                : isOverwriteMode
+                                  ? "Overwrite"
+                                  : "Selected"
+                            }
+                            status={
+                              mode === "load"
+                                ? "info"
+                                : isOverwriteMode
+                                  ? "warning"
+                                  : "default"
+                            }
                           />
                         )}
                       </ListItemButton>
@@ -145,7 +174,7 @@ export function BannerLibraryDialog({
         </Stack>
       </DialogContent>
       <DialogActions>
-        {selectedBanner && (
+        {showDeleteButton && (
           <Button color="error" onClick={onDeleteSelected}>
             Delete
           </Button>
@@ -154,7 +183,13 @@ export function BannerLibraryDialog({
         <Button
           onClick={onConfirm}
           variant="contained"
-          disabled={mode === "load" ? !selectedBanner : !bannerName.trim()}
+          disabled={
+            mode === "load"
+              ? !selectedBanner
+              : isOverwriteMode
+                ? !selectedBanner
+                : !bannerName.trim()
+          }
         >
           {confirmLabel}
         </Button>

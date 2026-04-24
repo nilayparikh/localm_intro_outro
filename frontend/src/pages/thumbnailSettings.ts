@@ -14,6 +14,7 @@ export const DEFAULT_COPYRIGHT_TEXT = "© 2026 LocalM™. All rights reserved.";
 const THUMBNAIL_PAGE_APP_NAME = "LocalM Media Mods";
 const THUMBNAIL_PAGE_MODULE_NAME = "Intro Outro";
 const DEFAULT_MOTION_DURATION_SECONDS = 3;
+const DEFAULT_MOTION_AUDIO_START_SECONDS = 2;
 const MIN_MOTION_DURATION_SECONDS = 1;
 const MAX_MOTION_DURATION_SECONDS = 15;
 
@@ -33,7 +34,13 @@ const CONTENT_FIELD_GROUPS: ReadonlyArray<readonly string[]> = [
   ["show_bite_capsule", "bite_capsule_text"],
   ["show_speed_capsule", "speed_capsule_text"],
   ["title_size", "secondary_size"],
-  ["split_title_side", "title_size"],
+  ["split_title_side", "title_size", "split_title_width"],
+  ["split_type_capsule", "split_course_title"],
+  [
+    "split_course_lesson_current",
+    "split_course_lesson_total",
+    "split_course_block_size",
+  ],
   ["show_grid", "grid_pattern"],
 ];
 
@@ -47,6 +54,7 @@ const CONTENT_FIELD_EXCLUSIONS = new Set([
   "border_style",
   "border_color_secondary",
   "split_partition_points",
+  "split_breakpoint_effect",
   "split_foreground_asset_id",
   "split_foreground_scale",
   "split_foreground_x",
@@ -198,6 +206,7 @@ export interface BannerDialogEntry {
 export interface BannerDialogState {
   selectedBannerId: string;
   bannerName: string;
+  saveAction?: "overwrite" | "save-as-new";
 }
 
 export interface ThumbnailTemplateAssetBindingsInput {
@@ -213,10 +222,43 @@ const TEMPLATE_AUDIO_ASSET_FIELD_IDS: Record<string, string> = {
   outro_thumbnail: "outro_audio_asset_id",
 };
 
+const TEMPLATE_AUDIO_START_FIELD_IDS: Record<string, string> = {
+  intro_bite_thumbnail: "intro_audio_start_seconds",
+  outro_thumbnail: "outro_audio_start_seconds",
+};
+
 export function getTemplateAudioAssetFieldId(
   templateId: string,
 ): string | null {
   return TEMPLATE_AUDIO_ASSET_FIELD_IDS[templateId] ?? null;
+}
+
+export function getTemplateAudioStartFieldId(
+  templateId: string,
+): string | null {
+  return TEMPLATE_AUDIO_START_FIELD_IDS[templateId] ?? null;
+}
+
+export function resolveMotionAudioStartSeconds(
+  values: Record<string, string>,
+  audioStartFieldId: string | null,
+  maxAudioStartSeconds: number,
+): number {
+  if (!audioStartFieldId) {
+    return 0;
+  }
+
+  const sanitizedMaxAudioStartSeconds = Math.max(
+    0,
+    Math.floor(maxAudioStartSeconds),
+  );
+  const rawValue = values[audioStartFieldId];
+  const parsedValue = Number.parseInt(rawValue ?? "", 10);
+  const resolvedValue = Number.isFinite(parsedValue)
+    ? parsedValue
+    : DEFAULT_MOTION_AUDIO_START_SECONDS;
+
+  return Math.min(sanitizedMaxAudioStartSeconds, Math.max(0, resolvedValue));
 }
 
 export function getThumbnailTemplateCapabilities(
@@ -256,6 +298,7 @@ export function buildBannerDialogState({
     return {
       selectedBannerId,
       bannerName: profileName.trim() || selectedBanner?.name || "",
+      saveAction: selectedBannerId ? "overwrite" : "save-as-new",
     };
   }
 

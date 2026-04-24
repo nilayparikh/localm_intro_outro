@@ -6,20 +6,101 @@ export const REFERENCE_CANVAS = {
   height: 2160,
 } as const;
 
-export type TemplateSurfaceStyle = "standard" | "glass" | "glass-strong";
+export const GLASS_INTENSITY_STEPS = [
+  10, 20, 30, 40, 50, 60, 70, 80, 90, 100,
+] as const;
+
+export type GlassIntensityStep = (typeof GLASS_INTENSITY_STEPS)[number];
+export type TemplateGlassStyle = `glass-${GlassIntensityStep}`;
+export type TemplateSurfaceStyle = "standard" | TemplateGlassStyle;
 export type TemplateSurfaceShadowStyle = "near" | "middle" | "distance";
-export type TemplateBorderStyle = "solid" | "gradient" | "glass";
+export type TemplateBorderStyle = "solid" | "gradient" | TemplateGlassStyle;
+
+export const DEFAULT_GLASS_STYLE: TemplateGlassStyle = "glass-40";
+export const STRONG_GLASS_STYLE: TemplateGlassStyle = "glass-100";
+
+const GLASS_STYLE_PATTERN = /^glass-(10|20|30|40|50|60|70|80|90|100)$/;
+
+export function buildTemplateGlassStyle(
+  intensity: GlassIntensityStep,
+): TemplateGlassStyle {
+  return `glass-${intensity}` as TemplateGlassStyle;
+}
+
+export function resolveTemplateGlassStyle(
+  value: string | undefined,
+): TemplateGlassStyle | null {
+  const normalizedValue = value?.trim();
+
+  if (!normalizedValue) {
+    return null;
+  }
+
+  if (normalizedValue === "glass") {
+    return DEFAULT_GLASS_STYLE;
+  }
+
+  if (normalizedValue === "glass-strong") {
+    return STRONG_GLASS_STYLE;
+  }
+
+  const match = normalizedValue.match(GLASS_STYLE_PATTERN);
+
+  if (!match) {
+    return null;
+  }
+
+  const intensityValue = match[1];
+
+  if (!intensityValue) {
+    return null;
+  }
+
+  return buildTemplateGlassStyle(
+    Number.parseInt(intensityValue, 10) as GlassIntensityStep,
+  );
+}
+
+export function getTemplateGlassIntensity(
+  value: TemplateGlassStyle | string | undefined,
+): GlassIntensityStep | null {
+  const resolvedStyle = resolveTemplateGlassStyle(value);
+
+  if (!resolvedStyle) {
+    return null;
+  }
+
+  return Number.parseInt(resolvedStyle.slice(6), 10) as GlassIntensityStep;
+}
+
+export function interpolateGlassValue(
+  intensity: GlassIntensityStep,
+  minimum: number,
+  maximum: number,
+): number {
+  if (minimum === maximum) {
+    return minimum;
+  }
+
+  const factor = (intensity - 10) / 90;
+
+  return minimum + (maximum - minimum) * factor;
+}
 
 export function resolveTemplateSurfaceStyle(
   value: string | undefined,
 ): TemplateSurfaceStyle {
-  return value === "glass" || value === "glass-strong" ? value : "standard";
+  return resolveTemplateGlassStyle(value) ?? "standard";
 }
 
 export function resolveTemplateBorderStyle(
   value: string | undefined,
 ): TemplateBorderStyle {
-  return value === "gradient" || value === "glass" ? value : "solid";
+  if (value === "gradient") {
+    return "gradient";
+  }
+
+  return resolveTemplateGlassStyle(value) ?? "solid";
 }
 
 export function resolveTemplateSurfaceShadowStyle(
@@ -257,13 +338,18 @@ export function buildTemplateFrameStyle({
     };
   }
 
-  if (borderStyle === "glass") {
+  const glassIntensity = getTemplateGlassIntensity(borderStyle);
+
+  if (glassIntensity !== null) {
     return {
       ...baseStyle,
       borderWidth: `${scaledBorderWidth}px`,
       borderStyle: "solid",
-      borderColor: colorWithAlpha(theme.textPrimary, 0.28),
-      boxShadow: `inset 0 1px 0 ${colorWithAlpha(theme.textPrimary, 0.22)}, 0 ${Math.round(width * 0.015)}px ${Math.round(width * 0.04)}px ${colorWithAlpha(theme.background, 0.32)}`,
+      borderColor: colorWithAlpha(
+        theme.textPrimary,
+        interpolateGlassValue(glassIntensity, 0.16, 0.34),
+      ),
+      boxShadow: `inset 0 1px 0 ${colorWithAlpha(theme.textPrimary, interpolateGlassValue(glassIntensity, 0.1, 0.22))}, 0 ${Math.round(width * 0.015)}px ${Math.round(width * 0.04)}px ${colorWithAlpha(theme.background, interpolateGlassValue(glassIntensity, 0.2, 0.32))}`,
     };
   }
 
@@ -290,21 +376,24 @@ export function buildTemplatePanelStyle({
     return {};
   }
 
-  const isStrongGlass = surfaceStyle === "glass-strong";
+  const glassIntensity = getTemplateGlassIntensity(surfaceStyle);
+
+  if (glassIntensity === null) {
+    return {};
+  }
+
   const shadowMetrics =
     shadowStyle === "near"
-      ? { offsetY: 8, blur: 24, alpha: isStrongGlass ? 0.24 : 0.18 }
+      ? { offsetY: 8, blur: 24, minAlpha: 0.12, maxAlpha: 0.24 }
       : shadowStyle === "distance"
-        ? { offsetY: 22, blur: 64, alpha: isStrongGlass ? 0.38 : 0.28 }
-        : { offsetY: 14, blur: 40, alpha: isStrongGlass ? 0.34 : 0.22 };
+        ? { offsetY: 22, blur: 64, minAlpha: 0.18, maxAlpha: 0.38 }
+        : { offsetY: 14, blur: 40, minAlpha: 0.14, maxAlpha: 0.34 };
 
   return {
-    background: isStrongGlass
-      ? `linear-gradient(145deg, ${colorWithAlpha(theme.surface, 0.74)}, ${colorWithAlpha(theme.background, 0.56)})`
-      : `linear-gradient(145deg, ${colorWithAlpha(theme.surface, 0.58)}, ${colorWithAlpha(theme.background, 0.34)})`,
-    border: `1px solid ${colorWithAlpha(theme.textPrimary, isStrongGlass ? 0.24 : 0.16)}`,
-    backdropFilter: `blur(${isStrongGlass ? Math.round(28 * scale) : Math.round(18 * scale)}px) saturate(${isStrongGlass ? 165 : 140}%)`,
-    boxShadow: `0 ${Math.round(shadowMetrics.offsetY * scale)}px ${Math.round(shadowMetrics.blur * scale)}px ${colorWithAlpha(theme.background, shadowMetrics.alpha)}`,
+    background: `linear-gradient(145deg, ${colorWithAlpha(theme.surface, interpolateGlassValue(glassIntensity, 0.46, 0.74))}, ${colorWithAlpha(theme.background, interpolateGlassValue(glassIntensity, 0.22, 0.56))})`,
+    border: `1px solid ${colorWithAlpha(theme.textPrimary, interpolateGlassValue(glassIntensity, 0.12, 0.24))}`,
+    backdropFilter: `blur(${Math.round(interpolateGlassValue(glassIntensity, 12, 28) * scale)}px) saturate(${Math.round(interpolateGlassValue(glassIntensity, 132, 165))}%)`,
+    boxShadow: `0 ${Math.round(shadowMetrics.offsetY * scale)}px ${Math.round(shadowMetrics.blur * scale)}px ${colorWithAlpha(theme.background, interpolateGlassValue(glassIntensity, shadowMetrics.minAlpha, shadowMetrics.maxAlpha))}`,
   };
 }
 
@@ -327,7 +416,11 @@ export function buildTemplateSeparatorStyle({
   const gradientLine = borderColorSecondary
     ? `linear-gradient(90deg, ${colorWithAlpha(borderColor, 0)}, ${opaqueColor(borderColor)} 32%, ${opaqueColor(resolvedBorderColorSecondary)} 68%, ${colorWithAlpha(borderColor, 0)})`
     : `linear-gradient(90deg, ${colorWithAlpha(theme.accent, 0)}, ${opaqueColor(theme.accent)} 24%, ${opaqueColor(borderColor)} 50%, ${opaqueColor(theme.textSecondary)} 76%, ${colorWithAlpha(theme.accent, 0)})`;
-  const glassLine = `linear-gradient(90deg, ${colorWithAlpha(theme.textPrimary, 0)}, ${colorWithAlpha(theme.textPrimary, 0.22)} 24%, ${colorWithAlpha(borderColor, 0.68)} 50%, ${colorWithAlpha(theme.textPrimary, 0.22)} 76%, ${colorWithAlpha(theme.textPrimary, 0)})`;
+  const glassIntensity = getTemplateGlassIntensity(borderStyle);
+  const glassLine =
+    glassIntensity === null
+      ? null
+      : `linear-gradient(90deg, ${colorWithAlpha(theme.textPrimary, 0)}, ${colorWithAlpha(theme.textPrimary, interpolateGlassValue(glassIntensity, 0.12, 0.24))} 24%, ${colorWithAlpha(borderColor, interpolateGlassValue(glassIntensity, 0.44, 0.68))} 50%, ${colorWithAlpha(theme.textPrimary, interpolateGlassValue(glassIntensity, 0.12, 0.24))} 76%, ${colorWithAlpha(theme.textPrimary, 0)})`;
 
   return {
     width: `${Math.round(280 * scale)}px`,
@@ -339,12 +432,11 @@ export function buildTemplateSeparatorStyle({
     background:
       borderStyle === "gradient"
         ? gradientLine
-        : borderStyle === "glass"
+        : glassLine
           ? glassLine
           : solidLine,
-    boxShadow:
-      borderStyle === "glass"
-        ? `0 0 ${Math.round(18 * scale)}px ${colorWithAlpha(borderColor, 0.18)}`
-        : undefined,
+    boxShadow: glassLine
+      ? `0 0 ${Math.round(18 * scale)}px ${colorWithAlpha(borderColor, interpolateGlassValue(glassIntensity as GlassIntensityStep, 0.08, 0.18))}`
+      : undefined,
   };
 }

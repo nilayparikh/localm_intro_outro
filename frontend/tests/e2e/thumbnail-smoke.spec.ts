@@ -164,6 +164,34 @@ const staleLocalBanner = {
   updatedAt: Date.now(),
 };
 
+const loadedBannerDraftState = {
+  ...draftState,
+  currentDraft: {
+    ...draftState.currentDraft,
+    bannerId: staleLocalBanner.id,
+    name: staleLocalBanner.name,
+    templateId: staleLocalBanner.templateId,
+    templateEntries: staleLocalBanner.templateEntries,
+    themeId: staleLocalBanner.themeId,
+    platformId: staleLocalBanner.platformId,
+    fieldValues: staleLocalBanner.fieldValues,
+    borderWidth: staleLocalBanner.borderWidth,
+    borderColor: staleLocalBanner.borderColor,
+    fontPairId: staleLocalBanner.fontPairId,
+    primaryFontFamily: staleLocalBanner.primaryFontFamily,
+    secondaryFontFamily: staleLocalBanner.secondaryFontFamily,
+    fontSize: staleLocalBanner.fontSize,
+    brandLogoUrl: staleLocalBanner.brandLogoUrl,
+    brandLogoSize: staleLocalBanner.brandLogoSize,
+    showCopyrightMessage: staleLocalBanner.showCopyrightMessage,
+    copyrightText: staleLocalBanner.copyrightText,
+    tutorialImageUrl: staleLocalBanner.tutorialImageUrl,
+    tutorialImageSize: staleLocalBanner.tutorialImageSize,
+    tutorialImageBottomPadding: staleLocalBanner.tutorialImageBottomPadding,
+    tutorialImageOpacity: staleLocalBanner.tutorialImageOpacity,
+  },
+};
+
 const splitForegroundSmokeAsset = {
   id: "split-foreground-smoke-asset",
   name: "Split Foreground",
@@ -198,6 +226,24 @@ const splitBackgroundSmokeAsset = {
   category: "",
   tags: ["background"],
   updatedAt: Date.now() - 1,
+};
+
+const sharedAudioSmokeAsset = {
+  id: "shared-audio-smoke-asset",
+  name: "Shared Outro Audio",
+  fileName: "shared-outro.wav",
+  kind: "audio",
+  mimeType: "audio/wav",
+  blobPath:
+    "data:audio/wav;base64,UklGRlQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YTAAAAAA",
+  sizeBytes: 64,
+  durationMs: 18_000,
+  previewImagePath: null,
+  width: null,
+  height: null,
+  category: "",
+  tags: ["audio"],
+  updatedAt: Date.now() - 2,
 };
 
 const introSplitDraftState = {
@@ -509,7 +555,7 @@ test("thumbnail workflow ships without animation controls and redirects legacy a
   expect(consoleErrors).toEqual([]);
 });
 
-test("thumbnail route ignores stale local cached banners and reloads server state", async ({
+test("thumbnail route keeps local saved banners visible when the remote list is empty", async ({
   page,
 }) => {
   await mockAzureTableReads(page);
@@ -520,7 +566,11 @@ test("thumbnail route ignores stale local cached banners and reloads server stat
   await expect(page.getByText("Thumbnail Settings")).toBeVisible();
 
   await page.getByRole("button", { name: "Load Banner" }).click();
-  await expect(page.getByText(staleLocalBanner.name)).toHaveCount(0);
+  await expect(
+    page.getByRole("dialog").getByRole("button", {
+      name: new RegExp(staleLocalBanner.name, "i"),
+    }),
+  ).toBeVisible();
 });
 
 test("thumbnail route restores stored per-template values when switching templates inside one banner", async ({
@@ -569,6 +619,52 @@ test("intro bite and outro use the shared audio flow without overlay controls", 
   ).toHaveCount(0);
 });
 
+test("outro shared audio starts with a 2 second default offset in the editor", async ({
+  page,
+}) => {
+  const outroAudioDraftState = {
+    ...outroDraftState,
+    currentDraft: {
+      ...outroDraftState.currentDraft,
+      templateEntries: [
+        {
+          ...outroDraftState.currentDraft.templateEntries[0],
+          fieldValues: {
+            ...outroDraftState.currentDraft.templateEntries[0].fieldValues,
+            motion_duration_seconds: "5",
+            outro_audio_asset_id: sharedAudioSmokeAsset.id,
+          },
+        },
+      ],
+      fieldValues: {
+        ...outroDraftState.currentDraft.fieldValues,
+        motion_duration_seconds: "5",
+        outro_audio_asset_id: sharedAudioSmokeAsset.id,
+      },
+    },
+  };
+
+  await mockAzureTableReads(page, {
+    assets: [sharedAudioSmokeAsset, splitBackgroundSmokeAsset],
+  });
+  await seedApp(page);
+  await seedDraftState(page, outroAudioDraftState);
+
+  await page.goto("/thumbnail", { waitUntil: "domcontentloaded" });
+  await expect(page.getByText("Thanks for watching")).toBeVisible();
+  await expect(page.getByLabel("Shared Audio Asset")).toBeVisible();
+
+  const audioStartOffsetSlider = page.getByRole("slider", {
+    name: "Audio Start Offset",
+  });
+  await expect(audioStartOffsetSlider).toBeVisible();
+  await expect(audioStartOffsetSlider).toHaveAttribute("aria-valuenow", "2");
+  await expect(audioStartOffsetSlider).toHaveAttribute("aria-valuemax", "13");
+  await expect(
+    page.getByText(/Default is 2s, and the latest safe start point is 13s/i),
+  ).toBeVisible();
+});
+
 test("thumbnail route keeps saved template field updates after refresh", async ({
   page,
 }) => {
@@ -587,7 +683,9 @@ test("thumbnail route keeps saved template field updates after refresh", async (
     .locator('input[value="Stored Source Video"]')
     .fill("Persisted Source Video");
   await page.getByRole("button", { name: "Save Banner" }).click();
-  await page.getByRole("button", { name: "Save Banner" }).click();
+  const saveDialog = page.getByRole("dialog");
+  await expect(saveDialog).toBeVisible();
+  await saveDialog.getByRole("button", { name: "Save New Banner" }).click();
   await expect(
     page.getByText(/Updated "Release Smoke Draft"|Saved "Release Smoke Draft"/),
   ).toBeVisible();
@@ -599,6 +697,68 @@ test("thumbnail route keeps saved template field updates after refresh", async (
   await expect(
     page.locator('input[value="Persisted Source Video"]'),
   ).toBeVisible();
+});
+
+test("save dialog can create a new copy without overwriting the loaded banner", async ({
+  page,
+}) => {
+  await mockAzureTableReads(page, {
+    banners: [staleLocalBanner],
+  });
+  await seedApp(page);
+  await seedStaleLocalBanner(page);
+  await seedDraftState(page, loadedBannerDraftState);
+
+  await page.goto("/thumbnail", { waitUntil: "domcontentloaded" });
+  await expect(
+    page.getByText(`Loaded: ${staleLocalBanner.name}`),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Save Banner" }).click();
+  await expect(
+    page.getByRole("button", { name: "Save As New Copy" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Save As New Copy" }).click();
+  await page.getByLabel("Banner Name").fill("Copied Banner");
+  await page.getByRole("button", { name: "Save New Banner" }).click();
+
+  await expect(page.getByText("Loaded: Copied Banner")).toBeVisible();
+
+  await page.getByRole("button", { name: "Load Banner" }).click();
+  const loadDialog = page.getByRole("dialog");
+  await expect(loadDialog).toBeVisible();
+  await expect(
+    loadDialog.getByRole("button", {
+      name: new RegExp(staleLocalBanner.name, "i"),
+    }),
+  ).toBeVisible();
+  await expect(
+    loadDialog.getByRole("button", {
+      name: /Copied Banner/i,
+    }),
+  ).toBeVisible();
+});
+
+test("new banner starts a fresh unsaved working draft", async ({ page }) => {
+  await mockAzureTableReads(page, {
+    banners: [staleLocalBanner],
+  });
+  await seedApp(page);
+  await seedStaleLocalBanner(page);
+  await seedDraftState(page, loadedBannerDraftState);
+
+  await page.goto("/thumbnail", { waitUntil: "domcontentloaded" });
+  await expect(
+    page.getByText(`Loaded: ${staleLocalBanner.name}`),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "New Banner" }).click();
+
+  await expect(page.getByText(/Working draft: Untitled/i)).toBeVisible();
+  await expect(
+    page.locator('input[value="How to Build a REST API"]'),
+  ).toBeVisible();
+  await expect(page.getByText(staleLocalBanner.name)).toHaveCount(0);
 });
 
 test("intro split template exposes split controls and validates partition points", async ({
@@ -614,6 +774,7 @@ test("intro split template exposes split controls and validates partition points
 
   await expect(page.getByLabel("Title Side")).toBeVisible();
   await expect(page.getByLabel("Title Style")).toBeVisible();
+  await expect(page.getByLabel("Title Width")).toBeVisible();
   await expect(page.getByLabel("Foreground Image Asset")).toBeVisible();
   await expect(page.getByLabel("Background SVG Asset")).toBeVisible();
   await expect(
@@ -635,6 +796,36 @@ test("intro split template exposes split controls and validates partition points
   ).toBeVisible();
   await page.getByRole("button", { name: "Show Capsules" }).click();
   await expect(page.getByLabel("Type Capsule")).toBeVisible();
+  await expect(page.getByLabel("Course Title")).toHaveCount(0);
+
+  await page.getByLabel("Type Capsule").click();
+  await page.getByRole("option", { name: "Course" }).click();
+
+  await expect(page.getByLabel("Course Title")).toBeVisible();
+  await expect(page.getByLabel("Lesson Number")).toBeVisible();
+  await expect(page.getByLabel("Total Lessons")).toBeVisible();
+  await expect(page.getByLabel("Course Block Size")).toBeVisible();
+  const introSplitCourseBlock = page.locator(
+    '[data-template-region="intro-split-course-block"]',
+  );
+  await expect(
+    introSplitCourseBlock.getByText("COURSE", { exact: true }),
+  ).toBeVisible({
+    timeout: 4000,
+  });
+  await expect(
+    introSplitCourseBlock.getByText("GitHub Copilot Bootcamp"),
+  ).toBeVisible({
+    timeout: 4000,
+  });
+  await expect(
+    introSplitCourseBlock.getByText("|", { exact: true }),
+  ).toBeVisible({
+    timeout: 4000,
+  });
+  await expect(introSplitCourseBlock.getByText("01 of 10")).toBeVisible({
+    timeout: 4000,
+  });
 });
 
 test("thumbnail preview applies setting changes after a debounce window", async ({

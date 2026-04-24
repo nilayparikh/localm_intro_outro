@@ -47,6 +47,10 @@ import {
   SURFACE_SHADOW_OPTIONS,
   SURFACE_STYLE_OPTIONS,
 } from "../templates/index";
+import {
+  resolveTemplateBorderStyle,
+  resolveTemplateSurfaceStyle,
+} from "../templates/rendering";
 import type { FieldDef } from "../templates/types";
 import { type OutroArrowOverlay } from "../templates/outroArrowAssets";
 import { DEFAULT_THEME_ID } from "../themes/themeDefinitions";
@@ -94,10 +98,12 @@ import {
   buildThumbnailContentFieldRows,
   clampBrandLogoSize,
   getTemplateAudioAssetFieldId,
+  getTemplateAudioStartFieldId,
   getThumbnailTemplateCapabilities,
   getThemeBorderColor,
   resolveThumbnailTemplateAssetBindings,
   resolveExportActionLoadingState,
+  resolveMotionAudioStartSeconds,
   resolveMotionDurationSeconds,
   resolveLoadedBrandLogoUrl,
   resolveBrandLogoUrlFromSettings,
@@ -233,6 +239,7 @@ const FIELD_LABEL_OVERRIDES: Record<string, string> = {
   outro_background_opacity: "Background SVG Opacity",
   split_title_side: "Title Side",
   split_partition_points: "Partition Points",
+  split_breakpoint_effect: "Breakpoint Effect",
   split_foreground_asset_id: "Foreground Image Asset",
   split_foreground_scale: "Foreground Scale",
   split_foreground_x: "Foreground Position X",
@@ -242,6 +249,7 @@ const FIELD_LABEL_OVERRIDES: Record<string, string> = {
   split_background_scale: "Background SVG Scale",
   split_background_x: "Background SVG Position X",
   split_background_y: "Background SVG Position Y",
+  split_title_width: "Title Width",
   split_corner_icon_asset_id_1: "Corner Icon 1",
   split_corner_icon_asset_id_2: "Corner Icon 2",
   split_corner_icon_asset_id_3: "Corner Icon 3",
@@ -250,6 +258,7 @@ const FIELD_LABEL_OVERRIDES: Record<string, string> = {
   outro_background_x: "Background SVG Position X",
   outro_background_y: "Background SVG Position Y",
   split_type_capsule: "Type Capsule",
+  split_course_block_size: "Course Block Size",
   title_size: "Title Style",
   secondary_size: "Secondary Style",
 };
@@ -266,6 +275,12 @@ const SPLIT_CORNER_ICON_FIELD_IDS = [
   "split_corner_icon_asset_id_2",
   "split_corner_icon_asset_id_3",
 ] as const;
+const INTRO_SPLIT_COURSE_FIELD_IDS = new Set([
+  "split_course_title",
+  "split_course_lesson_current",
+  "split_course_lesson_total",
+  "split_course_block_size",
+]);
 
 function getUsedSplitCornerIconCount(assetIds: readonly string[]): number {
   for (let index = assetIds.length - 1; index >= 0; index -= 1) {
@@ -520,6 +535,9 @@ export function ThumbnailPage() {
     "load" | "save" | null
   >(null);
   const [bannerDialogName, setBannerDialogName] = useState("");
+  const [bannerDialogSaveAction, setBannerDialogSaveAction] = useState<
+    "overwrite" | "save-as-new"
+  >("save-as-new");
   const [dialogSelectedBannerId, setDialogSelectedBannerId] = useState("");
   const hasLoadedDraftRef = useRef(false);
   const suppressDraftWriteRef = useRef(false);
@@ -649,12 +667,23 @@ export function ThumbnailPage() {
   const isIntroSplitTemplate = templateId === "intro_split_thumbnail";
   const currentTemplateFields = useMemo(() => {
     const templateFields = currentTemplate?.fields ?? [];
+    const selectedSplitTypeCapsule =
+      fieldValues["split_type_capsule"] ??
+      templateFields.find((field) => field.id === "split_type_capsule")
+        ?.defaultValue ??
+      "bite";
+    const visibleTemplateFields =
+      isIntroSplitTemplate && selectedSplitTypeCapsule !== "course"
+        ? templateFields.filter(
+            (field) => !INTRO_SPLIT_COURSE_FIELD_IDS.has(field.id),
+          )
+        : templateFields;
 
     if (!isIntroSplitTemplate && !isOutroTemplate) {
       return templateFields;
     }
 
-    return templateFields.map((field) => {
+    return visibleTemplateFields.map((field) => {
       if (isIntroSplitTemplate && field.id === "split_foreground_asset_id") {
         return {
           ...field,
@@ -682,6 +711,7 @@ export function ThumbnailPage() {
     });
   }, [
     currentTemplate?.fields,
+    fieldValues,
     isIntroSplitTemplate,
     isOutroTemplate,
     splitBackgroundSvgAssetOptions,
@@ -690,14 +720,14 @@ export function ThumbnailPage() {
   const currentTemplateFieldMap = new Map(
     currentTemplateFields.map((field) => [field.id, field]),
   );
-  const selectedBorderStyle =
+  const selectedBorderStyle = resolveTemplateBorderStyle(
     fieldValues["border_style"] ??
-    currentTemplateFieldMap.get("border_style")?.defaultValue ??
-    "solid";
-  const selectedSurfaceStyle =
+      currentTemplateFieldMap.get("border_style")?.defaultValue,
+  );
+  const selectedSurfaceStyle = resolveTemplateSurfaceStyle(
     fieldValues["surface_style"] ??
-    currentTemplateFieldMap.get("surface_style")?.defaultValue ??
-    "standard";
+      currentTemplateFieldMap.get("surface_style")?.defaultValue,
+  );
   const selectedSurfaceShadow =
     fieldValues["surface_shadow"] ??
     currentTemplateFieldMap.get("surface_shadow")?.defaultValue ??
@@ -706,10 +736,10 @@ export function ThumbnailPage() {
     fieldValues["border_color_secondary"]?.trim() ||
     currentTheme.borderColor ||
     currentTheme.accent;
-  const capsuleStyleValue =
+  const capsuleStyleValue = resolveTemplateSurfaceStyle(
     fieldValues["capsule_style"] ??
-    currentTemplateFieldMap.get("capsule_style")?.defaultValue ??
-    "glass";
+      currentTemplateFieldMap.get("capsule_style")?.defaultValue,
+  );
   const capsuleColorValue =
     fieldValues["capsule_color"]?.trim() || currentTheme.accent;
   const capsuleSizeValue =
@@ -853,6 +883,7 @@ export function ThumbnailPage() {
   );
   const motionDurationSeconds = resolveMotionDurationSeconds(fieldValues);
   const audioAssetFieldId = getTemplateAudioAssetFieldId(templateId);
+  const audioStartFieldId = getTemplateAudioStartFieldId(templateId);
   const selectedAudioAssetId = audioAssetFieldId
     ? (fieldValues[audioAssetFieldId] ?? "")
     : "";
@@ -953,6 +984,21 @@ export function ThumbnailPage() {
   const renderableSelectedAudioAssetUrl = useRenderableAssetUrl(
     selectedAudioAsset?.blobPath ?? null,
   );
+  const selectedAudioDurationSeconds = Math.max(
+    0,
+    Math.floor((selectedAudioAsset?.durationMs ?? 0) / 1000),
+  );
+  const maxAudioStartSeconds = Math.max(
+    0,
+    selectedAudioDurationSeconds - motionDurationSeconds,
+  );
+  const audioStartSeconds = resolveMotionAudioStartSeconds(
+    fieldValues,
+    audioStartFieldId,
+    maxAudioStartSeconds,
+  );
+  const audioStartSecondsLabel = `${audioStartSeconds}s`;
+  const maxAudioStartSecondsLabel = `${maxAudioStartSeconds}s`;
   const renderableSplitForegroundAssetUrl = useRenderableAssetUrl(
     selectedSplitForegroundAsset?.blobPath ?? null,
   );
@@ -1324,6 +1370,44 @@ export function ThumbnailPage() {
     [activeTemplateEntry],
   );
 
+  const createFreshTemplateEntry = useCallback(
+    (nextTemplateId: string): BannerTemplateEntry =>
+      createTemplateEntryFromLegacySource({
+        templateId: nextTemplateId,
+        themeId,
+        platformId,
+        fieldValues: getDefaultValues(nextTemplateId),
+        borderWidth: 0,
+        borderColor: getThemeBorderColor(themeId, themes),
+        fontPairId: selectedFontPairId,
+        primaryFontFamily,
+        secondaryFontFamily,
+        fontSize: clampFontSize(fontSize),
+        brandLogoUrl: resolveLoadedBrandLogoUrl({
+          storedBrandLogoUrl: null,
+          settingsLogoUrl: settings.logo_url,
+        }),
+        brandLogoSize: 90,
+        showCopyrightMessage: true,
+        copyrightText: DEFAULT_COPYRIGHT_TEXT,
+        tutorialImageUrl: null,
+        tutorialImageSize: 100,
+        tutorialImageBottomPadding: 24,
+        tutorialImageOpacity: 100,
+        outroArrowOverlays: [],
+      }),
+    [
+      fontSize,
+      platformId,
+      primaryFontFamily,
+      secondaryFontFamily,
+      selectedFontPairId,
+      settings.logo_url,
+      themeId,
+      themes,
+    ],
+  );
+
   // Handle template change
   const handleTemplateChange = useCallback(
     (newId: string) => {
@@ -1676,15 +1760,7 @@ export function ThumbnailPage() {
 
     if (appState.currentDraft) {
       const draft = appState.currentDraft;
-      const draftTemplateState = resolveTemplateState(draft);
-
-      applyBannerPayload({
-        id: draft.bannerId ?? "draft",
-        name: draft.name,
-        templateEntries: draftTemplateState.templateEntries,
-        ...draftTemplateState.activeEntry,
-        updatedAt: Date.now(),
-      });
+      applyDraftState(draft);
       previousSettingsLogoUrlRef.current = settings.logo_url;
       hasLoadedDraftRef.current = true;
       return;
@@ -1699,7 +1775,7 @@ export function ThumbnailPage() {
     hasLoadedDraftRef.current = true;
   }, [
     appState.currentDraft,
-    applyBannerPayload,
+    applyDraftState,
     isAppStateHydrated,
     setDraftWithSuppression,
     settings.logo_url,
@@ -1833,9 +1909,11 @@ export function ThumbnailPage() {
     async ({
       bannerId,
       bannerName,
+      allowCurrentBannerFallback = true,
     }: {
       bannerId?: string;
       bannerName?: string;
+      allowCurrentBannerFallback?: boolean;
     } = {}) => {
       const name = (bannerName ?? profileName).trim();
       if (!name) {
@@ -1843,7 +1921,11 @@ export function ThumbnailPage() {
         return false;
       }
 
-      const resolvedBannerId = bannerId ?? selectedBannerId ?? undefined;
+      const resolvedBannerId =
+        bannerId?.trim() ||
+        (allowCurrentBannerFallback
+          ? selectedBannerId?.trim() || undefined
+          : undefined);
 
       setProfileName(name);
 
@@ -1923,6 +2005,23 @@ export function ThumbnailPage() {
     ],
   );
 
+  const handleCreateNewBanner = useCallback(async () => {
+    const freshEntry = createFreshTemplateEntry(templateId);
+    const nextDraft: DraftBannerState = {
+      bannerId: null,
+      name: "Untitled",
+      ...freshEntry,
+      templateEntries: [freshEntry],
+    };
+
+    applyDraftState(nextDraft);
+    await updateAppState({
+      currentDraft: nextDraft,
+      draftDirty: false,
+    });
+    toast.success("Started a new banner draft");
+  }, [applyDraftState, createFreshTemplateEntry, templateId, updateAppState]);
+
   const handleDeleteProfile = useCallback(
     async (bannerId: string) => {
       if (!bannerId) {
@@ -1978,6 +2077,7 @@ export function ThumbnailPage() {
 
       setBannerDialogMode(mode);
       setBannerDialogName(dialogState.bannerName);
+      setBannerDialogSaveAction(dialogState.saveAction ?? "save-as-new");
       setDialogSelectedBannerId(dialogState.selectedBannerId);
     },
     [banners, profileName, selectedBannerId],
@@ -1997,10 +2097,47 @@ export function ThumbnailPage() {
 
       const banner = banners.find((entry) => entry.id === bannerId);
       if (banner) {
+        setBannerDialogSaveAction("overwrite");
         setBannerDialogName(banner.name);
       }
     },
     [bannerDialogMode, banners],
+  );
+
+  const handleBannerDialogSaveActionChange = useCallback(
+    (action: "overwrite" | "save-as-new") => {
+      setBannerDialogSaveAction(action);
+
+      if (action === "overwrite") {
+        const selectedDialogBanner = banners.find(
+          (entry) => entry.id === dialogSelectedBannerId,
+        );
+
+        if (selectedDialogBanner) {
+          setBannerDialogName(selectedDialogBanner.name);
+        }
+
+        return;
+      }
+
+      const selectedDialogBanner = banners.find(
+        (entry) => entry.id === dialogSelectedBannerId,
+      );
+      const trimmedDialogName = bannerDialogName.trim();
+
+      if (
+        selectedDialogBanner &&
+        (!trimmedDialogName || trimmedDialogName === selectedDialogBanner.name)
+      ) {
+        setBannerDialogName(`${selectedDialogBanner.name} Copy`);
+        return;
+      }
+
+      if (!trimmedDialogName) {
+        setBannerDialogName(profileName.trim());
+      }
+    },
+    [bannerDialogName, banners, dialogSelectedBannerId, profileName],
   );
 
   const handleConfirmBannerDialog = useCallback(async () => {
@@ -2013,9 +2150,14 @@ export function ThumbnailPage() {
     }
 
     if (bannerDialogMode === "save") {
+      const resolvedBannerId =
+        bannerDialogSaveAction === "overwrite"
+          ? dialogSelectedBannerId || undefined
+          : undefined;
       const saved = await handleSaveProfile({
-        bannerId: dialogSelectedBannerId || undefined,
+        bannerId: resolvedBannerId,
         bannerName: bannerDialogName,
+        allowCurrentBannerFallback: bannerDialogSaveAction === "overwrite",
       });
 
       if (saved) {
@@ -2025,6 +2167,7 @@ export function ThumbnailPage() {
   }, [
     bannerDialogMode,
     bannerDialogName,
+    bannerDialogSaveAction,
     closeBannerDialog,
     dialogSelectedBannerId,
     handleLoadProfile,
@@ -2078,11 +2221,13 @@ export function ThumbnailPage() {
     if (remainingBanners[0]) {
       setDialogSelectedBannerId(remainingBanners[0].id);
       if (bannerDialogMode === "save") {
+        setBannerDialogSaveAction("overwrite");
         setBannerDialogName(remainingBanners[0].name);
       }
     } else {
       setDialogSelectedBannerId("");
       if (bannerDialogMode === "save") {
+        setBannerDialogSaveAction("save-as-new");
         setBannerDialogName(profileName.trim());
       }
     }
@@ -2093,13 +2238,6 @@ export function ThumbnailPage() {
     handleDeleteProfile,
     profileName,
   ]);
-
-  const clearBannerDialogSelection = useCallback(() => {
-    setDialogSelectedBannerId("");
-    if (bannerDialogMode === "save") {
-      setBannerDialogName(profileName.trim());
-    }
-  }, [bannerDialogMode, profileName]);
 
   const goHome = useCallback(() => {
     window.location.assign("/");
@@ -2195,8 +2333,10 @@ export function ThumbnailPage() {
     await exportMotion(canvasRef.current, `${safeFilename}_motion.mp4`, {
       durationSeconds: motionDurationSeconds,
       audioUrl: renderableSelectedAudioAssetUrl,
+      audioStartSeconds,
     });
   }, [
+    audioStartSeconds,
     currentTemplate?.name,
     exportMotion,
     fieldValues,
@@ -2251,6 +2391,12 @@ export function ThumbnailPage() {
                     spacing={1}
                     useFlexGap
                   >
+                    <ActionButton
+                      label="New Banner"
+                      variant="secondary"
+                      onClick={handleCreateNewBanner}
+                      fullWidth
+                    />
                     <ActionButton
                       label="Load Banner"
                       variant="secondary"
@@ -2398,6 +2544,33 @@ export function ThumbnailPage() {
                               breakpoint. Drag points left or right to reshape
                               the split.
                             </Typography>
+                            <SelectControl
+                              label="Breakpoint Effect"
+                              value={
+                                fieldValues["split_breakpoint_effect"] ??
+                                currentTemplateFieldMap.get(
+                                  "split_breakpoint_effect",
+                                )?.defaultValue ??
+                                "glass"
+                              }
+                              onChange={(value) =>
+                                handleFieldChange(
+                                  "split_breakpoint_effect",
+                                  value,
+                                )
+                              }
+                              options={
+                                currentTemplateFieldMap.get(
+                                  "split_breakpoint_effect",
+                                )?.options ?? [
+                                  { value: "none", label: "None" },
+                                  { value: "glass", label: "Glass" },
+                                  { value: "opaque", label: "Opaque" },
+                                  { value: "cracked", label: "Cracked" },
+                                ]
+                              }
+                              tooltip="Controls the visual treatment that runs along the split breakpoints"
+                            />
                             {splitPartitionError && (
                               <Typography variant="caption" color="error.main">
                                 {splitPartitionError}
@@ -3520,6 +3693,36 @@ export function ThumbnailPage() {
                               controls
                               sx={{ width: "100%" }}
                             />
+                            {audioStartFieldId && (
+                              <>
+                                <SliderControl
+                                  label="Audio Start Offset"
+                                  value={audioStartSeconds}
+                                  onChange={(value) =>
+                                    handleFieldChange(
+                                      audioStartFieldId,
+                                      String(value),
+                                    )
+                                  }
+                                  min={0}
+                                  max={maxAudioStartSeconds}
+                                  step={1}
+                                  disabled={maxAudioStartSeconds === 0}
+                                  formatValue={(value) => `${value}s`}
+                                  tooltip="Skip from the beginning of the selected audio track before exporting the motion video"
+                                />
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  Starts at {audioStartSecondsLabel}. Default is
+                                  2s, and the latest safe start point is{" "}
+                                  {maxAudioStartSecondsLabel} so the audio still
+                                  covers the full {motionDurationSeconds}s
+                                  motion export.
+                                </Typography>
+                              </>
+                            )}
                             <ActionButton
                               label="Clear Audio"
                               variant="secondary"
@@ -3715,9 +3918,10 @@ export function ThumbnailPage() {
           banners={banners}
           selectedBannerId={dialogSelectedBannerId}
           bannerName={bannerDialogName}
+          saveAction={bannerDialogSaveAction}
           onBannerNameChange={setBannerDialogName}
           onSelectBanner={handleBannerDialogSelection}
-          onClearSelection={clearBannerDialogSelection}
+          onSelectSaveAction={handleBannerDialogSaveActionChange}
           onClose={closeBannerDialog}
           onConfirm={handleConfirmBannerDialog}
           onDeleteSelected={handleDeleteFromDialog}
