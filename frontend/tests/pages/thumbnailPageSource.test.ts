@@ -34,3 +34,24 @@ test("thumbnail page uses a dynamic app/module/template title and exposes an out
   );
   assert.equal(thumbnailPageSource.includes('label="Add Support Line"'), true);
 });
+
+test("thumbnail page keeps preview rendering separate from the export surface", () => {
+  assert.equal(
+    thumbnailPageSource.includes("transform: `scale(${previewScale})`"),
+    false,
+  );
+  assert.equal(
+    thumbnailPageSource.includes(
+      "const exportCanvasRef = useRef<HTMLDivElement>(null);",
+    ),
+    true,
+  );
+  assert.equal(
+    thumbnailPageSource.includes("const previewTemplateRenderProps ="),
+    true,
+  );
+  assert.equal(
+    thumbnailPageSource.includes("const exportTemplateRenderProps ="),
+    true,
+  );
+});

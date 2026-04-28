@@ -173,13 +173,18 @@ const OUTRO_BACKGROUND_SVG_FIELDS: FieldDef[] = [
   },
 ];
 
+const OUTRO_HEADLINE_BACKGROUND_OPTIONS = [
+  { value: "none", label: "None" },
+  { value: "glass", label: "Glass" },
+];
+
 const SPLIT_TITLE_SIDE_OPTIONS = [
   { value: "left", label: "Left" },
   { value: "right", label: "Right" },
 ];
 
 const SPLIT_TYPE_CAPSULE_OPTIONS = [
-  { value: "bite", label: "Bite" },
+  { value: "bite", label: "BITE" },
   { value: "course", label: "Course" },
   { value: "mono", label: "Mono" },
   { value: "debug", label: "Debug Mode" },
@@ -191,6 +196,8 @@ const SPLIT_BREAKPOINT_EFFECT_OPTIONS = [
   { value: "opaque", label: "Opaque" },
   { value: "cracked", label: "Cracked" },
 ];
+
+const SPLIT_QUOTE_STYLE_OPTIONS = [{ value: "size_1", label: "Quote Size 1" }];
 
 const CAPSULE_STYLE_FIELD: FieldDef = {
   id: "capsule_style",
@@ -648,6 +655,89 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
         step: 1,
       },
       {
+        id: "split_title_block_y",
+        label: "Title Block Y",
+        type: "slider",
+        defaultValue: "0",
+        min: -100,
+        max: 100,
+        step: 1,
+      },
+      {
+        id: "split_quote_enabled",
+        label: "Quote Enabled",
+        type: "select",
+        defaultValue: "false",
+        options: CAPSULE_TOGGLE_OPTIONS,
+      },
+      {
+        id: "split_quote_style",
+        label: "Quote Style",
+        type: "select",
+        defaultValue: "size_1",
+        options: SPLIT_QUOTE_STYLE_OPTIONS,
+      },
+      {
+        id: "split_quote_bold",
+        label: "Quote Bold",
+        type: "select",
+        defaultValue: "false",
+        options: CAPSULE_TOGGLE_OPTIONS,
+      },
+      {
+        id: "split_quote_text",
+        label: "Quote Text",
+        type: "text",
+        defaultValue:
+          "What if your data pipeline fixed itself before you even got the alert?",
+        multiline: true,
+      },
+      {
+        id: "split_quote_x",
+        label: "Quote X",
+        type: "slider",
+        defaultValue: "-100",
+        min: -100,
+        max: 100,
+        step: 1,
+      },
+      {
+        id: "split_quote_y",
+        label: "Quote Y",
+        type: "slider",
+        defaultValue: "0",
+        min: -100,
+        max: 100,
+        step: 1,
+      },
+      {
+        id: "split_quote_font_size",
+        label: "Quote Text Size",
+        type: "slider",
+        defaultValue: "100",
+        min: 50,
+        max: 220,
+        step: 1,
+      },
+      {
+        id: "split_quote_mark_size",
+        label: "Quote Mark Size",
+        type: "slider",
+        defaultValue: "100",
+        min: 40,
+        max: 220,
+        step: 1,
+      },
+      {
+        id: "split_quote_width",
+        label: "Quote Width",
+        type: "slider",
+        defaultValue: "72",
+        min: 36,
+        max: 100,
+        step: 1,
+      },
+      {
         id: "split_course_title",
         label: "Course Title",
         type: "text",
@@ -664,6 +754,15 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
         label: "Total Lessons",
         type: "text",
         defaultValue: "10",
+      },
+      {
+        id: "split_course_title_gap",
+        label: "Course Gap",
+        type: "slider",
+        defaultValue: "60",
+        min: 20,
+        max: 140,
+        step: 1,
       },
       {
         id: "split_course_block_size",
@@ -818,6 +917,13 @@ export const TEMPLATE_DEFS: TemplateDef[] = [
         type: "text",
         defaultValue: "Want more? Subscribe and press the bell",
         multiline: true,
+      },
+      {
+        id: "outro_headline_background",
+        label: "Headline Background",
+        type: "select",
+        defaultValue: "none",
+        options: OUTRO_HEADLINE_BACKGROUND_OPTIONS,
       },
       {
         id: "title_size",

@@ -306,6 +306,7 @@ export function buildTemplateFrameStyle({
     height,
     boxSizing: "border-box",
     position: "relative",
+    isolation: "isolate",
     overflow: "hidden",
     fontFamily,
     background: transparentBackground

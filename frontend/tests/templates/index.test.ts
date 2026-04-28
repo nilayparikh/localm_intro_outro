@@ -172,6 +172,11 @@ test("tutorial and centered course templates expose secondary size and advanced 
 });
 
 test("intro bite and outro templates expose specialized banner defaults", () => {
+  const outroTemplate = getTemplateDef("outro_thumbnail");
+  const outroHeadlineBackgroundField = outroTemplate?.fields.find(
+    (field) => field.id === "outro_headline_background",
+  );
+
   assert.deepEqual(
     {
       title: getDefaultValues("intro_bite_thumbnail").title,
@@ -237,6 +242,7 @@ test("intro bite and outro templates expose specialized banner defaults", () => 
   assert.deepEqual(getDefaultValues("outro_thumbnail"), {
     title: "Thank You for Watching",
     subtitle: "Want more? Subscribe and press the bell",
+    outro_headline_background: "none",
     title_size: "lg",
     secondary_size: "md",
     outro_background_svg_asset_id: "",
@@ -263,6 +269,7 @@ test("intro bite and outro templates expose specialized banner defaults", () => 
     "outro_background_svg_asset_id",
     "outro_background_x",
     "outro_background_y",
+    "outro_headline_background",
     "secondary_size",
     "show_grid",
     "subtitle",
@@ -270,6 +277,12 @@ test("intro bite and outro templates expose specialized banner defaults", () => 
     "surface_style",
     "title",
     "title_size",
+  ]);
+
+  assert.equal(outroHeadlineBackgroundField?.label, "Headline Background");
+  assert.deepEqual(outroHeadlineBackgroundField?.options, [
+    { value: "none", label: "None" },
+    { value: "glass", label: "Glass" },
   ]);
 });
 
@@ -330,12 +343,32 @@ test("intro split template exposes partition, side and split-asset defaults", ()
         .split_type_capsule,
       split_title_width: getDefaultValues("intro_split_thumbnail")
         .split_title_width,
+      split_title_block_y: getDefaultValues("intro_split_thumbnail")
+        .split_title_block_y,
+      split_quote_enabled: getDefaultValues("intro_split_thumbnail")
+        .split_quote_enabled,
+      split_quote_style: getDefaultValues("intro_split_thumbnail")
+        .split_quote_style,
+      split_quote_bold: getDefaultValues("intro_split_thumbnail")
+        .split_quote_bold,
+      split_quote_text: getDefaultValues("intro_split_thumbnail")
+        .split_quote_text,
+      split_quote_x: getDefaultValues("intro_split_thumbnail").split_quote_x,
+      split_quote_y: getDefaultValues("intro_split_thumbnail").split_quote_y,
+      split_quote_font_size: getDefaultValues("intro_split_thumbnail")
+        .split_quote_font_size,
+      split_quote_mark_size: getDefaultValues("intro_split_thumbnail")
+        .split_quote_mark_size,
+      split_quote_width: getDefaultValues("intro_split_thumbnail")
+        .split_quote_width,
       split_course_title: getDefaultValues("intro_split_thumbnail")
         .split_course_title,
       split_course_lesson_current: getDefaultValues("intro_split_thumbnail")
         .split_course_lesson_current,
       split_course_lesson_total: getDefaultValues("intro_split_thumbnail")
         .split_course_lesson_total,
+      split_course_title_gap: getDefaultValues("intro_split_thumbnail")
+        .split_course_title_gap,
       split_course_block_size: getDefaultValues("intro_split_thumbnail")
         .split_course_block_size,
       split_corner_icon_asset_id_1: getDefaultValues("intro_split_thumbnail")
@@ -382,9 +415,21 @@ test("intro split template exposes partition, side and split-asset defaults", ()
       split_foreground_y: "0",
       split_type_capsule: "bite",
       split_title_width: "46",
+      split_title_block_y: "0",
+      split_quote_enabled: "false",
+      split_quote_style: "size_1",
+      split_quote_bold: "false",
+      split_quote_text:
+        "What if your data pipeline fixed itself before you even got the alert?",
+      split_quote_x: "-100",
+      split_quote_y: "0",
+      split_quote_font_size: "100",
+      split_quote_mark_size: "100",
+      split_quote_width: "72",
       split_course_title: "GitHub Copilot Bootcamp",
       split_course_lesson_current: "01",
       split_course_lesson_total: "10",
+      split_course_title_gap: "60",
       split_course_block_size: "100",
       split_corner_icon_asset_id_1: "",
       split_corner_icon_asset_id_2: "",
@@ -419,11 +464,44 @@ test("intro split template exposes partition, side and split-asset defaults", ()
   const splitTitleWidthField = introSplitTemplate?.fields.find(
     (field) => field.id === "split_title_width",
   );
+  const splitTitleBlockYField = introSplitTemplate?.fields.find(
+    (field) => field.id === "split_title_block_y",
+  );
+  const splitQuoteEnabledField = introSplitTemplate?.fields.find(
+    (field) => field.id === "split_quote_enabled",
+  );
+  const splitQuoteStyleField = introSplitTemplate?.fields.find(
+    (field) => field.id === "split_quote_style",
+  );
+  const splitQuoteBoldField = introSplitTemplate?.fields.find(
+    (field) => field.id === "split_quote_bold",
+  );
+  const splitQuoteTextField = introSplitTemplate?.fields.find(
+    (field) => field.id === "split_quote_text",
+  );
+  const splitQuoteXField = introSplitTemplate?.fields.find(
+    (field) => field.id === "split_quote_x",
+  );
+  const splitQuoteYField = introSplitTemplate?.fields.find(
+    (field) => field.id === "split_quote_y",
+  );
+  const splitQuoteFontSizeField = introSplitTemplate?.fields.find(
+    (field) => field.id === "split_quote_font_size",
+  );
+  const splitQuoteMarkSizeField = introSplitTemplate?.fields.find(
+    (field) => field.id === "split_quote_mark_size",
+  );
+  const splitQuoteWidthField = introSplitTemplate?.fields.find(
+    (field) => field.id === "split_quote_width",
+  );
   const splitCourseLessonCurrentField = introSplitTemplate?.fields.find(
     (field) => field.id === "split_course_lesson_current",
   );
   const splitCourseLessonTotalField = introSplitTemplate?.fields.find(
     (field) => field.id === "split_course_lesson_total",
+  );
+  const splitCourseTitleGapField = introSplitTemplate?.fields.find(
+    (field) => field.id === "split_course_title_gap",
   );
   const splitCourseBlockSizeField = introSplitTemplate?.fields.find(
     (field) => field.id === "split_course_block_size",
@@ -434,12 +512,49 @@ test("intro split template exposes partition, side and split-asset defaults", ()
     ["bite", "course", "mono", "debug"],
   );
   assert.deepEqual(
+    splitTypeField?.options?.map((option) => option.label),
+    ["BITE", "Course", "Mono", "Debug Mode"],
+  );
+  assert.deepEqual(
     splitBreakpointEffectField?.options?.map((option) => option.value),
     ["none", "glass", "opaque", "cracked"],
   );
   assert.equal(splitCourseTitleField?.defaultValue, "GitHub Copilot Bootcamp");
   assert.equal(splitTitleWidthField?.defaultValue, "46");
+  assert.equal(splitTitleBlockYField?.defaultValue, "0");
+  assert.equal(splitTitleBlockYField?.min, -100);
+  assert.equal(splitTitleBlockYField?.max, 100);
+  assert.equal(splitQuoteEnabledField?.defaultValue, "false");
+  assert.deepEqual(
+    splitQuoteStyleField?.options?.map((option) => option.value),
+    ["size_1"],
+  );
+  assert.equal(splitQuoteBoldField?.defaultValue, "false");
+  assert.deepEqual(
+    splitQuoteBoldField?.options?.map((option) => option.value),
+    ["true", "false"],
+  );
+  assert.equal(
+    splitQuoteTextField?.defaultValue,
+    "What if your data pipeline fixed itself before you even got the alert?",
+  );
+  assert.equal(splitQuoteXField?.defaultValue, "-100");
+  assert.equal(splitQuoteXField?.min, -100);
+  assert.equal(splitQuoteXField?.max, 100);
+  assert.equal(splitQuoteYField?.defaultValue, "0");
+  assert.equal(splitQuoteYField?.min, -100);
+  assert.equal(splitQuoteYField?.max, 100);
+  assert.equal(splitQuoteFontSizeField?.defaultValue, "100");
+  assert.equal(splitQuoteFontSizeField?.min, 50);
+  assert.equal(splitQuoteFontSizeField?.max, 220);
+  assert.equal(splitQuoteMarkSizeField?.defaultValue, "100");
+  assert.equal(splitQuoteMarkSizeField?.min, 40);
+  assert.equal(splitQuoteMarkSizeField?.max, 220);
+  assert.equal(splitQuoteWidthField?.defaultValue, "72");
+  assert.equal(splitQuoteWidthField?.min, 36);
+  assert.equal(splitQuoteWidthField?.max, 100);
   assert.equal(splitCourseLessonCurrentField?.defaultValue, "01");
   assert.equal(splitCourseLessonTotalField?.defaultValue, "10");
+  assert.equal(splitCourseTitleGapField?.defaultValue, "60");
   assert.equal(splitCourseBlockSizeField?.defaultValue, "100");
 });

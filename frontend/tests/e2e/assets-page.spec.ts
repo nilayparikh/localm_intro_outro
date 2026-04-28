@@ -193,13 +193,13 @@ test("asset management surfaces existing tags as suggestions without category co
   await expect(page.getByRole("option", { name: "split" })).toBeVisible();
 });
 
-test("asset grid shows five cards in the first row on wide screens", async ({
+test("asset grid shows seven cards in the first row on wide screens", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1900, height: 1200 });
   const tableMock = await mockAzureTableReads(page);
   tableMock.setAssets(
-    Array.from({ length: 6 }, (_, index) => ({
+    Array.from({ length: 8 }, (_, index) => ({
       id: `asset-${index + 1}`,
       name: `Grid Asset ${index + 1}`,
       fileName: `grid-${index + 1}.png`,
@@ -221,7 +221,7 @@ test("asset grid shows five cards in the first row on wide screens", async ({
   await page.goto("/assets", { waitUntil: "domcontentloaded" });
 
   const nameLocators = await Promise.all(
-    Array.from({ length: 6 }, (_, index) =>
+    Array.from({ length: 8 }, (_, index) =>
       page
         .getByText(`Grid Asset ${index + 1}`)
         .first()
@@ -241,9 +241,9 @@ test("asset grid shows five cards in the first row on wide screens", async ({
   }>;
   const firstRowY = Math.round(boxes[0].y);
 
-  for (const box of boxes.slice(0, 5)) {
+  for (const box of boxes.slice(0, 7)) {
     expect(Math.abs(Math.round(box.y) - firstRowY)).toBeLessThan(8);
   }
 
-  expect(boxes[5].y).toBeGreaterThan(firstRowY + 24);
+  expect(boxes[7].y).toBeGreaterThan(firstRowY + 24);
 });

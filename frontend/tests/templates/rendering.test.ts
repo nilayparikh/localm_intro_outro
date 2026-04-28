@@ -30,3 +30,30 @@ test("scaled border width uses a 4k reference and preserves non-zero borders", (
   assert.equal(getScaledBorderWidth(1024, 1), 1);
   assert.equal(getScaledBorderWidth(1024, 0), 0);
 });
+
+test("template frames isolate backdrop-filter layers for glass surfaces", async () => {
+  const { buildTemplateFrameStyle } =
+    await import("../../src/templates/rendering");
+
+  const style = buildTemplateFrameStyle({
+    width: REFERENCE_CANVAS.width,
+    height: REFERENCE_CANVAS.height,
+    fontFamily: "'Outfit', sans-serif",
+    theme: {
+      background: "#0b1120",
+      surface: "#111827",
+      textPrimary: "#f8fafc",
+      textSecondary: "#94a3b8",
+      accent: "#22d3ee",
+      borderColor: "#22d3ee",
+      gradientStart: "#0b1120",
+      gradientMid: "#111827",
+      gradientEnd: "#1e293b",
+      backgroundImage: "linear-gradient(135deg, #0b1120, #111827, #1e293b)",
+    },
+    borderWidth: 0,
+    borderColor: "#22d3ee",
+  });
+
+  assert.equal(style.isolation, "isolate");
+});

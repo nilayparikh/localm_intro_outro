@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F0FF" />
+      <stop offset="100%" stop-color="#B026FF" />
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#ffffff" stroke-opacity="0.04" stroke-width="1"/>
+    </pattern>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Card Background -->
+  <rect x="40" y="40" width="720" height="320" rx="16" fill="#0B0F19" fill-opacity="0.95" stroke="url(#borderGrad)" stroke-width="3"/>
+  
+  <!-- Grid overlay inside the card -->
+  <rect x="42" y="42" width="716" height="316" rx="14" fill="url(#grid)"/>
+
+  <!-- Top Accent Line -->
+  <rect x="80" y="40" width="120" height="3" fill="#00F0FF" filter="url(#glow)"/>
+
+  <!-- Quote Text -->
+  <text x="80" y="130" font-family="'Inter', system-ui, sans-serif" font-size="28" font-weight="400" fill="#E2E8F0">
+    <tspan x="80" dy="0">"What if your data pipeline fixed itself</tspan>
+    <tspan x="80" dy="40">before you even got the alert?"</tspan>
+  </text>
+
+  <!-- Punchline -->
+  <text x="80" y="250" font-family="'Inter', system-ui, sans-serif" font-size="34" font-weight="800" fill="#ffffff">
+    <tspan x="80" dy="0">Welcome to the era of</tspan>
+    <tspan x="80" dy="45" fill="#00F0FF" filter="url(#glow)">Agentic Data Engineering.</tspan>
+  </text>
+</svg>

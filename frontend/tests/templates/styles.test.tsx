@@ -322,8 +322,14 @@ test("centered templates accept percentage-based glass capsule styles", () => {
     />,
   );
 
-  assert.match(html, /backdrop-filter:blur\(/);
-  assert.match(html, /linear-gradient\(145deg, rgba\(/);
+  const capsuleSnippet =
+    html.match(/<div data-capsule-kind="duration" style="[^"]*">/)?.[0] ?? "";
+
+  assert.match(capsuleSnippet, /backdrop-filter:blur\(/);
+  assert.match(capsuleSnippet, /-webkit-backdrop-filter:blur\(/);
+  assert.match(capsuleSnippet, /overflow:hidden/);
+  assert.match(capsuleSnippet, /isolation:isolate/);
+  assert.match(capsuleSnippet, /linear-gradient\(145deg, rgba\(/);
 });
 
 test("centered templates keep capsules hidden when their toggles stay off", () => {
@@ -539,7 +545,7 @@ test("intro split template renders side-aware regions with glass glow divider tr
   assert.match(html, /data-template-region="intro-split-foreground-right"/);
   assert.match(html, /data-template-region="intro-split-course-block"/);
   assert.match(html, /clip-path:polygon\(/);
-  assert.match(html, />COURSE</);
+  assert.match(html, />Course</);
   assert.match(html, />GitHub Copilot Bootcamp</);
   assert.match(html, />01 of 10</);
   assert.match(html, />\|</);
@@ -554,7 +560,7 @@ test("intro split template renders side-aware regions with glass glow divider tr
     )?.[0] ?? "";
   assert.match(titleLayerSnippet, /z-index:30/);
   assert.doesNotMatch(titleLayerSnippet, /clip-path:/);
-  assert.match(html, /data-template-region="intro-split-type-capsule-icon"/);
+  assert.match(html, /data-capsule-kind="split-type"/);
   assert.match(
     html,
     /data-template-region="intro-split-divider-glow"[^>]*style="[^"]*z-index:3/,
@@ -562,6 +568,7 @@ test("intro split template renders side-aware regions with glass glow divider tr
   assert.match(html, /opacity:0\.55/);
   assert.match(html, /Ship Faster with Intro Split/);
   assert.doesNotMatch(html, />Intro \(Split\)</);
+  assert.doesNotMatch(html, /data-template-region="intro-split-quote-block"/);
 });
 
 test("intro split supports adjustable title width and side-aware combined course blocks", () => {
@@ -577,6 +584,7 @@ test("intro split supports adjustable title width and side-aware combined course
         split_course_title: "GitHub Copilot Bootcamp",
         split_course_lesson_current: "1",
         split_course_lesson_total: "12",
+        split_course_title_gap: "60",
         split_course_block_size: "100",
       }}
     />,
@@ -593,6 +601,7 @@ test("intro split supports adjustable title width and side-aware combined course
         split_course_title: "GitHub Copilot Bootcamp",
         split_course_lesson_current: "1",
         split_course_lesson_total: "12",
+        split_course_title_gap: "60",
         split_course_block_size: "150",
       }}
     />,
@@ -609,6 +618,10 @@ test("intro split supports adjustable title width and side-aware combined course
   const leftCourseMetaSnippet =
     leftHtml.match(
       /data-template-region="intro-split-course-meta" style="[^"]*"/,
+    )?.[0] ?? "";
+  const leftCourseRuleSnippet =
+    leftHtml.match(
+      /data-template-region="intro-split-course-rule" style="[^"]*"/,
     )?.[0] ?? "";
   const leftCourseNameSnippet =
     leftHtml.match(
@@ -634,10 +647,12 @@ test("intro split supports adjustable title width and side-aware combined course
     rightHtml.match(
       /data-template-region="intro-split-course-meta" style="[^"]*"/,
     )?.[0] ?? "";
-  const rightTypeCapsuleSnippet =
+  const rightCourseRuleSnippet =
     rightHtml.match(
-      /data-template-region="intro-split-type-capsule" style="[^"]*"/,
+      /data-template-region="intro-split-course-rule" style="[^"]*"/,
     )?.[0] ?? "";
+  const rightTypeCapsuleSnippet =
+    rightHtml.match(/data-capsule-kind="split-type" style="[^"]*"/)?.[0] ?? "";
   const rightTitleSnippet =
     rightHtml.match(
       /data-template-region="intro-split-title-text" style="[^"]*"/,
@@ -647,8 +662,11 @@ test("intro split supports adjustable title width and side-aware combined course
   assert.match(leftPanelSnippet, /max-width:58%/);
   assert.match(leftCourseBlockSnippet, /align-items:flex-start/);
   assert.match(leftCourseBlockSnippet, /text-align:left/);
-  assert.match(leftCourseBlockSnippet, /margin-bottom:0/);
+  assert.match(leftCourseBlockSnippet, /margin-bottom:41px/);
   assert.match(leftCourseMetaSnippet, /justify-content:flex-start/);
+  assert.match(leftCourseRuleSnippet, /align-self:flex-start/);
+  assert.match(leftCourseRuleSnippet, /width:676px/);
+  assert.match(leftCourseRuleSnippet, /height:6px/);
   assert.match(
     leftCourseMetaSnippet,
     /font-family:&#x27;Share Tech Mono&#x27;, monospace/,
@@ -663,16 +681,45 @@ test("intro split supports adjustable title width and side-aware combined course
   assert.match(rightPanelSnippet, /max-width:62%/);
   assert.match(rightCourseBlockSnippet, /align-items:flex-end/);
   assert.match(rightCourseBlockSnippet, /text-align:right/);
-  assert.match(rightCourseBlockSnippet, /margin-bottom:0/);
+  assert.match(rightCourseBlockSnippet, /margin-bottom:61px/);
   assert.match(rightCourseMetaSnippet, /justify-content:flex-end/);
+  assert.match(rightCourseRuleSnippet, /align-self:flex-end/);
+  assert.match(rightCourseRuleSnippet, /width:1014px/);
+  assert.match(rightCourseRuleSnippet, /height:6px/);
   assert.match(rightCourseBlockSnippet, /font-size:81px/);
   assert.match(rightTypeCapsuleSnippet, /font-size:54px/);
   assert.match(rightTitleSnippet, /text-align:right/);
 
-  assert.match(rightHtml, />COURSE</);
+  assert.match(rightHtml, />Course</);
   assert.match(rightHtml, />GitHub Copilot Bootcamp</);
   assert.match(rightHtml, />01 of 12</);
   assert.match(rightHtml, /data-template-region="intro-split-course-meta"/);
+});
+
+test("intro split lets course gap be tightened independently of course block size", () => {
+  const html = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        title: "The Mutation Engine",
+        split_title_side: "left",
+        split_type_capsule: "course",
+        split_course_title: "Self-Evolving Data Engineer",
+        split_course_lesson_current: "1",
+        split_course_lesson_total: "10",
+        split_course_title_gap: "40",
+        split_course_block_size: "100",
+      }}
+    />,
+  );
+
+  const courseBlockSnippet =
+    html.match(
+      /data-template-region="intro-split-course-block" style="[^"]*"/,
+    )?.[0] ?? "";
+
+  assert.match(courseBlockSnippet, /margin-bottom:27px/);
 });
 
 test("intro split foreground uses contain fit when scale is reduced below 100", () => {
@@ -751,16 +798,227 @@ test("intro split type capsule uses the same scale-aware sizing as other capsule
   );
 
   const typeCapsuleSnippet =
-    html.match(
-      /data-template-region="intro-split-type-capsule" style="[^"]*"/,
-    )?.[0] ?? "";
+    html.match(/data-capsule-kind="split-type" style="[^"]*"/)?.[0] ?? "";
 
   assert.match(typeCapsuleSnippet, /padding:30px 54px/);
   assert.match(typeCapsuleSnippet, /font-size:54px/);
+  assert.match(typeCapsuleSnippet, /letter-spacing:0\.03em/);
+  assert.doesNotMatch(typeCapsuleSnippet, /letter-spacing:0\.14em/);
   assert.match(
     html,
-    /data-template-region="intro-split-type-capsule-icon"[^>]*><svg width="68" height="68"/,
+    /data-capsule-kind="split-type"[\s\S]*<svg width="68" height="68"/,
   );
+});
+
+test("intro split renders optional quote style 1 using the updated svg quote layout", () => {
+  const topHtml = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      primaryFontFamily="'Outfit', sans-serif"
+      values={{
+        ...baseProps.values,
+        split_title_side: "left",
+        split_quote_enabled: "true",
+        split_quote_style: "size_1",
+        split_quote_bold: "true",
+        split_quote_text:
+          "What if your data pipeline fixed itself before you even got the alert?",
+        split_quote_x: "-100",
+        split_quote_y: "-100",
+        split_quote_font_size: "140",
+        split_quote_mark_size: "70",
+        split_quote_width: "68",
+      }}
+    />,
+  );
+  const bottomRightHtml = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      primaryFontFamily="'Outfit', sans-serif"
+      values={{
+        ...baseProps.values,
+        split_title_side: "right",
+        split_quote_enabled: "true",
+        split_quote_style: "size_1",
+        split_quote_bold: "true",
+        split_quote_text:
+          "What if your data pipeline fixed itself before you even got the alert?",
+        split_quote_x: "100",
+        split_quote_y: "100",
+        split_quote_font_size: "140",
+        split_quote_mark_size: "70",
+        split_quote_width: "68",
+      }}
+    />,
+  );
+
+  const topQuoteAnchorSnippet =
+    topHtml.match(
+      /data-template-region="intro-split-quote-anchor" style="[^"]*"/,
+    )?.[0] ?? "";
+  const topQuoteBlockSnippet =
+    topHtml.match(
+      /data-template-region="intro-split-quote-block" style="[^"]*"/,
+    )?.[0] ?? "";
+  const topQuoteSvgSnippet =
+    topHtml.match(
+      /data-template-region="intro-split-quote-svg"[^>]*viewBox="[^"]*"[^>]*style="[^"]*"/,
+    )?.[0] ?? "";
+  const topQuoteTextSnippet =
+    topHtml.match(
+      /data-template-region="intro-split-quote-text"[^>]*fill="[^"]*"[^>]*style="[^"]*"/,
+    )?.[0] ?? "";
+  const bottomRightQuoteAnchorSnippet =
+    bottomRightHtml.match(
+      /data-template-region="intro-split-quote-anchor" style="[^"]*"/,
+    )?.[0] ?? "";
+  const bottomRightQuoteTextSnippet =
+    bottomRightHtml.match(
+      /data-template-region="intro-split-quote-text"[^>]*style="[^"]*"/,
+    )?.[0] ?? "";
+  const bottomRightQuoteBlockSnippet =
+    bottomRightHtml.match(
+      /data-template-region="intro-split-quote-block" style="[^"]*"/,
+    )?.[0] ?? "";
+  const topAnchorTop = Number(
+    topQuoteAnchorSnippet.match(/top:([0-9]+)px/)?.[1] ?? "-1",
+  );
+  const bottomAnchorTop = Number(
+    bottomRightQuoteAnchorSnippet.match(/top:([0-9]+)px/)?.[1] ?? "-1",
+  );
+
+  assert.match(topQuoteAnchorSnippet, /left:336px/);
+  assert.match(topQuoteAnchorSnippet, /width:1766px/);
+  assert.match(topQuoteAnchorSnippet, /transform:translateX\(-336px\)/);
+  assert.equal(topAnchorTop, 0);
+  assert.match(topQuoteBlockSnippet, /width:68%/);
+  assert.match(topQuoteBlockSnippet, /align-items:flex-start/);
+  assert.match(topQuoteSvgSnippet, /viewBox="0 0 800 400"/);
+  assert.match(topQuoteSvgSnippet, /width:100%/);
+  assert.match(
+    topQuoteTextSnippet,
+    /font-family:&#x27;Outfit&#x27;, sans-serif/,
+  );
+  assert.match(topQuoteTextSnippet, /fill="#f8fafc"/);
+  assert.match(topQuoteTextSnippet, /font-size:42px/);
+  assert.match(topQuoteTextSnippet, /font-weight:700/);
+  assert.match(
+    topHtml,
+    /data-template-region="intro-split-quote-text"[\s\S]*<tspan x="70" y="140" font-family="Georgia, serif" font-size="63" font-weight="700" fill="#94a3b8"[^>]*>“<\/tspan>/,
+  );
+  assert.match(topHtml, /<tspan[^>]*>What if your/);
+  assert.match(topHtml, /<tspan[^>]*>/);
+  assert.doesNotMatch(topHtml, /data-template-region="intro-split-quote-mark"/);
+
+  assert.match(bottomRightQuoteAnchorSnippet, /right:336px/);
+  assert.equal(bottomRightQuoteAnchorSnippet.includes("left:"), false);
+  assert.ok(bottomAnchorTop > 1200);
+  assert.match(bottomRightQuoteAnchorSnippet, /transform:translateX\(901px\)/);
+  assert.match(bottomRightQuoteAnchorSnippet, /justify-content:flex-start/);
+  assert.match(bottomRightQuoteBlockSnippet, /align-items:flex-start/);
+  assert.match(bottomRightQuoteTextSnippet, /x="140"/);
+  assert.match(bottomRightQuoteTextSnippet, /text-anchor="start"/);
+  assert.match(bottomRightQuoteTextSnippet, /font-weight:700/);
+  assert.match(
+    bottomRightHtml,
+    /data-template-region="intro-split-quote-text"[\s\S]*<tspan x="70" y="140" font-family="Georgia, serif" font-size="63" font-weight="700" fill="#94a3b8"[^>]*>“<\/tspan>/,
+  );
+  assert.match(topHtml, /What if your/);
+  assert.match(topHtml, /data pipeline/);
+  assert.match(topHtml, /fixed itself/);
+  assert.match(topHtml, /before you even/);
+  assert.match(topHtml, /got the alert\?/);
+  assert.doesNotMatch(
+    topHtml,
+    /data-template-region="intro-split-quote-content"/,
+  );
+});
+
+test("intro split loads the course capsule into the shared top capsule sequence", () => {
+  const html = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        title: "The Mutation Engine",
+        split_title_side: "right",
+        split_type_capsule: "course",
+        show_level_capsule: "true",
+        level_capsule_value: "intermediate",
+        show_hands_on_lab_capsule: "true",
+        hands_on_lab_capsule_text: "Lab",
+        split_course_title: "Self-Evolving Data Engineer",
+        split_course_lesson_current: "1",
+        split_course_lesson_total: "10",
+      }}
+    />,
+  );
+
+  assert.doesNotMatch(
+    html,
+    /data-template-region="intro-split-type-capsule-row"/,
+  );
+  assert.match(
+    html,
+    /data-capsule-position="top-right"[\s\S]*>Intermediate<\/[\s\S]*data-capsule-kind="split-type"[\s\S]*>Course<\/[\s\S]*>Lab<\//,
+  );
+});
+
+test("intro split course meta shows only lesson progress when course title is empty", () => {
+  const html = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        split_title_side: "right",
+        split_type_capsule: "course",
+        split_course_title: "   ",
+        split_course_lesson_current: "1",
+        split_course_lesson_total: "10",
+      }}
+    />,
+  );
+
+  assert.match(html, />01 of 10</);
+  assert.doesNotMatch(html, />GitHub Copilot Bootcamp</);
+  assert.doesNotMatch(html, /data-template-region="intro-split-course-name"/);
+  assert.doesNotMatch(
+    html,
+    /data-template-region="intro-split-course-meta-divider"/,
+  );
+});
+
+test("intro split title block Y spans the full vertical range", () => {
+  const bottomHtml = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        split_title_block_y: "100",
+      }}
+    />,
+  );
+  const topHtml = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        split_title_block_y: "-100",
+      }}
+    />,
+  );
+
+  const bottomTitleStackSnippet =
+    bottomHtml.match(
+      /data-template-region="intro-split-title-stack" style="[^"]*"/,
+    )?.[0] ?? "";
+  const topTitleStackSnippet =
+    topHtml.match(
+      /data-template-region="intro-split-title-stack" style="[^"]*"/,
+    )?.[0] ?? "";
+
+  assert.match(bottomTitleStackSnippet, /transform:translateY\(864px\)/);
+  assert.match(topTitleStackSnippet, /transform:translateY\(-864px\)/);
 });
 
 test("intro split keeps capsules above divider and title layers", () => {
@@ -801,8 +1059,23 @@ test("intro split supports debug mode type capsule with an icon", () => {
     />,
   );
 
-  assert.match(html, />DEBUG MODE</);
-  assert.match(html, /data-template-region="intro-split-type-capsule-icon"/);
+  assert.match(html, />Debug Mode</);
+  assert.match(html, /data-capsule-kind="split-type"[\s\S]*<svg/);
+});
+
+test("intro split renders mono type capsule with camel-case label", () => {
+  const html = renderToStaticMarkup(
+    <IntroSplitThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        split_type_capsule: "mono",
+      }}
+    />,
+  );
+
+  assert.match(html, />Mono</);
+  assert.doesNotMatch(html, />MONO</);
 });
 
 test("intro split renders up to three bottom-corner asset icons opposite the title side", () => {
@@ -1036,4 +1309,43 @@ test("outro renders newline-delimited support lines as separate rows", () => {
   assert.match(html, /data-template-region="outro-support-lines"/);
   assert.match(html, />Keep building</);
   assert.match(html, />See you in the next one</);
+});
+
+test("outro leaves support lines empty when subtitle is blank", () => {
+  const html = renderToStaticMarkup(
+    <OutroThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        title: "Thank You for Watching",
+        subtitle: "   ",
+      }}
+    />,
+  );
+
+  assert.match(html, /data-template-region="outro-support-lines"/);
+  assert.doesNotMatch(html, />Want more\? Subscribe and press the bell</);
+});
+
+test("outro can render the headline inside an optional glass panel", () => {
+  const html = renderToStaticMarkup(
+    <OutroThumbnailTemplate
+      {...baseProps}
+      values={{
+        ...baseProps.values,
+        title: "Thank You for Watching",
+        subtitle: "Keep building",
+        outro_headline_background: "glass",
+      }}
+    />,
+  );
+
+  const headlinePanelSnippet =
+    html.match(
+      /data-template-region="outro-headline-panel" style="[^"]*"/,
+    )?.[0] ?? "";
+
+  assert.match(headlinePanelSnippet, /backdrop-filter:/);
+  assert.match(headlinePanelSnippet, /border-radius:/);
+  assert.match(html, />Thank You for Watching</);
 });

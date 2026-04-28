@@ -56,6 +56,8 @@ interface MotionFfmpegContext {
   fetchFile: (input: Blob | File | string) => Promise<Uint8Array>;
 }
 
+type MotionFrameCanvasFactory = () => HTMLCanvasElement;
+
 type CaptureElement = Pick<HTMLElement, "scrollWidth" | "scrollHeight">;
 type MimeTypeSupportChecker = (type: string) => boolean;
 type MotionFileExtension = "mp4" | "webm";
@@ -555,9 +557,10 @@ async function recordStillFrameMp4(
   const imageInputName = `${tempFilePrefix}-frame.png`;
   const outputName = `${tempFilePrefix}-motion.mp4`;
   const tempPaths = [imageInputName, outputName];
+  const motionFrameCanvas = createMotionFrameCanvas(sourceCanvas);
 
   try {
-    const imageBlob = await canvasToBlob(sourceCanvas, "image/png");
+    const imageBlob = await canvasToBlob(motionFrameCanvas, "image/png");
     await ffmpeg.writeFile(imageInputName, await fetchFile(imageBlob));
 
     let audioInputName: string | undefined;
@@ -631,8 +634,9 @@ async function recordStillFrameMp4(
 function drawStillFrame(
   sourceCanvas: HTMLCanvasElement,
   targetCanvas: HTMLCanvasElement,
+  contextAttributes?: CanvasRenderingContext2DSettings,
 ) {
-  const context = targetCanvas.getContext("2d");
+  const context = targetCanvas.getContext("2d", contextAttributes);
   if (!context) {
     throw new Error("Failed to prepare motion export canvas.");
   }
@@ -649,6 +653,20 @@ function drawStillFrame(
     targetCanvas.width,
     targetCanvas.height,
   );
+}
+
+export function createMotionFrameCanvas(
+  sourceCanvas: HTMLCanvasElement,
+  createCanvas: MotionFrameCanvasFactory = () =>
+    document.createElement("canvas"),
+): HTMLCanvasElement {
+  const motionCanvas = createCanvas();
+
+  motionCanvas.width = sourceCanvas.width;
+  motionCanvas.height = sourceCanvas.height;
+  drawStillFrame(sourceCanvas, motionCanvas, { alpha: false });
+
+  return motionCanvas;
 }
 
 function getAntiBandingNoiseTile(): HTMLCanvasElement {
@@ -799,10 +817,7 @@ async function recordStillFrameWebm(
     throw new Error("Motion export is not supported in this browser.");
   }
 
-  const recordingCanvas = document.createElement("canvas");
-  recordingCanvas.width = plan.width;
-  recordingCanvas.height = plan.height;
-  drawStillFrame(sourceCanvas, recordingCanvas);
+  const recordingCanvas = createMotionFrameCanvas(sourceCanvas);
 
   const videoStream = recordingCanvas.captureStream(plan.frameRate);
   const mimeType = resolveSupportedMotionMimeType(
@@ -886,7 +901,7 @@ async function recordStillFrameWebm(
     (resolve, reject) => {
       const intervalId = window.setInterval(() => {
         try {
-          drawStillFrame(sourceCanvas, recordingCanvas);
+          drawStillFrame(sourceCanvas, recordingCanvas, { alpha: false });
         } catch (error) {
           window.clearInterval(intervalId);
           stream.getTracks().forEach((track) => track.stop());

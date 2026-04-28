@@ -3,13 +3,17 @@ import { textSizeToMultiplier } from "./index";
 import {
   buildTemplateFrameStyle,
   buildTemplatePanelStyle,
+  buildTemplateSeparatorStyle,
   getGridPatternMetrics,
   resolveTemplateBorderStyle,
   resolveTemplateSurfaceShadowStyle,
   resolveTemplateSurfaceStyle,
   type GridPatternName,
 } from "./rendering";
-import { ThumbnailCapsules } from "./ThumbnailCapsules";
+import {
+  ThumbnailCapsules,
+  type ExtraThumbnailCapsule,
+} from "./ThumbnailCapsules";
 import { ThumbnailFooter, resolveFooterSize } from "./ThumbnailFooter";
 import {
   buildSplitDividerPolylinePoints,
@@ -51,15 +55,15 @@ function resolveSplitTypeCapsuleValue(
 
 function resolveSplitTypeCapsuleLabel(value: SplitTypeCapsule): string {
   if (value === "course") {
-    return "COURSE";
+    return "Course";
   }
 
   if (value === "mono") {
-    return "MONO";
+    return "Mono";
   }
 
   if (value === "debug") {
-    return "DEBUG MODE";
+    return "Debug Mode";
   }
 
   return "BITE";
@@ -95,6 +99,99 @@ function resolveSplitTitleWidthPercent(value: string | undefined): number {
 
 function resolveSplitCourseBlockScale(value: string | undefined): number {
   return clamp(Number.parseFloat(value ?? "100"), 70, 180) / 100;
+}
+
+function resolveSplitCourseTitleGapScale(value: string | undefined): number {
+  return clamp(Number.parseFloat(value ?? "60"), 20, 140) / 100;
+}
+
+function resolveSplitTitleBlockOffsetPx(
+  value: string | undefined,
+  height: number,
+): number {
+  return Math.round(
+    (clamp(Number.parseFloat(value ?? "0"), -100, 100) / 100) * height * 0.4,
+  );
+}
+
+type SplitQuoteStyle = "size_1";
+
+const SPLIT_QUOTE_SVG_WIDTH = 800;
+const SPLIT_QUOTE_SVG_HEIGHT = 400;
+const SPLIT_QUOTE_MARK_X = 70;
+const SPLIT_QUOTE_MARK_Y = 140;
+const SPLIT_QUOTE_MARK_FONT_SIZE = 90;
+const SPLIT_QUOTE_TEXT_X = 140;
+const SPLIT_QUOTE_TEXT_Y = 140;
+const SPLIT_QUOTE_TEXT_FONT_SIZE = 30;
+const SPLIT_QUOTE_LINE_GAP = 40;
+
+function resolveSplitQuoteStyle(value: string | undefined): SplitQuoteStyle {
+  return value === "size_1" ? value : "size_1";
+}
+
+function resolveSplitQuoteWidthPercent(value: string | undefined): number {
+  return clamp(Number.parseFloat(value ?? "72"), 36, 100);
+}
+
+function resolveSplitQuoteFontScale(value: string | undefined): number {
+  return clamp(Number.parseFloat(value ?? "100"), 50, 220) / 100;
+}
+
+function resolveSplitQuoteMarkScale(value: string | undefined): number {
+  return clamp(Number.parseFloat(value ?? "100"), 40, 220) / 100;
+}
+
+function resolveSplitQuoteTopPx(
+  value: string | undefined,
+  height: number,
+  quoteHeight: number,
+): number {
+  const normalized =
+    (clamp(Number.parseFloat(value ?? "0"), -100, 100) + 100) / 200;
+  return Math.round(Math.max(0, height - quoteHeight) * normalized);
+}
+
+function resolveSplitQuoteOffsetPx(
+  value: string | undefined,
+  width: number,
+  quoteWidth: number,
+  anchorLeft: number,
+): number {
+  const normalized =
+    (clamp(Number.parseFloat(value ?? "-100"), -100, 100) + 100) / 200;
+  const targetLeft = Math.round(Math.max(0, width - quoteWidth) * normalized);
+  return targetLeft - anchorLeft;
+}
+
+function wrapQuoteText(text: string, maxCharactersPerLine: number): string[] {
+  const normalizedText = text.replace(/\s+/g, " ").trim();
+
+  if (!normalizedText) {
+    return [];
+  }
+
+  const words = normalizedText.split(" ");
+  const lines: string[] = [];
+  let currentLine = "";
+
+  for (const word of words) {
+    const candidateLine = currentLine ? `${currentLine} ${word}` : word;
+
+    if (!currentLine || candidateLine.length <= maxCharactersPerLine) {
+      currentLine = candidateLine;
+      continue;
+    }
+
+    lines.push(currentLine);
+    currentLine = word;
+  }
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines;
 }
 
 function isEnabled(value: string | undefined): boolean {
@@ -778,12 +875,16 @@ export function IntroSplitThumbnailTemplate({
   const splitTypeCapsuleLabel = resolveSplitTypeCapsuleLabel(
     splitTypeCapsuleValue,
   );
+  const splitQuoteStyle = resolveSplitQuoteStyle(values["split_quote_style"]);
+  const splitQuoteEnabled = isEnabled(values["split_quote_enabled"]);
+  const splitQuoteBold = isEnabled(values["split_quote_bold"]);
+  const splitQuoteText = values["split_quote_text"]?.trim() ?? "";
   const splitBreakpointEffect = resolveSplitBreakpointEffect(
     values["split_breakpoint_effect"],
   );
   const isCourseSplitType = splitTypeCapsuleValue === "course";
-  const splitCourseTitle =
-    values["split_course_title"]?.trim() || "GitHub Copilot Bootcamp";
+  const splitCourseTitle = values["split_course_title"]?.trim() ?? "";
+  const hasSplitCourseTitle = splitCourseTitle.length > 0;
   const splitCourseLessonLabel = resolveCourseLessonLabel(
     values["split_course_lesson_current"],
     values["split_course_lesson_total"],
@@ -793,6 +894,19 @@ export function IntroSplitThumbnailTemplate({
     titleSide === "left" ? "flex-start" : "flex-end";
   const splitTitleWidthPercent = resolveSplitTitleWidthPercent(
     values["split_title_width"],
+  );
+  const titleBlockOffsetY = resolveSplitTitleBlockOffsetPx(
+    values["split_title_block_y"],
+    height,
+  );
+  const splitQuoteWidthPercent = resolveSplitQuoteWidthPercent(
+    values["split_quote_width"],
+  );
+  const splitQuoteTextScale = resolveSplitQuoteFontScale(
+    values["split_quote_font_size"],
+  );
+  const splitQuoteMarkScale = resolveSplitQuoteMarkScale(
+    values["split_quote_mark_size"],
   );
   const splitCourseBlockScale = resolveSplitCourseBlockScale(
     values["split_course_block_size"],
@@ -835,17 +949,76 @@ export function IntroSplitThumbnailTemplate({
     Math.round(courseBlockTextSize * 0.72),
   );
   const courseMetaGap = Math.max(8, Math.round(courseMetaTextSize * 0.28));
-  const courseBlockGap = Math.max(
-    8,
-    Math.round(splitTypeCapsuleSizing.groupGap * scale * splitCourseBlockScale),
+  const splitCourseTitleGapScale = resolveSplitCourseTitleGapScale(
+    values["split_course_title_gap"],
   );
-  const courseBlockMarginBottom = 0;
-  const resolvedTypeCapsuleScale = 1;
+  const courseBlockMarginBottom = Math.max(
+    8,
+    Math.round(courseMetaTextSize * 1.75 * splitCourseTitleGapScale),
+  );
+  const courseRuleWidth = Math.max(
+    160,
+    Math.round(width * 0.176 * splitCourseBlockScale),
+  );
+  const titlePanelWidth = Math.round(width * (splitTitleWidthPercent / 100));
+  const titlePanelHorizontalInset = Math.round(112 * scale);
+  const splitQuoteWidthPx = Math.round(
+    titlePanelWidth * (splitQuoteWidthPercent / 100),
+  );
+  const splitQuoteAnchorLeft =
+    titleSide === "left"
+      ? titlePanelHorizontalInset
+      : width - titlePanelHorizontalInset - titlePanelWidth;
+  const splitQuoteTextSize = Math.max(
+    24,
+    Math.round(SPLIT_QUOTE_TEXT_FONT_SIZE * splitQuoteTextScale),
+  );
+  const splitQuoteLineHeight = Math.max(
+    splitQuoteTextSize,
+    Math.round(SPLIT_QUOTE_LINE_GAP * splitQuoteTextScale),
+  );
+  const splitQuoteMarkSize = Math.max(
+    40,
+    Math.round(SPLIT_QUOTE_MARK_FONT_SIZE * splitQuoteMarkScale),
+  );
+  const splitQuoteMaxCharactersPerLine = Math.max(
+    14,
+    Math.round((splitQuoteWidthPx / splitQuoteTextSize) * 1.4),
+  );
+  const splitQuoteLines = wrapQuoteText(
+    splitQuoteText,
+    splitQuoteMaxCharactersPerLine,
+  );
+  const splitQuoteBlockHeight = Math.max(
+    Math.round(
+      (splitQuoteWidthPx * SPLIT_QUOTE_SVG_HEIGHT) / SPLIT_QUOTE_SVG_WIDTH,
+    ),
+    Math.round(
+      ((SPLIT_QUOTE_TEXT_Y +
+        Math.max(0, splitQuoteLines.length - 1) * splitQuoteLineHeight +
+        splitQuoteTextSize) /
+        SPLIT_QUOTE_SVG_WIDTH) *
+        splitQuoteWidthPx,
+    ),
+  );
+  const splitQuoteTop = resolveSplitQuoteTopPx(
+    values["split_quote_y"],
+    height,
+    splitQuoteBlockHeight,
+  );
+  const splitQuoteOffsetX = resolveSplitQuoteOffsetPx(
+    values["split_quote_x"],
+    width,
+    splitQuoteWidthPx,
+    splitQuoteAnchorLeft,
+  );
+  const showSplitQuote =
+    splitQuoteEnabled &&
+    splitQuoteStyle === "size_1" &&
+    splitQuoteLines.length > 0;
   const splitTypeCapsuleTextSize = Math.max(
     18,
-    Math.round(
-      splitTypeCapsuleSizing.textSize * scale * resolvedTypeCapsuleScale,
-    ),
+    Math.round(splitTypeCapsuleSizing.textSize * scale),
   );
   const splitTypeCapsuleIconSize = Math.max(
     16,
@@ -888,21 +1061,23 @@ export function IntroSplitThumbnailTemplate({
     scale,
     shadowStyle: surfaceShadow,
   });
-  const typeCapsuleBaseStyle = {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Math.max(8, Math.round(10 * scale * resolvedTypeCapsuleScale)),
-    borderRadius: 999,
-    border: `1px solid ${theme.accent}5C`,
-    background: "rgba(15, 23, 42, 0.48)",
-    backdropFilter: `blur(${Math.max(4, Math.round(5 * scale))}px)`,
-    padding: `${Math.round(splitTypeCapsuleSizing.paddingY * scale * resolvedTypeCapsuleScale)}px ${Math.round(splitTypeCapsuleSizing.paddingX * scale * resolvedTypeCapsuleScale)}px`,
-    color: theme.textPrimary,
-    fontSize: splitTypeCapsuleTextSize,
-    fontWeight: 700,
-    fontFamily: primaryFont,
-  } as const;
+  const splitTypeCapsuleSequence: ExtraThumbnailCapsule[] = [
+    {
+      key: "split-type",
+      kind: "split-type",
+      text: splitTypeCapsuleLabel,
+      position: titleSide === "left" ? "top-left" : "top-right",
+      color: theme.accent,
+      icon: (
+        <SplitTypeCapsuleIcon
+          type={splitTypeCapsuleValue}
+          size={splitTypeCapsuleIconSize}
+          color={theme.accent}
+        />
+      ),
+      order: 20,
+    },
+  ];
 
   if (socialRenderMode === "only") {
     return (
@@ -1047,19 +1222,105 @@ export function IntroSplitThumbnailTemplate({
           display: "flex",
           alignItems: "center",
           justifyContent: titleSide === "left" ? "flex-start" : "flex-end",
-          padding: `0 ${Math.round(112 * scale)}px`,
+          padding: `0 ${titlePanelHorizontalInset}px`,
           zIndex: 30,
           pointerEvents: "none",
         }}
       >
+        {showSplitQuote && (
+          <div
+            data-template-region="intro-split-quote-anchor"
+            style={{
+              position: "absolute",
+              top: `${splitQuoteTop}px`,
+              width: `${titlePanelWidth}px`,
+              maxWidth: `${splitTitleWidthPercent}%`,
+              left:
+                titleSide === "left"
+                  ? `${titlePanelHorizontalInset}px`
+                  : undefined,
+              right:
+                titleSide === "right"
+                  ? `${titlePanelHorizontalInset}px`
+                  : undefined,
+              display: "flex",
+              justifyContent: "flex-start",
+              transform:
+                splitQuoteOffsetX === 0
+                  ? undefined
+                  : `translateX(${splitQuoteOffsetX}px)`,
+            }}
+          >
+            <div
+              data-template-region="intro-split-quote-block"
+              style={{
+                width: `${splitQuoteWidthPercent}%`,
+                maxWidth: "100%",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+              }}
+            >
+              <svg
+                data-template-region="intro-split-quote-svg"
+                viewBox={`0 0 ${SPLIT_QUOTE_SVG_WIDTH} ${SPLIT_QUOTE_SVG_HEIGHT}`}
+                preserveAspectRatio={
+                  titleSide === "left" ? "xMinYMin meet" : "xMaxYMin meet"
+                }
+                style={{
+                  display: "block",
+                  width: "100%",
+                  height: "auto",
+                  overflow: "visible",
+                }}
+              >
+                <text
+                  data-template-region="intro-split-quote-text"
+                  x={SPLIT_QUOTE_TEXT_X}
+                  y={SPLIT_QUOTE_TEXT_Y}
+                  fill={theme.textPrimary}
+                  textAnchor="start"
+                  style={{
+                    fontFamily: primaryFont,
+                    fontSize: `${splitQuoteTextSize}px`,
+                    fontWeight: splitQuoteBold ? 700 : 500,
+                  }}
+                >
+                  <tspan
+                    x={SPLIT_QUOTE_MARK_X}
+                    y={SPLIT_QUOTE_MARK_Y}
+                    fontFamily="Georgia, serif"
+                    fontSize={splitQuoteMarkSize}
+                    fontWeight={700}
+                    fill={theme.textSecondary}
+                    textAnchor="start"
+                  >
+                    “
+                  </tspan>
+                  {splitQuoteLines.map((line, index) => (
+                    <tspan
+                      key={`intro-split-quote-line-${index}`}
+                      x={SPLIT_QUOTE_TEXT_X}
+                      dy={index === 0 ? 0 : splitQuoteLineHeight}
+                    >
+                      {line}
+                    </tspan>
+                  ))}
+                </text>
+              </svg>
+            </div>
+          </div>
+        )}
         <div
           data-template-region="intro-split-title-panel"
           style={{
-            width: `${Math.round(width * (splitTitleWidthPercent / 100))}px`,
+            width: `${titlePanelWidth}px`,
             maxWidth: `${splitTitleWidthPercent}%`,
+            position: "relative",
             display: "flex",
             flexDirection: "column",
             alignItems: titleContentAlignment,
+            justifyContent: "center",
             padding:
               surfaceStyle === "standard"
                 ? `${Math.round(20 * scale)}px 0`
@@ -1070,141 +1331,119 @@ export function IntroSplitThumbnailTemplate({
             textAlign: titleSide,
           }}
         >
-          {isCourseSplitType ? (
-            <div
-              data-template-region="intro-split-course-block"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: titleContentAlignment,
-                gap: Math.max(
-                  10,
-                  Math.round(10 * scale * splitCourseBlockScale),
-                ),
-                marginBottom: courseBlockMarginBottom,
-                textAlign: titleSide,
-                fontSize: courseBlockTextSize,
-                width: "100%",
-              }}
-            >
+          <div
+            data-template-region="intro-split-title-stack"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: titleContentAlignment,
+              width: "100%",
+              transform:
+                titleBlockOffsetY === 0
+                  ? undefined
+                  : `translateY(${titleBlockOffsetY}px)`,
+            }}
+          >
+            {isCourseSplitType && (
               <div
-                data-template-region="intro-split-type-capsule"
+                data-template-region="intro-split-course-block"
                 style={{
-                  ...typeCapsuleBaseStyle,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                }}
-              >
-                <span
-                  data-template-region="intro-split-type-capsule-icon"
-                  style={{ display: "inline-flex", alignItems: "center" }}
-                >
-                  <SplitTypeCapsuleIcon
-                    type={splitTypeCapsuleValue}
-                    size={splitTypeCapsuleIconSize}
-                    color={theme.accent}
-                  />
-                </span>
-                <span>{splitTypeCapsuleLabel}</span>
-              </div>
-              <div
-                data-template-region="intro-split-course-meta"
-                style={{
-                  color: theme.textSecondary,
-                  fontFamily: secondaryFont,
-                  fontWeight: 400,
-                  fontSize: `${courseMetaTextSize}px`,
-                  lineHeight: 1.08,
-                  letterSpacing: "-0.01em",
                   display: "flex",
-                  alignItems: "center",
-                  justifyContent:
-                    titleSide === "left" ? "flex-start" : "flex-end",
-                  gap: courseMetaGap,
-                  flexWrap: "wrap",
+                  flexDirection: "column",
+                  alignItems: titleContentAlignment,
+                  gap: Math.max(
+                    10,
+                    Math.round(10 * scale * splitCourseBlockScale),
+                  ),
+                  marginBottom: courseBlockMarginBottom,
+                  textAlign: titleSide,
+                  fontSize: courseBlockTextSize,
                   width: "100%",
                 }}
               >
-                <span
-                  data-template-region="intro-split-course-name"
+                <div
+                  data-template-region="intro-split-course-meta"
                   style={{
-                    fontWeight: 800,
-                    textShadow: "0.012em 0 0 currentColor",
-                  }}
-                >
-                  {splitCourseTitle}
-                </span>
-                <span
-                  data-template-region="intro-split-course-meta-divider"
-                  style={{
+                    color: theme.textSecondary,
+                    fontFamily: secondaryFont,
                     fontWeight: 400,
-                    opacity: 0.72,
+                    fontSize: `${courseMetaTextSize}px`,
+                    lineHeight: 1.08,
+                    letterSpacing: "-0.01em",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent:
+                      titleSide === "left" ? "flex-start" : "flex-end",
+                    gap: courseMetaGap,
+                    flexWrap: "wrap",
+                    width: "100%",
                   }}
                 >
-                  |
-                </span>
-                <span
-                  data-template-region="intro-split-course-progress"
+                  {hasSplitCourseTitle && (
+                    <span
+                      data-template-region="intro-split-course-name"
+                      style={{
+                        fontWeight: 800,
+                        textShadow: "0.012em 0 0 currentColor",
+                      }}
+                    >
+                      {splitCourseTitle}
+                    </span>
+                  )}
+                  {hasSplitCourseTitle && (
+                    <span
+                      data-template-region="intro-split-course-meta-divider"
+                      style={{
+                        fontWeight: 400,
+                        opacity: 0.72,
+                      }}
+                    >
+                      |
+                    </span>
+                  )}
+                  <span
+                    data-template-region="intro-split-course-progress"
+                    style={{
+                      fontWeight: 400,
+                    }}
+                  >
+                    {splitCourseLessonLabel}
+                  </span>
+                </div>
+                <div
+                  data-template-region="intro-split-course-rule"
                   style={{
-                    fontWeight: 400,
+                    ...buildTemplateSeparatorStyle({
+                      theme,
+                      borderColor,
+                      borderColorSecondary,
+                      borderStyle,
+                      scale,
+                    }),
+                    width: `${courseRuleWidth}px`,
+                    maxWidth: "100%",
+                    marginTop: 0,
+                    marginBottom: 0,
+                    alignSelf: titleSide === "left" ? "flex-start" : "flex-end",
                   }}
-                >
-                  {splitCourseLessonLabel}
-                </span>
+                />
               </div>
-            </div>
-          ) : (
+            )}
             <div
-              data-template-region="intro-split-type-capsule-group"
+              data-template-region="intro-split-title-text"
               style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent:
-                  titleSide === "left" ? "flex-start" : "flex-end",
-                gap: Math.round(splitTypeCapsuleSizing.groupGap * scale),
-                flexWrap: "wrap",
-                marginBottom: Math.round(
-                  splitTypeCapsuleSizing.marginBottom * scale,
-                ),
+                color: theme.textPrimary,
+                fontSize: titleSize,
+                fontWeight: 820,
+                lineHeight: 1.1,
+                letterSpacing: "-0.01em",
+                fontFamily: isCourseSplitType ? primaryFont : secondaryFont,
                 width: "100%",
+                textAlign: titleSide,
               }}
             >
-              <div
-                data-template-region="intro-split-type-capsule"
-                style={{
-                  ...typeCapsuleBaseStyle,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                }}
-              >
-                <span
-                  data-template-region="intro-split-type-capsule-icon"
-                  style={{ display: "inline-flex", alignItems: "center" }}
-                >
-                  <SplitTypeCapsuleIcon
-                    type={splitTypeCapsuleValue}
-                    size={splitTypeCapsuleIconSize}
-                    color={theme.accent}
-                  />
-                </span>
-                <span>{splitTypeCapsuleLabel}</span>
-              </div>
+              {title}
             </div>
-          )}
-          <div
-            data-template-region="intro-split-title-text"
-            style={{
-              color: theme.textPrimary,
-              fontSize: titleSize,
-              fontWeight: 820,
-              lineHeight: 1.1,
-              letterSpacing: "-0.01em",
-              fontFamily: isCourseSplitType ? primaryFont : secondaryFont,
-              width: "100%",
-              textAlign: titleSide,
-            }}
-          >
-            {title}
           </div>
         </div>
       </div>
@@ -1223,6 +1462,7 @@ export function IntroSplitThumbnailTemplate({
         theme={theme}
         scale={scale}
         fontFamily={primaryFont}
+        extraCapsules={splitTypeCapsuleSequence}
       />
 
       {bottomCornerIconUrls.length > 0 && (

@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   buildCaptureOptions,
+  createMotionFrameCanvas,
   buildStillFrameMp4Args,
   buildSupersampledCaptureOptions,
   buildStillFrameWebmPlan,
@@ -367,4 +368,48 @@ test("resolveMotionExportStrategy avoids FFmpeg MP4 for 4K motion exports", () =
     }),
     "browser-webm",
   );
+});
+
+test("createMotionFrameCanvas draws onto an opaque 2d canvas for video export", () => {
+  const drawImageCalls: unknown[][] = [];
+  const clearRectCalls: unknown[][] = [];
+  const requestedContexts: Array<{
+    type: string;
+    attributes: unknown;
+  }> = [];
+  const fakeContext = {
+    clearRect: (...args: unknown[]) => {
+      clearRectCalls.push(args);
+    },
+    drawImage: (...args: unknown[]) => {
+      drawImageCalls.push(args);
+    },
+  };
+  const fakeCanvas = {
+    width: 0,
+    height: 0,
+    getContext: (type: string, attributes?: unknown) => {
+      requestedContexts.push({ type, attributes });
+      return fakeContext;
+    },
+  };
+  const sourceCanvas = {
+    width: 1280,
+    height: 720,
+  } as HTMLCanvasElement;
+
+  const motionCanvas = createMotionFrameCanvas(
+    sourceCanvas,
+    () => fakeCanvas as unknown as HTMLCanvasElement,
+  );
+
+  assert.equal(motionCanvas.width, 1280);
+  assert.equal(motionCanvas.height, 720);
+  assert.deepEqual(requestedContexts, [
+    { type: "2d", attributes: { alpha: false } },
+  ]);
+  assert.deepEqual(clearRectCalls, [[0, 0, 1280, 720]]);
+  assert.deepEqual(drawImageCalls, [
+    [sourceCanvas, 0, 0, 1280, 720, 0, 0, 1280, 720],
+  ]);
 });

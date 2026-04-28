@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 350" width="100%" height="100%">
+  <!-- Transparent canvas -->
+  
+  <!-- Left Accent Border -->
+  <rect x="50" y="40" width="8" height="260" rx="4" fill="#000000"/>
+
+  <!-- Question Part -->
+  <text x="90" y="90" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="32" font-weight="300" fill="#4B5563" letter-spacing="-0.5">
+    <tspan x="90" dy="0">What if your data pipeline fixed</tspan>
+    <tspan x="90" dy="45">itself before you even got the alert?</tspan>
+  </text>
+
+  <!-- Punchline Part -->
+  <text x="90" y="210" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="38" font-weight="900" fill="#000000" letter-spacing="-1">
+    <tspan x="90" dy="0">Welcome to the era of</tspan>
+    <tspan x="90" dy="50">Agentic Data Engineering.</tspan>
+  </text>
+  
+  <!-- Decorative Dots -->
+  <g transform="translate(90, 290)">
+    <circle cx="0" cy="0" r="3" fill="#000000" />
+    <circle cx="15" cy="0" r="3" fill="#D1D5DB" />
+    <circle cx="30" cy="0" r="3" fill="#D1D5DB" />
+  </g>
+</svg>

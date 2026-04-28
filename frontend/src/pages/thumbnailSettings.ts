@@ -33,12 +33,22 @@ const CONTENT_FIELD_GROUPS: ReadonlyArray<readonly string[]> = [
   ["show_source_title", "source_title"],
   ["show_bite_capsule", "bite_capsule_text"],
   ["show_speed_capsule", "speed_capsule_text"],
-  ["title_size", "secondary_size"],
+  ["title_size", "secondary_size", "outro_headline_background"],
   ["split_title_side", "title_size", "split_title_width"],
   ["split_type_capsule", "split_course_title"],
+  ["split_quote_style", "split_quote_bold"],
+  ["split_quote_text"],
+  [
+    "split_quote_x",
+    "split_quote_y",
+    "split_quote_font_size",
+    "split_quote_mark_size",
+    "split_quote_width",
+  ],
   [
     "split_course_lesson_current",
     "split_course_lesson_total",
+    "split_course_title_gap",
     "split_course_block_size",
   ],
   ["show_grid", "grid_pattern"],
@@ -64,6 +74,7 @@ const CONTENT_FIELD_EXCLUSIONS = new Set([
   "split_background_scale",
   "split_background_x",
   "split_background_y",
+  "split_quote_enabled",
   "outro_background_svg_asset_id",
   "outro_background_opacity",
   "outro_background_scale",
@@ -219,11 +230,13 @@ export interface ThumbnailTemplateAssetBindingsInput {
 
 const TEMPLATE_AUDIO_ASSET_FIELD_IDS: Record<string, string> = {
   intro_bite_thumbnail: "intro_audio_asset_id",
+  intro_split_thumbnail: "intro_audio_asset_id",
   outro_thumbnail: "outro_audio_asset_id",
 };
 
 const TEMPLATE_AUDIO_START_FIELD_IDS: Record<string, string> = {
   intro_bite_thumbnail: "intro_audio_start_seconds",
+  intro_split_thumbnail: "intro_audio_start_seconds",
   outro_thumbnail: "outro_audio_start_seconds",
 };
 

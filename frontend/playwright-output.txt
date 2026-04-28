@@ -1,0 +1,57 @@
+
+Running 22 tests using 1 worker
+
+  Ô£ô   1 tests\e2e\assets-page.spec.ts:67:1 ÔÇ║ launcher opens the shared asset library page (4.4s)
+  Ô£ô   2 tests\e2e\assets-page.spec.ts:104:1 ÔÇ║ asset management uses a collapsible upload panel and edit dialog cards (1.7s)
+  Ô£ô   3 tests\e2e\assets-page.spec.ts:144:1 ÔÇ║ asset management surfaces existing tags as suggestions without category controls (1.4s)
+  Ô£ô   4 tests\e2e\assets-page.spec.ts:196:1 ÔÇ║ asset grid shows five cards in the first row on wide screens (1.2s)
+  Ô£ô   5 tests\e2e\thumbnail-smoke.spec.ts:453:1 ÔÇ║ launcher cards open the thumbnail and theme tools (4.5s)
+  Ô£ô   6 tests\e2e\thumbnail-smoke.spec.ts:471:1 ÔÇ║ expired stored auth returns the user to the login screen on load (864ms)
+  Ô£ô   7 tests\e2e\thumbnail-smoke.spec.ts:516:1 ÔÇ║ thumbnail workflow ships without animation controls and redirects legacy animation routes (3.6s)
+  Ô£ô   8 tests\e2e\thumbnail-smoke.spec.ts:558:1 ÔÇ║ thumbnail route keeps local saved banners visible when the remote list is empty (2.7s)
+  Ô£ô   9 tests\e2e\thumbnail-smoke.spec.ts:576:1 ÔÇ║ thumbnail route restores stored per-template values when switching templates inside one banner (6.4s)
+  Ô£ô  10 tests\e2e\thumbnail-smoke.spec.ts:595:1 ÔÇ║ intro bite and outro use the shared audio flow without overlay controls (4.4s)
+  Ô£ô  11 tests\e2e\thumbnail-smoke.spec.ts:622:1 ÔÇ║ outro shared audio starts with a 2 second default offset in the editor (3.0s)
+  Ô£ô  12 tests\e2e\thumbnail-smoke.spec.ts:668:1 ÔÇ║ thumbnail route keeps saved template field updates after refresh (6.3s)
+  Ô£ô  13 tests\e2e\thumbnail-smoke.spec.ts:702:1 ÔÇ║ save dialog can create a new copy without overwriting the loaded banner (4.2s)
+  Ô£ô  14 tests\e2e\thumbnail-smoke.spec.ts:742:1 ÔÇ║ new banner starts a fresh unsaved working draft (3.1s)
+  Ô£ÿ  15 tests\e2e\thumbnail-smoke.spec.ts:764:1 ÔÇ║ intro split template exposes split controls and validates partition points (11.5s)
+  Ô£ô  16 tests\e2e\thumbnail-smoke.spec.ts:856:1 ÔÇ║ thumbnail preview applies setting changes after a debounce window (6.7s)
+  Ô£ô  17 tests\e2e\thumbnail-smoke.spec.ts:874:1 ÔÇ║ intro split preview renders the seeded foreground asset and updates the document title (4.7s)
+  Ô£ô  18 tests\e2e\thumbnail-smoke.spec.ts:893:1 ÔÇ║ outro exposes support-line and background asset controls with the template page title (3.0s)
+  Ô£ô  19 tests\e2e\thumbnail-smoke.spec.ts:917:1 ÔÇ║ intro split does not emit out-of-range select warnings for persisted split asset ids (2.7s)
+  Ô£ô  20 tests\e2e\thumbnail-smoke.spec.ts:997:1 ÔÇ║ intro split split-asset pickers use tags and icon controls can be shown, hidden, and cleared independently (4.9s)
+  Ô£ô  21 tests\e2e\thumbnail-smoke.spec.ts:1212:1 ÔÇ║ style controls allow increasing font size up to 120 (2.0s)
+  Ô£ô  22 tests\e2e\thumbnail-smoke.spec.ts:1225:1 ÔÇ║ thumbnail keyboard shortcuts undo, redo, and save with sync (5.2s)
+
+
+  1) tests\e2e\thumbnail-smoke.spec.ts:764:1 ÔÇ║ intro split template exposes split controls and validates partition points 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoContainText[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator: locator('[data-template-region="intro-split-quote-block"]')
+    Expected substring: [32m"What if your data pipeline fixed[7m [27mitself"[39m
+    Received string:    [31m"[7mÔÇ£[27mWhat if your data pipeline fixeditself[7m before you even got thealert?[27m"[39m
+    Timeout: 4000ms
+
+    Call log:
+    [2m  - Expect "toContainText" with timeout 4000ms[22m
+    [2m  - waiting for locator('[data-template-region="intro-split-quote-block"]')[22m
+    [2m    2 ├ù locator resolved to <div data-template-region="intro-split-quote-block">ÔÇª</div>[22m
+    [2m      - unexpected value "ÔÇ£What if your data pipeline fixeditself before you even got thealert?"[22m
+
+
+      846 |     '[data-template-region="intro-split-quote-block"]',
+      847 |   );
+    > 848 |   await expect(introSplitQuoteBlock).toContainText(
+          |                                      ^
+      849 |     "What if your data pipeline fixed itself",
+      850 |     {
+      851 |       timeout: 4000,
+        at D:\.sources\utils\audio\voice_clone_translate\apps\localm_intro_outro\frontend\tests\e2e\thumbnail-smoke.spec.ts:848:38
+
+    Error Context: test-results\thumbnail-smoke-intro-spli-a5761--validates-partition-points\error-context.md
+
+  1 failed
+    tests\e2e\thumbnail-smoke.spec.ts:764:1 ÔÇ║ intro split template exposes split controls and validates partition points 
+  21 passed (1.6m)

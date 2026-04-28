@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="100%">
+  <defs>
+    <filter id="drop-shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="10" stdDeviation="15" flood-color="#000000" flood-opacity="0.08"/>
+    </filter>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#7C3AED" />
+    </linearGradient>
+  </defs>
+
+  <!-- Transparent canvas, floating card -->
+  <rect x="40" y="40" width="720" height="320" rx="24" fill="#ffffff" fill-opacity="0.95" stroke="#F1F5F9" stroke-width="2" filter="url(#drop-shadow)"/>
+  
+  <!-- Large decorative quote marks -->
+  <text x="70" y="140" font-family="Georgia, serif" font-size="120" font-weight="bold" fill="#E2E8F0">“</text>
+
+  <!-- Quote Text -->
+  <text x="140" y="140" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="500" fill="#1E293B">
+    <tspan x="140" dy="0">What if your data pipeline fixed itself</tspan>
+    <tspan x="140" dy="40">before you even got the alert?</tspan>
+  </text>
+
+  <!-- Punchline -->
+  <text x="140" y="250" font-family="system-ui, -apple-system, sans-serif" font-size="32" font-weight="800" fill="url(#textGrad)">
+    <tspan x="140" dy="0">Welcome to the era of</tspan>
+    <tspan x="140" dy="42">Agentic Data Engineering.</tspan>
+  </text>
+</svg>

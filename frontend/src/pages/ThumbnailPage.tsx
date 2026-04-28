@@ -8,7 +8,6 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import Box from "@mui/material/Box";
-import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import TextField from "@mui/material/TextField";
@@ -258,6 +257,14 @@ const FIELD_LABEL_OVERRIDES: Record<string, string> = {
   outro_background_x: "Background SVG Position X",
   outro_background_y: "Background SVG Position Y",
   split_type_capsule: "Type Capsule",
+  split_quote_style: "Quote Style",
+  split_quote_bold: "Quote Bold",
+  split_quote_text: "Quote Text",
+  split_quote_x: "Quote X",
+  split_quote_y: "Quote Y",
+  split_quote_font_size: "Quote Text Size",
+  split_quote_mark_size: "Quote Mark Size",
+  split_quote_width: "Quote Width",
   split_course_block_size: "Course Block Size",
   title_size: "Title Style",
   secondary_size: "Secondary Style",
@@ -280,6 +287,16 @@ const INTRO_SPLIT_COURSE_FIELD_IDS = new Set([
   "split_course_lesson_current",
   "split_course_lesson_total",
   "split_course_block_size",
+]);
+const INTRO_SPLIT_QUOTE_FIELD_IDS = new Set([
+  "split_quote_style",
+  "split_quote_bold",
+  "split_quote_text",
+  "split_quote_x",
+  "split_quote_y",
+  "split_quote_font_size",
+  "split_quote_mark_size",
+  "split_quote_width",
 ]);
 
 function getUsedSplitCornerIconCount(assetIds: readonly string[]): number {
@@ -511,9 +528,9 @@ async function cropTransparentMargins(dataUrl: string): Promise<string> {
 }
 
 export function ThumbnailPage() {
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const exportCanvasRef = useRef<HTMLDivElement>(null);
   const { exportMotion, exportPng, activeExportActions } = useExport();
-  const [preExportActions, setPreExportActions] = useState<ExportActivityState>(
+  const [preExportActions] = useState<ExportActivityState>(
     IDLE_EXPORT_ACTIVITY_STATE,
   );
   const { isImageExporting, isMotionExporting } = useMemo(
@@ -531,6 +548,7 @@ export function ThumbnailPage() {
   const { themes, themeOptions, getTheme, getRenderableTheme } = useThemes();
   const { syncOnSave } = useSync();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [isExportSurfaceMounted, setIsExportSurfaceMounted] = useState(false);
   const [bannerDialogMode, setBannerDialogMode] = useState<
     "load" | "save" | null
   >(null);
@@ -599,6 +617,7 @@ export function ThumbnailPage() {
   const [isSplitBreakpointEditorVisible, setIsSplitBreakpointEditorVisible] =
     useState(false);
   const [isCapsuleEditorVisible, setIsCapsuleEditorVisible] = useState(false);
+  const [isQuoteEditorVisible, setIsQuoteEditorVisible] = useState(false);
   const [visibleSplitCornerIconCount, setVisibleSplitCornerIconCount] =
     useState(0);
   const [activeSplitDragIndex, setActiveSplitDragIndex] = useState<
@@ -746,6 +765,10 @@ export function ThumbnailPage() {
     fieldValues["capsule_size"] ??
     currentTemplateFieldMap.get("capsule_size")?.defaultValue ??
     "small";
+  const splitQuoteEnabled =
+    (fieldValues["split_quote_enabled"] ??
+      currentTemplateFieldMap.get("split_quote_enabled")?.defaultValue ??
+      "false") === "true";
   const hasCapsuleStyleControls = currentTemplateFieldMap.has("capsule_size");
   const hasSurfaceControls = currentTemplateFieldMap.has("surface_style");
   const hasBorderControls = currentTemplateFieldMap.has("border_style");
@@ -759,11 +782,22 @@ export function ThumbnailPage() {
   const capsuleContentFieldRows = contentFieldRows.filter((row) =>
     row.some((field) => isCapsuleFieldId(field.id)),
   );
+  const quoteContentFieldRows = contentFieldRows.filter((row) =>
+    row.some((field) => INTRO_SPLIT_QUOTE_FIELD_IDS.has(field.id)),
+  );
   const primaryContentFieldRows = contentFieldRows.filter((row) =>
-    row.every((field) => !isCapsuleFieldId(field.id)),
+    row.every(
+      (field) =>
+        !isCapsuleFieldId(field.id) &&
+        !INTRO_SPLIT_QUOTE_FIELD_IDS.has(field.id),
+    ),
   );
   const hasCapsuleControls =
     capsuleContentFieldRows.length > 0 || hasCapsuleStyleControls;
+  const hasQuoteControls =
+    isIntroSplitTemplate &&
+    (quoteContentFieldRows.length > 0 ||
+      currentTemplateFieldMap.has("split_quote_enabled"));
   const templateCapabilities = getThumbnailTemplateCapabilities(templateId);
   const tutorialImageSectionTitle = isOutroTemplate
     ? "Suggested Preview Image"
@@ -1067,7 +1101,9 @@ export function ThumbnailPage() {
   }, [selectedOutroBackgroundSvgAsset, splitBackgroundSvgAssetOptions]);
   const resolvedSplitCornerIconAssetOptions = useMemo(() => {
     const missingSelectedAssets = selectedSplitCornerIconAssets.filter(
-      (asset) =>
+      (
+        asset,
+      ): asset is NonNullable<(typeof selectedSplitCornerIconAssets)[number]> =>
         asset !== null &&
         asset.kind === "image" &&
         !splitCornerIconAssetOptions.some(
@@ -1205,6 +1241,16 @@ export function ThumbnailPage() {
   useEffect(() => {
     setIsCapsuleEditorVisible(false);
   }, [templateId]);
+
+  useEffect(() => {
+    if (!isIntroSplitTemplate || !splitQuoteEnabled) {
+      setIsQuoteEditorVisible(false);
+      return;
+    }
+
+    setIsQuoteEditorVisible(true);
+  }, [isIntroSplitTemplate, splitQuoteEnabled, templateId]);
+
   const TemplateComponent = TEMPLATE_COMPONENTS[templateId];
   const activeBannerName = profileName.trim() || "Untitled";
   const activeTemplateEntry = useMemo(
@@ -1455,6 +1501,9 @@ export function ThumbnailPage() {
   const handleRemoveSplitCornerIcon = useCallback(
     (index: number) => {
       const fieldId = SPLIT_CORNER_ICON_FIELD_IDS[index];
+      if (!fieldId) {
+        return;
+      }
       handleFieldChange(fieldId, "");
     },
     [handleFieldChange],
@@ -2256,70 +2305,31 @@ export function ThumbnailPage() {
     document.title = pageTitle;
   }, [pageTitle]);
 
-  const templateRenderProps = buildThumbnailTemplateRenderProps({
-    width: currentPlatform.width,
-    height: currentPlatform.height,
-    values: previewFieldValues,
-    theme: previewTheme,
-    primaryFontFamily,
-    secondaryFontFamily,
-    fontSize,
-    borderWidth,
-    borderColor,
-    overlayImageUrl: templateAssetBindings.overlayImageUrl,
-    overlayImageScale: isIntroSplitTemplate
-      ? previewSplitBackgroundScaleValue
-      : isOutroTemplate
-        ? previewOutroBackgroundScaleValue
-        : undefined,
-    overlayImageX: isIntroSplitTemplate
-      ? previewSplitBackgroundXValue
-      : isOutroTemplate
-        ? previewOutroBackgroundXValue
-        : undefined,
-    overlayImageY: isIntroSplitTemplate
-      ? previewSplitBackgroundYValue
-      : isOutroTemplate
-        ? previewOutroBackgroundYValue
-        : undefined,
-    splitBlendImageUrl: isIntroSplitTemplate
-      ? (exportSplitBlendImageUrl ?? previewSplitBlendImageUrl)
-      : null,
-    splitCornerIconUrls: isIntroSplitTemplate
-      ? [
-          renderablePreviewSplitCornerIconUrl1,
-          renderablePreviewSplitCornerIconUrl2,
-          renderablePreviewSplitCornerIconUrl3,
-        ].filter((url): url is string => Boolean(url))
-      : undefined,
-    splitCornerIconSize: isIntroSplitTemplate
-      ? Number.parseInt(
-          previewFieldValues["split_corner_icon_size"] ?? "100",
-          10,
-        )
-      : undefined,
-    brandLogoUrl: renderableBrandLogoUrl,
-    brandLogoSize,
-    tutorialImageUrl: templateAssetBindings.tutorialImageUrl,
-    tutorialImageSize,
-    tutorialImageBottomPadding,
-    tutorialImageOpacity,
-    outroArrowOverlays,
-    showCopyrightMessage,
-    copyrightText,
-  });
-
   const handleExportMain = useCallback(async () => {
-    if (!canvasRef.current) return;
+    setIsExportSurfaceMounted(true);
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => resolve());
+      });
+    });
+
+    if (!exportCanvasRef.current) {
+      setIsExportSurfaceMounted(false);
+      return;
+    }
+
     const name =
       fieldValues["title"]?.trim() || currentTemplate?.name || "thumbnail";
     const safeFilename = name.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
-    await exportPng(canvasRef.current, `${safeFilename}_image.png`);
+
+    try {
+      await exportPng(exportCanvasRef.current, `${safeFilename}_image.png`);
+    } finally {
+      setIsExportSurfaceMounted(false);
+    }
   }, [currentTemplate?.name, exportPng, fieldValues]);
 
   const handleExportMotion = useCallback(async () => {
-    if (!canvasRef.current) return;
-
     if (selectedAudioAsset && !renderableSelectedAudioAssetUrl) {
       toast.error(
         "Audio track is still loading. Try exporting again in a moment.",
@@ -2327,14 +2337,35 @@ export function ThumbnailPage() {
       return;
     }
 
+    setIsExportSurfaceMounted(true);
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => resolve());
+      });
+    });
+
+    if (!exportCanvasRef.current) {
+      setIsExportSurfaceMounted(false);
+      return;
+    }
+
     const name =
       fieldValues["title"]?.trim() || currentTemplate?.name || "thumbnail";
     const safeFilename = name.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
-    await exportMotion(canvasRef.current, `${safeFilename}_motion.mp4`, {
-      durationSeconds: motionDurationSeconds,
-      audioUrl: renderableSelectedAudioAssetUrl,
-      audioStartSeconds,
-    });
+
+    try {
+      await exportMotion(
+        exportCanvasRef.current,
+        `${safeFilename}_motion.mp4`,
+        {
+          durationSeconds: motionDurationSeconds,
+          audioUrl: renderableSelectedAudioAssetUrl,
+          audioStartSeconds,
+        },
+      );
+    } finally {
+      setIsExportSurfaceMounted(false);
+    }
   }, [
     audioStartSeconds,
     currentTemplate?.name,
@@ -2346,7 +2377,78 @@ export function ThumbnailPage() {
   ]);
 
   const containerWidth = 720;
-  const previewScale = containerWidth / currentPlatform.width;
+  const previewWidth = Math.min(containerWidth, currentPlatform.width);
+  const previewHeight = Math.max(
+    1,
+    Math.round((previewWidth / currentPlatform.width) * currentPlatform.height),
+  );
+  const previewScale = previewWidth / currentPlatform.width;
+
+  const buildTemplateRenderPropsForDimensions = (
+    width: number,
+    height: number,
+  ) =>
+    buildThumbnailTemplateRenderProps({
+      width,
+      height,
+      values: previewFieldValues,
+      theme: previewTheme,
+      primaryFontFamily,
+      secondaryFontFamily,
+      fontSize,
+      borderWidth,
+      borderColor,
+      overlayImageUrl: templateAssetBindings.overlayImageUrl,
+      overlayImageScale: isIntroSplitTemplate
+        ? previewSplitBackgroundScaleValue
+        : isOutroTemplate
+          ? previewOutroBackgroundScaleValue
+          : undefined,
+      overlayImageX: isIntroSplitTemplate
+        ? previewSplitBackgroundXValue
+        : isOutroTemplate
+          ? previewOutroBackgroundXValue
+          : undefined,
+      overlayImageY: isIntroSplitTemplate
+        ? previewSplitBackgroundYValue
+        : isOutroTemplate
+          ? previewOutroBackgroundYValue
+          : undefined,
+      splitBlendImageUrl: isIntroSplitTemplate
+        ? (exportSplitBlendImageUrl ?? previewSplitBlendImageUrl)
+        : null,
+      splitCornerIconUrls: isIntroSplitTemplate
+        ? [
+            renderablePreviewSplitCornerIconUrl1,
+            renderablePreviewSplitCornerIconUrl2,
+            renderablePreviewSplitCornerIconUrl3,
+          ].filter((url): url is string => Boolean(url))
+        : undefined,
+      splitCornerIconSize: isIntroSplitTemplate
+        ? Number.parseInt(
+            previewFieldValues["split_corner_icon_size"] ?? "100",
+            10,
+          )
+        : undefined,
+      brandLogoUrl: renderableBrandLogoUrl,
+      brandLogoSize,
+      tutorialImageUrl: templateAssetBindings.tutorialImageUrl,
+      tutorialImageSize,
+      tutorialImageBottomPadding,
+      tutorialImageOpacity,
+      outroArrowOverlays,
+      showCopyrightMessage,
+      copyrightText,
+    });
+
+  const previewTemplateRenderProps = buildTemplateRenderPropsForDimensions(
+    currentPlatform.width,
+    currentPlatform.height,
+  );
+  const exportTemplateRenderProps = buildTemplateRenderPropsForDimensions(
+    currentPlatform.width,
+    currentPlatform.height,
+  );
 
   return (
     <PageLayout
@@ -2640,6 +2742,65 @@ export function ThumbnailPage() {
                                 </Box>
                               </Stack>
                             ))}
+                          </Stack>
+                        )}
+                      </Stack>
+                    )}
+                    {hasQuoteControls && (
+                      <Stack spacing={1.5}>
+                        <ActionButton
+                          label={
+                            splitQuoteEnabled
+                              ? isQuoteEditorVisible
+                                ? "Hide Quote"
+                                : "Show Quote"
+                              : "Add Quote"
+                          }
+                          variant="secondary"
+                          onClick={() => {
+                            if (!splitQuoteEnabled) {
+                              handleFieldChange("split_quote_enabled", "true");
+                              setIsQuoteEditorVisible(true);
+                              return;
+                            }
+
+                            setIsQuoteEditorVisible((current) => !current);
+                          }}
+                        />
+                        {splitQuoteEnabled && isQuoteEditorVisible && (
+                          <Stack spacing={2}>
+                            {quoteContentFieldRows.map((row) => (
+                              <Stack
+                                key={row.map((field) => field.id).join("-")}
+                                spacing={2}
+                                {...CONTROL_ROW_SX}
+                              >
+                                {row.map((field) => (
+                                  <Box key={field.id} sx={CONTROL_CELL_SX}>
+                                    {renderTemplateFieldControl({
+                                      field,
+                                      value:
+                                        fieldValues[field.id] ??
+                                        field.defaultValue ??
+                                        "",
+                                      onChange: (nextValue) =>
+                                        handleFieldChange(field.id, nextValue),
+                                    })}
+                                  </Box>
+                                ))}
+                              </Stack>
+                            ))}
+                            <ActionButton
+                              label="Remove Quote"
+                              variant="secondary"
+                              onClick={() => {
+                                handleFieldChange(
+                                  "split_quote_enabled",
+                                  "false",
+                                );
+                                setIsQuoteEditorVisible(false);
+                              }}
+                            />
                           </Stack>
                         )}
                       </Stack>
@@ -3797,8 +3958,10 @@ export function ThumbnailPage() {
           >
             <Box
               sx={{
-                transform: `scale(${previewScale})`,
-                transformOrigin: "center center",
+                position: "relative",
+                width: previewWidth,
+                height: previewHeight,
+                overflow: "hidden",
               }}
             >
               <Box
@@ -3806,107 +3969,138 @@ export function ThumbnailPage() {
                   position: "relative",
                   width: currentPlatform.width,
                   height: currentPlatform.height,
+                  zoom: previewScale,
                 }}
               >
-                <div ref={canvasRef}>
-                  {TemplateComponent ? (
-                    <TemplateComponent {...templateRenderProps} />
-                  ) : (
-                    <Box
-                      sx={{
-                        width: currentPlatform.width,
-                        height: currentPlatform.height,
-                        bgcolor: "background.paper",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Typography color="text.secondary">
-                        Select a template
-                      </Typography>
-                    </Box>
-                  )}
-                </div>
-                {isIntroSplitTemplate &&
-                  TemplateComponent &&
-                  isSplitBreakpointEditorVisible && (
-                    <svg
-                      ref={splitPreviewRef}
-                      width={currentPlatform.width}
-                      height={currentPlatform.height}
-                      onClick={handleSplitPreviewClick}
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        zIndex: 20,
-                        cursor: "crosshair",
-                      }}
-                    >
-                      <polyline
-                        points={splitPartitionPoints
-                          .map((point) => {
-                            const x =
-                              (point.x / SPLIT_PARTITION_MAX) *
-                              currentPlatform.width;
-                            const y =
-                              (point.y / SPLIT_PARTITION_MAX) *
-                              currentPlatform.height;
-                            return `${x.toFixed(2)},${y.toFixed(2)}`;
-                          })
-                          .join(" ")}
-                        fill="none"
-                        stroke="rgba(255,255,255,0.4)"
-                        strokeWidth={Math.max(
-                          2,
-                          currentPlatform.width * 0.0012,
-                        )}
-                        strokeDasharray={`${Math.max(8, currentPlatform.width * 0.004)} ${Math.max(6, currentPlatform.width * 0.0028)}`}
-                        opacity={0.8}
-                        pointerEvents="none"
-                      />
-                      {splitPartitionPoints.map((point, index) => {
-                        const x =
-                          (point.x / SPLIT_PARTITION_MAX) *
-                          currentPlatform.width;
-                        const y =
-                          (point.y / SPLIT_PARTITION_MAX) *
-                          currentPlatform.height;
-
-                        return (
-                          <g
-                            key={`split-preview-point-${index}-${point.x}-${point.y}`}
-                          >
-                            <circle
-                              cx={x}
-                              cy={y}
-                              r={Math.max(8, currentPlatform.width * 0.0032)}
-                              fill="rgba(34, 211, 238, 0.55)"
-                              stroke="rgba(255,255,255,0.95)"
-                              strokeWidth={Math.max(
-                                1.5,
-                                currentPlatform.width * 0.0009,
-                              )}
-                              onMouseDown={(event) =>
-                                handleSplitBreakpointMouseDown(index, event)
-                              }
-                              style={{
-                                cursor:
-                                  activeSplitDragIndex === index
-                                    ? "grabbing"
-                                    : "ew-resize",
-                              }}
-                            />
-                          </g>
-                        );
-                      })}
-                    </svg>
-                  )}
+                {TemplateComponent ? (
+                  <TemplateComponent {...previewTemplateRenderProps} />
+                ) : (
+                  <Box
+                    sx={{
+                      width: currentPlatform.width,
+                      height: currentPlatform.height,
+                      bgcolor: "background.paper",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Typography color="text.secondary">
+                      Select a template
+                    </Typography>
+                  </Box>
+                )}
               </Box>
+              {isIntroSplitTemplate &&
+                TemplateComponent &&
+                isSplitBreakpointEditorVisible && (
+                  <svg
+                    ref={splitPreviewRef}
+                    width={currentPlatform.width}
+                    height={currentPlatform.height}
+                    onClick={handleSplitPreviewClick}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      zIndex: 20,
+                      cursor: "crosshair",
+                      zoom: previewScale,
+                      transformOrigin: "top left",
+                    }}
+                  >
+                    <polyline
+                      points={splitPartitionPoints
+                        .map((point) => {
+                          const x =
+                            (point.x / SPLIT_PARTITION_MAX) *
+                            currentPlatform.width;
+                          const y =
+                            (point.y / SPLIT_PARTITION_MAX) *
+                            currentPlatform.height;
+                          return `${x.toFixed(2)},${y.toFixed(2)}`;
+                        })
+                        .join(" ")}
+                      fill="none"
+                      stroke="rgba(255,255,255,0.4)"
+                      strokeWidth={Math.max(2, currentPlatform.width * 0.0012)}
+                      strokeDasharray={`${Math.max(8, currentPlatform.width * 0.004)} ${Math.max(6, currentPlatform.width * 0.0028)}`}
+                      opacity={0.8}
+                      pointerEvents="none"
+                    />
+                    {splitPartitionPoints.map((point, index) => {
+                      const x =
+                        (point.x / SPLIT_PARTITION_MAX) * currentPlatform.width;
+                      const y =
+                        (point.y / SPLIT_PARTITION_MAX) *
+                        currentPlatform.height;
+
+                      return (
+                        <g
+                          key={`split-preview-point-${index}-${point.x}-${point.y}`}
+                        >
+                          <circle
+                            cx={x}
+                            cy={y}
+                            r={Math.max(8, currentPlatform.width * 0.0032)}
+                            fill="rgba(34, 211, 238, 0.55)"
+                            stroke="rgba(255,255,255,0.95)"
+                            strokeWidth={Math.max(
+                              1.5,
+                              currentPlatform.width * 0.0009,
+                            )}
+                            onMouseDown={(event) =>
+                              handleSplitBreakpointMouseDown(index, event)
+                            }
+                            style={{
+                              cursor:
+                                activeSplitDragIndex === index
+                                  ? "grabbing"
+                                  : "ew-resize",
+                            }}
+                          />
+                        </g>
+                      );
+                    })}
+                  </svg>
+                )}
             </Box>
           </Box>
         }
       />
+      {isExportSurfaceMounted && (
+        <Box
+          aria-hidden
+          sx={{
+            position: "fixed",
+            left: -100000,
+            top: 0,
+            width: currentPlatform.width,
+            height: currentPlatform.height,
+            pointerEvents: "none",
+          }}
+        >
+          <div ref={exportCanvasRef}>
+            {TemplateComponent ? (
+              <TemplateComponent {...exportTemplateRenderProps} />
+            ) : (
+              <Box
+                sx={{
+                  width: currentPlatform.width,
+                  height: currentPlatform.height,
+                  bgcolor: "background.paper",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography color="text.secondary">
+                  Select a template
+                </Typography>
+              </Box>
+            )}
+          </div>
+        </Box>
+      )}
       <SettingsDialog
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}

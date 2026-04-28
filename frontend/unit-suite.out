@@ -1,0 +1,1258 @@
+TAP version 13
+# Subtest: normalizeSasToken strips the leading question mark
+ok 1 - normalizeSasToken strips the leading question mark
+  ---
+  duration_ms: 2.6158
+  type: 'test'
+  ...
+# Subtest: parseConnectionString extracts account name and shared access signature
+ok 2 - parseConnectionString extracts account name and shared access signature
+  ---
+  duration_ms: 0.6813
+  type: 'test'
+  ...
+# Subtest: validateConnectionDetails requires explicit table endpoint
+ok 3 - validateConnectionDetails requires explicit table endpoint
+  ---
+  duration_ms: 0.8277
+  type: 'test'
+  ...
+# Subtest: validateAuthForm rejects account-key connection strings in the browser
+ok 4 - validateAuthForm rejects account-key connection strings in the browser
+  ---
+  duration_ms: 0.7441
+  type: 'test'
+  ...
+# Subtest: validateAuthForm stores explicit connection info for access token mode
+ok 5 - validateAuthForm stores explicit connection info for access token mode
+  ---
+  duration_ms: 0.7848
+  type: 'test'
+  ...
+# Subtest: stored auth persists in local storage for future browser sessions
+ok 6 - stored auth persists in local storage for future browser sessions
+  ---
+  duration_ms: 2.9179
+  type: 'test'
+  ...
+# Subtest: clearSecrets removes persisted auth from local and session storage
+ok 7 - clearSecrets removes persisted auth from local and session storage
+  ---
+  duration_ms: 0.7343
+  type: 'test'
+  ...
+# Subtest: isAuthenticationFailure recognizes Azure authentication errors
+ok 8 - isAuthenticationFailure recognizes Azure authentication errors
+  ---
+  duration_ms: 2.4367
+  type: 'test'
+  ...
+# Subtest: validateStoredAuthSession asks for reauthentication when Azure rejects stored credentials
+ok 9 - validateStoredAuthSession asks for reauthentication when Azure rejects stored credentials
+  ---
+  duration_ms: 2.2333
+  type: 'test'
+  ...
+# Subtest: validateStoredAuthSession ignores non-auth startup errors
+ok 10 - validateStoredAuthSession ignores non-auth startup errors
+  ---
+  duration_ms: 1.4593
+  type: 'test'
+  ...
+# Subtest: buildAzureTableName uses the Banners prefix with Dev and Prod suffixes
+ok 11 - buildAzureTableName uses the Banners prefix with Dev and Prod suffixes
+  ---
+  duration_ms: 1.7812
+  type: 'test'
+  ...
+# Subtest: detectAzureProfileFromTableName recognizes camel-cased profile tables
+ok 12 - detectAzureProfileFromTableName recognizes camel-cased profile tables
+  ---
+  duration_ms: 0.4237
+  type: 'test'
+  ...
+# Subtest: createAsyncSingleton only runs the factory once for concurrent callers
+ok 13 - createAsyncSingleton only runs the factory once for concurrent callers
+  ---
+  duration_ms: 2.2521
+  type: 'test'
+  ...
+# Subtest: createAsyncSingleton retries after a failed attempt
+ok 14 - createAsyncSingleton retries after a failed attempt
+  ---
+  duration_ms: 1.4749
+  type: 'test'
+  ...
+# Subtest: getDatabaseOptions uses closeDuplicates in dev instead of ignoreDuplicate
+ok 15 - getDatabaseOptions uses closeDuplicates in dev instead of ignoreDuplicate
+  ---
+  duration_ms: 0.5998
+  type: 'test'
+  ...
+# Subtest: localm intro outro uses its own browser database namespace
+ok 16 - localm intro outro uses its own browser database namespace
+  ---
+  duration_ms: 2.1636
+  type: 'test'
+  ...
+# Subtest: database options provide a custom hash function
+ok 17 - database options provide a custom hash function
+  ---
+  duration_ms: 0.4028
+  type: 'test'
+  ...
+# Subtest: custom database hash function returns stable sha256 hashes
+ok 18 - custom database hash function returns stable sha256 hashes
+  ---
+  duration_ms: 2.4775
+  type: 'test'
+  ...
+# Subtest: runManagedLogoff always clears the session even when auto-save fails
+ok 19 - runManagedLogoff always clears the session even when auto-save fails
+  ---
+  duration_ms: 11.1795
+  type: 'test'
+  ...
+# Subtest: sortAssets orders by most recently updated asset first
+ok 20 - sortAssets orders by most recently updated asset first
+  ---
+  duration_ms: 2.1078
+  type: 'test'
+  ...
+# Subtest: buildAssetOptions filters by kind and formats labels
+ok 21 - buildAssetOptions filters by kind and formats labels
+  ---
+  duration_ms: 0.3781
+  type: 'test'
+  ...
+# Subtest: parseAssetSearchQuery separates free text and \#tags while ignoring removed category tokens
+ok 22 - parseAssetSearchQuery separates free text and \#tags while ignoring removed category tokens
+  ---
+  duration_ms: 0.4319
+  type: 'test'
+  ...
+# Subtest: filterAssets combines free text, kind, and tags without using categories
+ok 23 - filterAssets combines free text, kind, and tags without using categories
+  ---
+  duration_ms: 0.4849
+  type: 'test'
+  ...
+# Subtest: collectAssetTags returns unique sorted tags from the library
+ok 24 - collectAssetTags returns unique sorted tags from the library
+  ---
+  duration_ms: 14.2619
+  type: 'test'
+  ...
+# Subtest: prepareBannerForSave preserves an existing id and stamps updatedAt
+ok 25 - prepareBannerForSave preserves an existing id and stamps updatedAt
+  ---
+  duration_ms: 2.8436
+  type: 'test'
+  ...
+# Subtest: prepareBannerForSave replaces a blank id with a generated id
+ok 26 - prepareBannerForSave replaces a blank id with a generated id
+  ---
+  duration_ms: 0.801
+  type: 'test'
+  ...
+# Subtest: prepareBannerForSave keeps one full entry per template type
+ok 27 - prepareBannerForSave keeps one full entry per template type
+  ---
+  duration_ms: 2.1042
+  type: 'test'
+  ...
+# Subtest: prepareBannerForSave lifts a legacy single-template payload into templateEntries
+ok 28 - prepareBannerForSave lifts a legacy single-template payload into templateEntries
+  ---
+  duration_ms: 0.4813
+  type: 'test'
+  ...
+# Subtest: prepareBannerForSave preserves outro arrow overlays in the saved template entry
+ok 29 - prepareBannerForSave preserves outro arrow overlays in the saved template entry
+  ---
+  duration_ms: 1.1143
+  type: 'test'
+  ...
+# Subtest: banner schema version increments when outro arrow size controls change
+ok 30 - banner schema version increments when outro arrow size controls change
+  ---
+  duration_ms: 0.2741
+  type: 'test'
+  ...
+# Subtest: banner migration lifts legacy cached banners into templateEntries
+ok 31 - banner migration lifts legacy cached banners into templateEntries
+  ---
+  duration_ms: 0.7998
+  type: 'test'
+  ...
+# Subtest: buildCaptureOptions keeps fonts enabled so export text matches preview wrapping
+ok 32 - buildCaptureOptions keeps fonts enabled so export text matches preview wrapping
+  ---
+  duration_ms: 5.7199
+  type: 'test'
+  ...
+# Subtest: buildCaptureOptions keeps explicit quality overrides
+ok 33 - buildCaptureOptions keeps explicit quality overrides
+  ---
+  duration_ms: 0.8497
+  type: 'test'
+  ...
+# Subtest: buildCaptureOptions locks export dimensions to the rendered canvas size
+ok 34 - buildCaptureOptions locks export dimensions to the rendered canvas size
+  ---
+  duration_ms: 0.4132
+  type: 'test'
+  ...
+# Subtest: buildSupersampledCaptureOptions renders a larger internal canvas while preserving the export size
+ok 35 - buildSupersampledCaptureOptions renders a larger internal canvas while preserving the export size
+  ---
+  duration_ms: 0.9401
+  type: 'test'
+  ...
+# Subtest: resolveSupersampleScaleForDimensions disables supersampling at 4K and keeps it for lower resolutions
+ok 36 - resolveSupersampleScaleForDimensions disables supersampling at 4K and keeps it for lower resolutions
+  ---
+  duration_ms: 0.4876
+  type: 'test'
+  ...
+# Subtest: buildStillFrameWebmPlan locks WEBM export to the selected resolution and configured duration
+ok 37 - buildStillFrameWebmPlan locks WEBM export to the selected resolution and configured duration
+  ---
+  duration_ms: 0.597
+  type: 'test'
+  ...
+# Subtest: resolveStillFrameWebmBitrate scales bitrate high enough for 4K still-frame exports
+ok 38 - resolveStillFrameWebmBitrate scales bitrate high enough for 4K still-frame exports
+  ---
+  duration_ms: 0.613
+  type: 'test'
+  ...
+# Subtest: resolveSupportedWebmMimeType prefers the first supported WEBM codec
+ok 39 - resolveSupportedWebmMimeType prefers the first supported WEBM codec
+  ---
+  duration_ms: 0.3933
+  type: 'test'
+  ...
+# Subtest: resolveSupportedWebmMimeType returns null when WEBM recording is unavailable
+ok 40 - resolveSupportedWebmMimeType returns null when WEBM recording is unavailable
+  ---
+  duration_ms: 0.8469
+  type: 'test'
+  ...
+# Subtest: resolveSupportedMotionMimeType prefers WEBM for browser fallback recording when multiple formats are available
+ok 41 - resolveSupportedMotionMimeType prefers WEBM for browser fallback recording when multiple formats are available
+  ---
+  duration_ms: 1.026
+  type: 'test'
+  ...
+# Subtest: resolveSupportedMotionMimeType prefers MP4 when explicitly requested
+ok 42 - resolveSupportedMotionMimeType prefers MP4 when explicitly requested
+  ---
+  duration_ms: 0.3556
+  type: 'test'
+  ...
+# Subtest: resolveMotionFileExtension returns mp4 for MP4 recordings and webm otherwise
+ok 43 - resolveMotionFileExtension returns mp4 for MP4 recordings and webm otherwise
+  ---
+  duration_ms: 1.5418
+  type: 'test'
+  ...
+# Subtest: buildStillFrameMp4Args creates a deterministic still-frame MP4 command without audio
+ok 44 - buildStillFrameMp4Args creates a deterministic still-frame MP4 command without audio
+  ---
+  duration_ms: 1.1911
+  type: 'test'
+  ...
+# Subtest: buildStillFrameMp4Args maps a front-aligned padded audio track to the full motion duration
+ok 45 - buildStillFrameMp4Args maps a front-aligned padded audio track to the full motion duration
+  ---
+  duration_ms: 0.6147
+  type: 'test'
+  ...
+# Subtest: buildStillFrameMp4Args can start the audio input from a configured skip offset
+ok 46 - buildStillFrameMp4Args can start the audio input from a configured skip offset
+  ---
+  duration_ms: 0.4473
+  type: 'test'
+  ...
+# Subtest: resolveMotionExportStrategy avoids FFmpeg MP4 for 4K motion exports
+ok 47 - resolveMotionExportStrategy avoids FFmpeg MP4 for 4K motion exports
+  ---
+  duration_ms: 0.3914
+  type: 'test'
+  ...
+# Subtest: buildUploadedLogoPath versions shared logos so replacements do not reuse a cached blob URL
+ok 48 - buildUploadedLogoPath versions shared logos so replacements do not reuse a cached blob URL
+  ---
+  duration_ms: 2.2524
+  type: 'test'
+  ...
+# Subtest: buildUploadedLogoPath falls back to png when the file name has no extension
+ok 49 - buildUploadedLogoPath falls back to png when the file name has no extension
+  ---
+  duration_ms: 0.4264
+  type: 'test'
+  ...
+# Subtest: mergeStoredThemesWithBuiltIns lets stored themes override built-in themes with the same id
+ok 50 - mergeStoredThemesWithBuiltIns lets stored themes override built-in themes with the same id
+  ---
+  duration_ms: 34.7394
+  type: 'test'
+  ...
+# Subtest: prepareThemeForSave creates a persisted theme shape from partial edits
+ok 51 - prepareThemeForSave creates a persisted theme shape from partial edits
+  ---
+  duration_ms: 1.2071
+  type: 'test'
+  ...
+# Subtest: New Banner created on machine A appears on machine B after refresh
+ok 52 - New Banner created on machine A appears on machine B after refresh
+  ---
+  duration_ms: 3.5426
+  type: 'test'
+  ...
+# Subtest: remote-first banner loading preserves local-only banners while merging remote records
+ok 53 - remote-first banner loading preserves local-only banners while merging remote records
+  ---
+  duration_ms: 0.5
+  type: 'test'
+  ...
+# Subtest: Dark Duplicate theme created on machine A appears on machine B after refresh
+ok 54 - Dark Duplicate theme created on machine A appears on machine B after refresh
+  ---
+  duration_ms: 15.2543
+  type: 'test'
+  ...
+# Subtest: asset tag helpers normalize comma-separated tags and build \#tag tokens
+ok 55 - asset tag helpers normalize comma-separated tags and build \#tag tokens
+  ---
+  duration_ms: 3.6622
+  type: 'test'
+  ...
+# Subtest: buildThemeEditorState loads the selected theme when one is chosen
+ok 56 - buildThemeEditorState loads the selected theme when one is chosen
+  ---
+  duration_ms: 6.1049
+  type: 'test'
+  ...
+# Subtest: buildThemeEditorState falls back to the default theme when selection is missing
+ok 57 - buildThemeEditorState falls back to the default theme when selection is missing
+  ---
+  duration_ms: 0.4388
+  type: 'test'
+  ...
+# Subtest: duplicateThemeDefinition creates a distinct editable copy
+ok 58 - duplicateThemeDefinition creates a distinct editable copy
+  ---
+  duration_ms: 4.7138
+  type: 'test'
+  ...
+# Subtest: shouldHydrateThemeDraft preserves an unsaved draft
+ok 59 - shouldHydrateThemeDraft preserves an unsaved draft
+  ---
+  duration_ms: 0.3994
+  type: 'test'
+  ...
+# Subtest: buildThemeExportFileName produces a stable json filename
+ok 60 - buildThemeExportFileName produces a stable json filename
+  ---
+  duration_ms: 0.4673
+  type: 'test'
+  ...
+# Subtest: buildThemeExportBundleEntries returns the theme json and generated page
+ok 61 - buildThemeExportBundleEntries returns the theme json and generated page
+  ---
+  duration_ms: 1.2852
+  type: 'test'
+  ...
+# Subtest: buildThemeLibraryExportBundleEntries includes library json and per-theme files
+ok 62 - buildThemeLibraryExportBundleEntries includes library json and per-theme files
+  ---
+  duration_ms: 24.6136
+  type: 'test'
+  ...
+# Subtest: buildThemeLibraryExportBundleEntries keeps duplicate theme names from colliding
+ok 63 - buildThemeLibraryExportBundleEntries keeps duplicate theme names from colliding
+  ---
+  duration_ms: 1.0999
+  type: 'test'
+  ...
+# Subtest: thumbnail history pushes new snapshots, undoes, redoes, and drops stale redo entries
+ok 64 - thumbnail history pushes new snapshots, undoes, redoes, and drops stale redo entries
+  ---
+  duration_ms: 3.5744
+  type: 'test'
+  ...
+# Subtest: thumbnail history ignores duplicate snapshots
+ok 65 - thumbnail history ignores duplicate snapshots
+  ---
+  duration_ms: 0.5837
+  type: 'test'
+  ...
+# Subtest: thumbnail page no longer renders the removed outro arrows settings panel
+ok 66 - thumbnail page no longer renders the removed outro arrows settings panel
+  ---
+  duration_ms: 1.9706
+  type: 'test'
+  ...
+# Subtest: thumbnail page uses a dynamic app/module/template title and exposes an outro support-line action
+ok 67 - thumbnail page uses a dynamic app/module/template title and exposes an outro support-line action
+  ---
+  duration_ms: 0.4557
+  type: 'test'
+  ...
+# Subtest: buildThumbnailTemplateRenderProps preserves export-sensitive asset and typography settings
+ok 68 - buildThumbnailTemplateRenderProps preserves export-sensitive asset and typography settings
+  ---
+  duration_ms: 5.6656
+  type: 'test'
+  ...
+# Subtest: buildThumbnailTemplateRenderProps hides footer social rendering when copyright is off
+ok 69 - buildThumbnailTemplateRenderProps hides footer social rendering when copyright is off
+  ---
+  duration_ms: 0.7271
+  type: 'test'
+  ...
+# Subtest: buildThumbnailTemplateRenderProps preserves intro and outro static field values for exports
+ok 70 - buildThumbnailTemplateRenderProps preserves intro and outro static field values for exports
+  ---
+  duration_ms: 0.5453
+  type: 'test'
+  ...
+# Subtest: buildThumbnailTemplateRenderProps preserves structured outro arrow overlays for rendering
+ok 71 - buildThumbnailTemplateRenderProps preserves structured outro arrow overlays for rendering
+  ---
+  duration_ms: 0.5664
+  type: 'test'
+  ...
+# Subtest: buildThumbnailTemplateRenderProps preserves intro split corner icon assets and size
+ok 72 - buildThumbnailTemplateRenderProps preserves intro split corner icon assets and size
+  ---
+  duration_ms: 0.7358
+  type: 'test'
+  ...
+# Subtest: buildThumbnailTemplateRenderProps preserves background asset transform values
+ok 73 - buildThumbnailTemplateRenderProps preserves background asset transform values
+  ---
+  duration_ms: 0.4696
+  type: 'test'
+  ...
+# Subtest: tutorial-style templates expose pip logo and anchored tutorial image controls
+ok 74 - tutorial-style templates expose pip logo and anchored tutorial image controls
+  ---
+  duration_ms: 12.3361
+  type: 'test'
+  ...
+# Subtest: centered templates hide tutorial image controls entirely
+ok 75 - centered templates hide tutorial image controls entirely
+  ---
+  duration_ms: 0.7655
+  type: 'test'
+  ...
+# Subtest: background template keeps border and grid controls while making the logo optional
+ok 76 - background template keeps border and grid controls while making the logo optional
+  ---
+  duration_ms: 0.3371
+  type: 'test'
+  ...
+# Subtest: intro bite and outro stay on the shared audio workflow without youtube overlay controls
+ok 77 - intro bite and outro stay on the shared audio workflow without youtube overlay controls
+  ---
+  duration_ms: 0.4055
+  type: 'test'
+  ...
+# Subtest: intro and outro templates persist shared audio selections under stable field ids
+ok 78 - intro and outro templates persist shared audio selections under stable field ids
+  ---
+  duration_ms: 3.6002
+  type: 'test'
+  ...
+# Subtest: motion audio start offset defaults to 2 seconds and clamps to the available range
+ok 79 - motion audio start offset defaults to 2 seconds and clamps to the available range
+  ---
+  duration_ms: 0.7867
+  type: 'test'
+  ...
+# Subtest: save dialog starts from the current banner and keeps overwrite intent explicit
+ok 80 - save dialog starts from the current banner and keeps overwrite intent explicit
+  ---
+  duration_ms: 0.6488
+  type: 'test'
+  ...
+# Subtest: save dialog defaults to a new copy when the draft is not linked to a saved banner
+ok 81 - save dialog defaults to a new copy when the draft is not linked to a saved banner
+  ---
+  duration_ms: 0.4084
+  type: 'test'
+  ...
+# Subtest: load dialog falls back to the most recent banner when nothing is selected yet
+ok 82 - load dialog falls back to the most recent banner when nothing is selected yet
+  ---
+  duration_ms: 0.6292
+  type: 'test'
+  ...
+# Subtest: theme border color follows the selected theme accent by default
+ok 83 - theme border color follows the selected theme accent by default
+  ---
+  duration_ms: 1.1792
+  type: 'test'
+  ...
+# Subtest: theme border color prefers the saved dynamic theme value when provided
+ok 84 - theme border color prefers the saved dynamic theme value when provided
+  ---
+  duration_ms: 0.517
+  type: 'test'
+  ...
+# Subtest: brand logo size is clamped to the supported thumbnail range
+ok 85 - brand logo size is clamped to the supported thumbnail range
+  ---
+  duration_ms: 0.2689
+  type: 'test'
+  ...
+# Subtest: motion duration defaults to 3 seconds and clamps unsupported values
+ok 86 - motion duration defaults to 3 seconds and clamps unsupported values
+  ---
+  duration_ms: 0.3332
+  type: 'test'
+  ...
+# Subtest: export action loading state only marks the currently running export control as loading
+ok 87 - export action loading state only marks the currently running export control as loading
+  ---
+  duration_ms: 0.4542
+  type: 'test'
+  ...
+# Subtest: copyright defaults stay aligned across thumbnail templates
+ok 88 - copyright defaults stay aligned across thumbnail templates
+  ---
+  duration_ms: 0.1784
+  type: 'test'
+  ...
+# Subtest: content field rows keep centered template controls paired on one line
+ok 89 - content field rows keep centered template controls paired on one line
+  ---
+  duration_ms: 0.8531
+  type: 'test'
+  ...
+# Subtest: content field rows keep intro bite attribution and capsule controls paired
+ok 90 - content field rows keep intro bite attribution and capsule controls paired
+  ---
+  duration_ms: 0.4024
+  type: 'test'
+  ...
+# Subtest: content field rows keep intro split partition and asset controls paired
+ok 91 - content field rows keep intro split partition and asset controls paired
+  ---
+  duration_ms: 0.6216
+  type: 'test'
+  ...
+# Subtest: content field rows keep intro split course controls grouped with the type capsule
+ok 92 - content field rows keep intro split course controls grouped with the type capsule
+  ---
+  duration_ms: 0.367
+  type: 'test'
+  ...
+# Subtest: content field rows keep outro background asset controls out of the content section
+ok 93 - content field rows keep outro background asset controls out of the content section
+  ---
+  duration_ms: 0.272
+  type: 'test'
+  ...
+# Subtest: thumbnail page title includes app, module, and active template name
+ok 94 - thumbnail page title includes app, module, and active template name
+  ---
+  duration_ms: 0.2412
+  type: 'test'
+  ...
+# Subtest: split templates bind the selected foreground asset to the rendered foreground image
+ok 95 - split templates bind the selected foreground asset to the rendered foreground image
+  ---
+  duration_ms: 0.4161
+  type: 'test'
+  ...
+# Subtest: shared settings logo replaces the preview logo when the preview still points at the previous shared asset
+ok 96 - shared settings logo replaces the preview logo when the preview still points at the previous shared asset
+  ---
+  duration_ms: 0.2965
+  type: 'test'
+  ...
+# Subtest: shared settings logo sync does not overwrite a custom local preview logo
+ok 97 - shared settings logo sync does not overwrite a custom local preview logo
+  ---
+  duration_ms: 0.1958
+  type: 'test'
+  ...
+# Subtest: persisted banner state omits inherited shared logos so saved banners do not snapshot stale shared assets
+ok 98 - persisted banner state omits inherited shared logos so saved banners do not snapshot stale shared assets
+  ---
+  duration_ms: 0.6832
+  type: 'test'
+  ...
+# Subtest: loaded banner state upgrades previously saved shared logo paths to the current shared logo
+ok 99 - loaded banner state upgrades previously saved shared logo paths to the current shared logo
+  ---
+  duration_ms: 0.4966
+  type: 'test'
+  ...
+# Subtest: thumbnail shortcuts map ctrl and meta save, undo, and redo commands
+ok 100 - thumbnail shortcuts map ctrl and meta save, undo, and redo commands
+  ---
+  duration_ms: 2.1218
+  type: 'test'
+  ...
+# Subtest: thumbnail shortcuts ignore unrelated key chords
+ok 101 - thumbnail shortcuts ignore unrelated key chords
+  ---
+  duration_ms: 0.4202
+  type: 'test'
+  ...
+# Subtest: parseSplitPartitionPoints parses straight and zig-zag point sequences
+ok 102 - parseSplitPartitionPoints parses straight and zig-zag point sequences
+  ---
+  duration_ms: 5.0858
+  type: 'test'
+  ...
+# Subtest: parseSplitPartitionPoints rejects malformed point syntax
+ok 103 - parseSplitPartitionPoints rejects malformed point syntax
+  ---
+  duration_ms: 0.841
+  type: 'test'
+  ...
+# Subtest: parseSplitPartitionPoints enforces coordinate bounds up to 24
+ok 104 - parseSplitPartitionPoints enforces coordinate bounds up to 24
+  ---
+  duration_ms: 0.7131
+  type: 'test'
+  ...
+# Subtest: resolveSplitPartitionPoints falls back to defaults when parsing fails
+ok 105 - resolveSplitPartitionPoints falls back to defaults when parsing fails
+  ---
+  duration_ms: 0.7528
+  type: 'test'
+  ...
+# Subtest: serializeSplitPartitionPoints preserves editable decimal breakpoint values
+ok 106 - serializeSplitPartitionPoints preserves editable decimal breakpoint values
+  ---
+  duration_ms: 0.6395
+  type: 'test'
+  ...
+# Subtest: insertSplitBreakpoint inserts and sorts a new point by y
+ok 107 - insertSplitBreakpoint inserts and sorts a new point by y
+  ---
+  duration_ms: 0.4314
+  type: 'test'
+  ...
+# Subtest: updateSplitBreakpoint updates x or y while clamping to the valid range
+ok 108 - updateSplitBreakpoint updates x or y while clamping to the valid range
+  ---
+  duration_ms: 0.683
+  type: 'test'
+  ...
+# Subtest: removeSplitBreakpoint never removes below two breakpoints
+ok 109 - removeSplitBreakpoint never removes below two breakpoints
+  ---
+  duration_ms: 0.4902
+  type: 'test'
+  ...
+# Subtest: max split breakpoints constant is 24
+ok 110 - max split breakpoints constant is 24
+  ---
+  duration_ms: 0.6486
+  type: 'test'
+  ...
+# Subtest: prepareAssetForSave preserves an existing id and stamps updatedAt
+ok 111 - prepareAssetForSave preserves an existing id and stamps updatedAt
+  ---
+  duration_ms: 2.1523
+  type: 'test'
+  ...
+# Subtest: prepareAssetForSave normalizes display metadata for remote persistence
+ok 112 - prepareAssetForSave normalizes display metadata for remote persistence
+  ---
+  duration_ms: 1.4831
+  type: 'test'
+  ...
+# Subtest: assets schema version increments when category metadata is introduced
+ok 113 - assets schema version increments when category metadata is introduced
+  ---
+  duration_ms: 0.1904
+  type: 'test'
+  ...
+# Subtest: asset migration backfills optional metadata fields, category, and tags for cached records
+ok 114 - asset migration backfills optional metadata fields, category, and tags for cached records
+  ---
+  duration_ms: 0.3003
+  type: 'test'
+  ...
+# Subtest: resolveTemplateSelection restores an existing template entry without duplicating it
+ok 115 - resolveTemplateSelection restores an existing template entry without duplicating it
+  ---
+  duration_ms: 2.5729
+  type: 'test'
+  ...
+# Subtest: resolveTemplateSelection seeds a new template entry when the banner does not have that template yet
+ok 116 - resolveTemplateSelection seeds a new template entry when the banner does not have that template yet
+  ---
+  duration_ms: 1.8881
+  type: 'test'
+  ...
+# Subtest: normalizeTemplateEntries replaces an existing template entry with the latest active values
+ok 117 - normalizeTemplateEntries replaces an existing template entry with the latest active values
+  ---
+  duration_ms: 0.9716
+  type: 'test'
+  ...
+# Subtest: normalizeTemplateEntries preserves persisted outro arrow overlays on the latest outro entry
+ok 118 - normalizeTemplateEntries preserves persisted outro arrow overlays on the latest outro entry
+  ---
+  duration_ms: 1.2696
+  type: 'test'
+  ...
+# Subtest: cached CRUD records require id and updatedAt for cache reconciliation
+ok 119 - cached CRUD records require id and updatedAt for cache reconciliation
+  ---
+  duration_ms: 1.9496
+  type: 'test'
+  ...
+# Subtest: createAzureCachedCollectionApi remove ignores a local RxDB conflict after remote deletion already succeeded
+ok 120 - createAzureCachedCollectionApi remove ignores a local RxDB conflict after remote deletion already succeeded
+  ---
+  duration_ms: 2.6797
+  type: 'test'
+  ...
+# Subtest: save writes remote first and mirrors the remote response into the cache
+ok 121 - save writes remote first and mirrors the remote response into the cache
+  ---
+  duration_ms: 2.0035
+  type: 'test'
+  ...
+# Subtest: load in remote-first mode ignores cached records and refreshes server data
+ok 122 - load in remote-first mode ignores cached records and refreshes server data
+  ---
+  duration_ms: 1.1822
+  type: 'test'
+  ...
+# Subtest: load in merge-remote mode preserves local records while adding server data
+ok 123 - load in merge-remote mode preserves local records while adding server data
+  ---
+  duration_ms: 0.5684
+  type: 'test'
+  ...
+# Subtest: buildAssetCacheUrl encodes each blob path segment
+ok 124 - buildAssetCacheUrl encodes each blob path segment
+  ---
+  duration_ms: 2.0394
+  type: 'test'
+  ...
+# Subtest: cached asset blobs round-trip through the local browser cache
+ok 125 - cached asset blobs round-trip through the local browser cache
+  ---
+  duration_ms: 84.4989
+  type: 'test'
+  ...
+# Subtest: classifyAssetKind maps mime types to the shared asset categories
+ok 126 - classifyAssetKind maps mime types to the shared asset categories
+  ---
+  duration_ms: 1.4791
+  type: 'test'
+  ...
+# Subtest: buildAssetBlobPath stores uploaded files under typed asset folders
+ok 127 - buildAssetBlobPath stores uploaded files under typed asset folders
+  ---
+  duration_ms: 0.6712
+  type: 'test'
+  ...
+# Subtest: formatAssetOptionLabel uses Name [filename] | duration format when duration exists
+ok 128 - formatAssetOptionLabel uses Name [filename] | duration format when duration exists
+  ---
+  duration_ms: 0.248
+  type: 'test'
+  ...
+# Subtest: formatAssetOptionLabel omits duration for non-timed assets
+ok 129 - formatAssetOptionLabel omits duration for non-timed assets
+  ---
+  duration_ms: 0.1463
+  type: 'test'
+  ...
+# Subtest: ensureBlobContainerExists creates the configured container and ignores conflicts
+ok 130 - ensureBlobContainerExists creates the configured container and ignores conflicts
+  ---
+  duration_ms: 4.2814
+  type: 'test'
+  ...
+# Subtest: uploadBlob provisions the container before uploading the blob payload
+ok 131 - uploadBlob provisions the container before uploading the blob payload
+  ---
+  duration_ms: 1.1877
+  type: 'test'
+  ...
+# Subtest: default app state uses manual sync mode
+ok 132 - default app state uses manual sync mode
+  ---
+  duration_ms: 1.3855
+  type: 'test'
+  ...
+# Subtest: default app state no longer persists animation-specific draft data
+ok 133 - default app state no longer persists animation-specific draft data
+  ---
+  duration_ms: 0.1874
+  type: 'test'
+  ...
+# Subtest: app state schema no longer exposes animation-specific properties
+ok 134 - app state schema no longer exposes animation-specific properties
+  ---
+  duration_ms: 0.1551
+  type: 'test'
+  ...
+# Subtest: app state schema version increments when animation draft persistence is removed
+ok 135 - app state schema version increments when animation draft persistence is removed
+  ---
+  duration_ms: 0.1366
+  type: 'test'
+  ...
+# Subtest: app state migration removes legacy animation draft state
+ok 136 - app state migration removes legacy animation draft state
+  ---
+  duration_ms: 1.1501
+  type: 'test'
+  ...
+# Subtest: normalizeDraftBannerState lifts a legacy draft into templateEntries
+ok 137 - normalizeDraftBannerState lifts a legacy draft into templateEntries
+  ---
+  duration_ms: 0.5644
+  type: 'test'
+  ...
+# Subtest: azure sync includes dynamic themes alongside other replicated collections
+ok 138 - azure sync includes dynamic themes alongside other replicated collections
+  ---
+  duration_ms: 2.3289
+  type: 'test'
+  ...
+# Subtest: buildTableClientConfig keeps the service endpoint separate from table name
+ok 139 - buildTableClientConfig keeps the service endpoint separate from table name
+  ---
+  duration_ms: 0.5229
+  type: 'test'
+  ...
+# Subtest: awaitReplicationsInSync rejects when a replication emits an error
+ok 140 - awaitReplicationsInSync rejects when a replication emits an error
+  ---
+  duration_ms: 2.6008
+  type: 'test'
+  ...
+# Subtest: ensureTableExists provisions the configured table and ignores conflicts
+ok 141 - ensureTableExists provisions the configured table and ignores conflicts
+  ---
+  duration_ms: 0.7951
+  type: 'test'
+  ...
+# Subtest: ensureTableExists caches tables that were already checked
+ok 142 - ensureTableExists caches tables that were already checked
+  ---
+  duration_ms: 0.3611
+  type: 'test'
+  ...
+# Subtest: ensureTableExists deduplicates concurrent table checks
+ok 143 - ensureTableExists deduplicates concurrent table checks
+  ---
+  duration_ms: 0.4788
+  type: 'test'
+  ...
+# Subtest: toRemoteEntity strips inline assets and stores blob paths
+ok 144 - toRemoteEntity strips inline assets and stores blob paths
+  ---
+  duration_ms: 0.6424
+  type: 'test'
+  ...
+# Subtest: deleteRemoteDocumentsMissingLocally removes rows that no longer exist locally
+ok 145 - deleteRemoteDocumentsMissingLocally removes rows that no longer exist locally
+  ---
+  duration_ms: 0.4588
+  type: 'test'
+  ...
+# Subtest: upsertRemoteDocument writes a banner row immediately without waiting for full sync
+ok 146 - upsertRemoteDocument writes a banner row immediately without waiting for full sync
+  ---
+  duration_ms: 0.8661
+  type: 'test'
+  ...
+# Subtest: deleteRemoteDocument removes a banner row immediately without waiting for full sync
+ok 147 - deleteRemoteDocument removes a banner row immediately without waiting for full sync
+  ---
+  duration_ms: 0.7221
+  type: 'test'
+  ...
+# Subtest: createAzureTableCrudAdapter lists records for a partition without mutating local state
+ok 148 - createAzureTableCrudAdapter lists records for a partition without mutating local state
+  ---
+  duration_ms: 0.5514
+  type: 'test'
+  ...
+# Subtest: refreshCollectionsFromAzure pulls remote data into the cache without pushing local-only rows
+ok 149 - refreshCollectionsFromAzure pulls remote data into the cache without pushing local-only rows
+  ---
+  duration_ms: 0.7385
+  type: 'test'
+  ...
+# Subtest: syncDatabaseOnce pulls remote-only banners instead of deleting them on another machine
+ok 150 - syncDatabaseOnce pulls remote-only banners instead of deleting them on another machine
+  ---
+  duration_ms: 4.5051
+  type: 'test'
+  ...
+# Subtest: syncDatabaseOnce can limit work to selected collections
+ok 151 - syncDatabaseOnce can limit work to selected collections
+  ---
+  duration_ms: 0.5642
+  type: 'test'
+  ...
+# Subtest: tutorial template uses theme secondary text color for badge metadata and subtitle
+ok 152 - tutorial template uses theme secondary text color for badge metadata and subtitle
+  ---
+  duration_ms: 28.9871
+  type: 'test'
+  ...
+# Subtest: centered course template uses theme secondary text color for badge and episode metadata
+ok 153 - centered course template uses theme secondary text color for badge and episode metadata
+  ---
+  duration_ms: 6.1779
+  type: 'test'
+  ...
+# Subtest: background template is registered for thumbnail exports
+ok 154 - background template is registered for thumbnail exports
+  ---
+  duration_ms: 2.4013
+  type: 'test'
+  ...
+# Subtest: intro bite and outro templates are registered for thumbnail exports
+ok 155 - intro bite and outro templates are registered for thumbnail exports
+  ---
+  duration_ms: 0.4832
+  type: 'test'
+  ...
+# Subtest: intro split template is registered for thumbnail exports
+ok 156 - intro split template is registered for thumbnail exports
+  ---
+  duration_ms: 0.2857
+  type: 'test'
+  ...
+# Subtest: background template defaults keep only background-specific controls
+ok 157 - background template defaults keep only background-specific controls
+  ---
+  duration_ms: 1.7002
+  type: 'test'
+  ...
+# Subtest: tutorial and centered course templates expose secondary size and advanced style defaults
+ok 158 - tutorial and centered course templates expose secondary size and advanced style defaults
+  ---
+  duration_ms: 1.2648
+  type: 'test'
+  ...
+# Subtest: intro bite and outro templates expose specialized banner defaults
+ok 159 - intro bite and outro templates expose specialized banner defaults
+  ---
+  duration_ms: 0.8379
+  type: 'test'
+  ...
+# Subtest: glass configuration options use percentage-based labels across surfaces, capsules, and borders
+ok 160 - glass configuration options use percentage-based labels across surfaces, capsules, and borders
+  ---
+  duration_ms: 0.9643
+  type: 'test'
+  ...
+# Subtest: intro split template exposes partition, side and split-asset defaults
+ok 161 - intro split template exposes partition, side and split-asset defaults
+  ---
+  duration_ms: 4.4035
+  type: 'test'
+  ...
+# Subtest: default outro arrows use separate width and height controls
+ok 162 - default outro arrows use separate width and height controls
+  ---
+  duration_ms: 2.522
+  type: 'test'
+  ...
+# Subtest: normalizeOutroArrowOverlays migrates legacy size and style fields to width and height
+ok 163 - normalizeOutroArrowOverlays migrates legacy size and style fields to width and height
+  ---
+  duration_ms: 1.9368
+  type: 'test'
+  ...
+# Subtest: grid metrics preserve density across resolutions
+ok 164 - grid metrics preserve density across resolutions
+  ---
+  duration_ms: 2.1641
+  type: 'test'
+  ...
+# Subtest: scaled border width uses a 4k reference and preserves non-zero borders
+ok 165 - scaled border width uses a 4k reference and preserves non-zero borders
+  ---
+  duration_ms: 0.4408
+  type: 'test'
+  ...
+# Subtest: tutorial template supports larger secondary text and glass styling
+ok 166 - tutorial template supports larger secondary text and glass styling
+  ---
+  duration_ms: 41.9313
+  type: 'test'
+  ...
+# Subtest: gradient borders stay inside the frame and use both configured border colors
+ok 167 - gradient borders stay inside the frame and use both configured border colors
+  ---
+  duration_ms: 0.6495
+  type: 'test'
+  ...
+# Subtest: gradient borders fall back to the theme border accent instead of a dark text color
+ok 168 - gradient borders fall back to the theme border accent instead of a dark text color
+  ---
+  duration_ms: 0.6132
+  type: 'test'
+  ...
+# Subtest: frame backgrounds use the configured theme background without adding extra overlay layers
+ok 169 - frame backgrounds use the configured theme background without adding extra overlay layers
+  ---
+  duration_ms: 0.309
+  type: 'test'
+  ...
+# Subtest: panel shadows can be pushed farther from the title surface
+ok 170 - panel shadows can be pushed farther from the title surface
+  ---
+  duration_ms: 0.5717
+  type: 'test'
+  ...
+# Subtest: glass percentage values produce graduated panel and border treatments
+ok 171 - glass percentage values produce graduated panel and border treatments
+  ---
+  duration_ms: 0.8002
+  type: 'test'
+  ...
+# Subtest: centered course metadata honors secondary text size scaling
+ok 172 - centered course metadata honors secondary text size scaling
+  ---
+  duration_ms: 8.0607
+  type: 'test'
+  ...
+# Subtest: centered course renders a faded separator line using the selected border styling
+ok 173 - centered course renders a faded separator line using the selected border styling
+  ---
+  duration_ms: 2.915
+  type: 'test'
+  ...
+# Subtest: centered course skips the background image when the source is blank
+ok 174 - centered course skips the background image when the source is blank
+  ---
+  duration_ms: 3.5443
+  type: 'test'
+  ...
+# Subtest: centered templates render top-left and top-right capsules only when enabled
+ok 175 - centered templates render top-left and top-right capsules only when enabled
+  ---
+  duration_ms: 6.9229
+  type: 'test'
+  ...
+# Subtest: centered templates apply capsule style and color overrides
+ok 176 - centered templates apply capsule style and color overrides
+  ---
+  duration_ms: 3.1446
+  type: 'test'
+  ...
+# Subtest: centered templates accept percentage-based glass capsule styles
+ok 177 - centered templates accept percentage-based glass capsule styles
+  ---
+  duration_ms: 2.995
+  type: 'test'
+  ...
+# Subtest: centered templates keep capsules hidden when their toggles stay off
+ok 178 - centered templates keep capsules hidden when their toggles stay off
+  ---
+  duration_ms: 2.5854
+  type: 'test'
+  ...
+# Subtest: footer size can be increased for centered templates
+ok 179 - footer size can be increased for centered templates
+  ---
+  duration_ms: 2.8401
+  type: 'test'
+  ...
+# Subtest: intro bite template renders source attribution with bite, duration, and speed capsules
+ok 180 - intro bite template renders source attribution with bite, duration, and speed capsules
+  ---
+  duration_ms: 8.0864
+  type: 'test'
+  ...
+# Subtest: intro bite template can hide Bite From and Original Video Title independently
+ok 181 - intro bite template can hide Bite From and Original Video Title independently
+  ---
+  duration_ms: 6.5672
+  type: 'test'
+  ...
+# Subtest: intro bite content stays centered in the capsule-safe region whether source attribution is shown or hidden
+ok 182 - intro bite content stays centered in the capsule-safe region whether source attribution is shown or hidden
+  ---
+  duration_ms: 5.1076
+  type: 'test'
+  ...
+# Subtest: intro split template renders side-aware regions with glass glow divider treatment
+ok 183 - intro split template renders side-aware regions with glass glow divider treatment
+  ---
+  duration_ms: 12.796
+  type: 'test'
+  ...
+# Subtest: intro split supports adjustable title width and side-aware combined course blocks
+ok 184 - intro split supports adjustable title width and side-aware combined course blocks
+  ---
+  duration_ms: 10.4235
+  type: 'test'
+  ...
+# Subtest: intro split lets course gap be tightened independently of course block size
+ok 185 - intro split lets course gap be tightened independently of course block size
+  ---
+  duration_ms: 4.6255
+  type: 'test'
+  ...
+# Subtest: intro split foreground uses contain fit when scale is reduced below 100
+ok 186 - intro split foreground uses contain fit when scale is reduced below 100
+  ---
+  duration_ms: 4.0747
+  type: 'test'
+  ...
+# Subtest: intro split template switches breakpoint divider effects
+ok 187 - intro split template switches breakpoint divider effects
+  ---
+  duration_ms: 13.7072
+  type: 'test'
+  ...
+# Subtest: intro split type capsule uses the same scale-aware sizing as other capsules
+ok 188 - intro split type capsule uses the same scale-aware sizing as other capsules
+  ---
+  duration_ms: 9.3786
+  type: 'test'
+  ...
+# Subtest: intro split renders optional quote style 1 using the updated svg quote layout
+ok 189 - intro split renders optional quote style 1 using the updated svg quote layout
+  ---
+  duration_ms: 10.4663
+  type: 'test'
+  ...
+# Subtest: intro split loads the course capsule into the shared top capsule sequence
+ok 190 - intro split loads the course capsule into the shared top capsule sequence
+  ---
+  duration_ms: 6.3624
+  type: 'test'
+  ...
+# Subtest: intro split course meta shows only lesson progress when course title is empty
+ok 191 - intro split course meta shows only lesson progress when course title is empty
+  ---
+  duration_ms: 3.6391
+  type: 'test'
+  ...
+# Subtest: intro split title block Y spans the full vertical range
+ok 192 - intro split title block Y spans the full vertical range
+  ---
+  duration_ms: 6.4077
+  type: 'test'
+  ...
+# Subtest: intro split keeps capsules above divider and title layers
+ok 193 - intro split keeps capsules above divider and title layers
+  ---
+  duration_ms: 5.5456
+  type: 'test'
+  ...
+# Subtest: intro split supports debug mode type capsule with an icon
+ok 194 - intro split supports debug mode type capsule with an icon
+  ---
+  duration_ms: 4.1348
+  type: 'test'
+  ...
+# Subtest: intro split renders up to three bottom-corner asset icons opposite the title side
+ok 195 - intro split renders up to three bottom-corner asset icons opposite the title side
+  ---
+  duration_ms: 5.3059
+  type: 'test'
+  ...
+# Subtest: intro split foreground can blend selected edges into the background over the last 10 percent
+ok 196 - intro split foreground can blend selected edges into the background over the last 10 percent
+  ---
+  duration_ms: 3.6055
+  type: 'test'
+  ...
+# Subtest: intro split template flips title and foreground regions when title side is right
+ok 197 - intro split template flips title and foreground regions when title side is right
+  ---
+  duration_ms: 3.0628
+  type: 'test'
+  ...
+# Subtest: outro template keeps the CTA band clean for the audio-only outro flow
+ok 198 - outro template keeps the CTA band clean for the audio-only outro flow
+  ---
+  duration_ms: 2.6907
+  type: 'test'
+  ...
+# Subtest: outro template ignores social handles and keeps only headline and support line
+ok 199 - outro template ignores social handles and keeps only headline and support line
+  ---
+  duration_ms: 1.5773
+  type: 'test'
+  ...
+# Subtest: outro support line stays at 80% of headline size
+ok 200 - outro support line stays at 80% of headline size
+  ---
+  duration_ms: 1.7608
+  type: 'test'
+  ...
+# Subtest: outro renders a background svg layer and keeps the stage free of preview-image and arrow overlays
+ok 201 - outro renders a background svg layer and keeps the stage free of preview-image and arrow overlays
+  ---
+  duration_ms: 2.0768
+  type: 'test'
+  ...
+# Subtest: outro renders newline-delimited support lines as separate rows
+ok 202 - outro renders newline-delimited support lines as separate rows
+  ---
+  duration_ms: 2.2824
+  type: 'test'
+  ...
+# Subtest: built-in themes expose editable gradient layers and border colors
+ok 203 - built-in themes expose editable gradient layers and border colors
+  ---
+  duration_ms: 6.2701
+  type: 'test'
+  ...
+# Subtest: createThemeDefinition starts with a complete editable theme draft
+ok 204 - createThemeDefinition starts with a complete editable theme draft
+  ---
+  duration_ms: 1.5623
+  type: 'test'
+  ...
+# Subtest: resolveThemeDefinition falls back to the default seeded theme
+ok 205 - resolveThemeDefinition falls back to the default seeded theme
+  ---
+  duration_ms: 0.5487
+  type: 'test'
+  ...
+# Subtest: renderable themes use generated background css and preserve border defaults
+ok 206 - renderable themes use generated background css and preserve border defaults
+  ---
+  duration_ms: 1.7112
+  type: 'test'
+  ...
+# Subtest: theme export includes full dynamic theme configuration
+ok 207 - theme export includes full dynamic theme configuration
+  ---
+  duration_ms: 0.6549
+  type: 'test'
+  ...
+# Subtest: theme export can generate a React page that preserves the background algorithm
+ok 208 - theme export can generate a React page that preserves the background algorithm
+  ---
+  duration_ms: 0.788
+  type: 'test'
+  ...
+1..208
+# tests 208
+# suites 0
+# pass 208
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8325.0522

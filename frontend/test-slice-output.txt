@@ -1,0 +1,575 @@
+TAP version 13
+# Subtest: tutorial-style templates expose pip logo and anchored tutorial image controls
+ok 1 - tutorial-style templates expose pip logo and anchored tutorial image controls
+  ---
+  duration_ms: 2.6993
+  type: 'test'
+  ...
+# Subtest: centered templates hide tutorial image controls entirely
+ok 2 - centered templates hide tutorial image controls entirely
+  ---
+  duration_ms: 0.421
+  type: 'test'
+  ...
+# Subtest: background template keeps border and grid controls while making the logo optional
+ok 3 - background template keeps border and grid controls while making the logo optional
+  ---
+  duration_ms: 0.1937
+  type: 'test'
+  ...
+# Subtest: intro bite and outro stay on the shared audio workflow without youtube overlay controls
+ok 4 - intro bite and outro stay on the shared audio workflow without youtube overlay controls
+  ---
+  duration_ms: 0.2078
+  type: 'test'
+  ...
+# Subtest: intro and outro templates persist shared audio selections under stable field ids
+ok 5 - intro and outro templates persist shared audio selections under stable field ids
+  ---
+  duration_ms: 0.2346
+  type: 'test'
+  ...
+# Subtest: motion audio start offset defaults to 2 seconds and clamps to the available range
+ok 6 - motion audio start offset defaults to 2 seconds and clamps to the available range
+  ---
+  duration_ms: 0.2894
+  type: 'test'
+  ...
+# Subtest: save dialog starts from the current banner and keeps overwrite intent explicit
+ok 7 - save dialog starts from the current banner and keeps overwrite intent explicit
+  ---
+  duration_ms: 0.3322
+  type: 'test'
+  ...
+# Subtest: save dialog defaults to a new copy when the draft is not linked to a saved banner
+ok 8 - save dialog defaults to a new copy when the draft is not linked to a saved banner
+  ---
+  duration_ms: 0.1696
+  type: 'test'
+  ...
+# Subtest: load dialog falls back to the most recent banner when nothing is selected yet
+ok 9 - load dialog falls back to the most recent banner when nothing is selected yet
+  ---
+  duration_ms: 0.3218
+  type: 'test'
+  ...
+# Subtest: theme border color follows the selected theme accent by default
+ok 10 - theme border color follows the selected theme accent by default
+  ---
+  duration_ms: 0.655
+  type: 'test'
+  ...
+# Subtest: theme border color prefers the saved dynamic theme value when provided
+ok 11 - theme border color prefers the saved dynamic theme value when provided
+  ---
+  duration_ms: 0.1853
+  type: 'test'
+  ...
+# Subtest: brand logo size is clamped to the supported thumbnail range
+ok 12 - brand logo size is clamped to the supported thumbnail range
+  ---
+  duration_ms: 0.1574
+  type: 'test'
+  ...
+# Subtest: motion duration defaults to 3 seconds and clamps unsupported values
+ok 13 - motion duration defaults to 3 seconds and clamps unsupported values
+  ---
+  duration_ms: 0.1664
+  type: 'test'
+  ...
+# Subtest: export action loading state only marks the currently running export control as loading
+ok 14 - export action loading state only marks the currently running export control as loading
+  ---
+  duration_ms: 0.4274
+  type: 'test'
+  ...
+# Subtest: copyright defaults stay aligned across thumbnail templates
+ok 15 - copyright defaults stay aligned across thumbnail templates
+  ---
+  duration_ms: 0.158
+  type: 'test'
+  ...
+# Subtest: content field rows keep centered template controls paired on one line
+ok 16 - content field rows keep centered template controls paired on one line
+  ---
+  duration_ms: 0.447
+  type: 'test'
+  ...
+# Subtest: content field rows keep intro bite attribution and capsule controls paired
+ok 17 - content field rows keep intro bite attribution and capsule controls paired
+  ---
+  duration_ms: 0.2065
+  type: 'test'
+  ...
+# Subtest: content field rows keep intro split partition and asset controls paired
+ok 18 - content field rows keep intro split partition and asset controls paired
+  ---
+  duration_ms: 0.3806
+  type: 'test'
+  ...
+# Subtest: content field rows keep intro split course controls grouped with the type capsule
+ok 19 - content field rows keep intro split course controls grouped with the type capsule
+  ---
+  duration_ms: 0.2429
+  type: 'test'
+  ...
+# Subtest: content field rows keep outro background asset controls out of the content section
+ok 20 - content field rows keep outro background asset controls out of the content section
+  ---
+  duration_ms: 0.1847
+  type: 'test'
+  ...
+# Subtest: thumbnail page title includes app, module, and active template name
+ok 21 - thumbnail page title includes app, module, and active template name
+  ---
+  duration_ms: 0.203
+  type: 'test'
+  ...
+# Subtest: split templates bind the selected foreground asset to the rendered foreground image
+ok 22 - split templates bind the selected foreground asset to the rendered foreground image
+  ---
+  duration_ms: 0.3951
+  type: 'test'
+  ...
+# Subtest: shared settings logo replaces the preview logo when the preview still points at the previous shared asset
+ok 23 - shared settings logo replaces the preview logo when the preview still points at the previous shared asset
+  ---
+  duration_ms: 0.1668
+  type: 'test'
+  ...
+# Subtest: shared settings logo sync does not overwrite a custom local preview logo
+ok 24 - shared settings logo sync does not overwrite a custom local preview logo
+  ---
+  duration_ms: 0.1243
+  type: 'test'
+  ...
+# Subtest: persisted banner state omits inherited shared logos so saved banners do not snapshot stale shared assets
+ok 25 - persisted banner state omits inherited shared logos so saved banners do not snapshot stale shared assets
+  ---
+  duration_ms: 0.5507
+  type: 'test'
+  ...
+# Subtest: loaded banner state upgrades previously saved shared logo paths to the current shared logo
+ok 26 - loaded banner state upgrades previously saved shared logo paths to the current shared logo
+  ---
+  duration_ms: 0.2761
+  type: 'test'
+  ...
+# Subtest: background template is registered for thumbnail exports
+ok 27 - background template is registered for thumbnail exports
+  ---
+  duration_ms: 1.6613
+  type: 'test'
+  ...
+# Subtest: intro bite and outro templates are registered for thumbnail exports
+ok 28 - intro bite and outro templates are registered for thumbnail exports
+  ---
+  duration_ms: 1.2188
+  type: 'test'
+  ...
+# Subtest: intro split template is registered for thumbnail exports
+ok 29 - intro split template is registered for thumbnail exports
+  ---
+  duration_ms: 0.194
+  type: 'test'
+  ...
+# Subtest: background template defaults keep only background-specific controls
+ok 30 - background template defaults keep only background-specific controls
+  ---
+  duration_ms: 1.1355
+  type: 'test'
+  ...
+# Subtest: tutorial and centered course templates expose secondary size and advanced style defaults
+ok 31 - tutorial and centered course templates expose secondary size and advanced style defaults
+  ---
+  duration_ms: 0.7758
+  type: 'test'
+  ...
+# Subtest: intro bite and outro templates expose specialized banner defaults
+ok 32 - intro bite and outro templates expose specialized banner defaults
+  ---
+  duration_ms: 0.4755
+  type: 'test'
+  ...
+# Subtest: glass configuration options use percentage-based labels across surfaces, capsules, and borders
+ok 33 - glass configuration options use percentage-based labels across surfaces, capsules, and borders
+  ---
+  duration_ms: 0.543
+  type: 'test'
+  ...
+# Subtest: intro split template exposes partition, side and split-asset defaults
+not ok 34 - intro split template exposes partition, side and split-asset defaults
+  ---
+  duration_ms: 6.895
+  type: 'test'
+  location: 'D:\\.sources\\utils\\audio\\voice_clone_translate\\apps\\localm_intro_outro\\frontend\\tests\\templates\\index.test.ts:1:9007'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    ... Skipped lines
+    
+      {
+        border_color_secondary: '',
+        border_style: 'solid',
+        capsule_size: 'small',
+        capsule_style: 'glass-40',
+    ...
+        split_quote_font_size: '100',
+    -   split_quote_mark_size: '100',
+        split_quote_style: 'size_1',
+        split_quote_text: 'What if your data pipeline fixed itself before you even got the alert?',
+        split_quote_width: '72',
+        split_quote_y: '0',
+        split_title_block_y: '0',
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    title: 'AI Voice Cloning in 45 Seconds'
+    title_size: 'lg'
+    split_title_side: 'left'
+    split_partition_points: '(12, 3), (12, 24)'
+    split_breakpoint_effect: 'glass'
+    split_background_svg_asset_id: ''
+    split_background_opacity: '55'
+    split_background_scale: '100'
+    split_background_x: '0'
+    split_background_y: '0'
+    split_foreground_asset_id: ''
+    split_foreground_scale: '108'
+    split_foreground_x: '0'
+    split_foreground_y: '0'
+    split_type_capsule: 'bite'
+    split_title_width: '46'
+    split_title_block_y: '0'
+    split_quote_enabled: 'false'
+    split_quote_style: 'size_1'
+    split_quote_text: 'What if your data pipeline fixed itself before you even got the alert?'
+    split_quote_y: '0'
+    split_quote_font_size: '100'
+    split_quote_mark_size: '100'
+    split_quote_width: '72'
+    split_course_title: 'GitHub Copilot Bootcamp'
+    split_course_lesson_current: '01'
+    split_course_lesson_total: '10'
+    split_course_title_gap: '60'
+    split_course_block_size: '100'
+    split_corner_icon_asset_id_1: ''
+    split_corner_icon_asset_id_2: ''
+    split_corner_icon_asset_id_3: ''
+    split_corner_icon_size: '100'
+    show_duration_capsule: 'false'
+    show_level_capsule: 'false'
+    show_instructor_capsule: 'false'
+    show_hands_on_lab_capsule: 'false'
+    capsule_style: 'glass-40'
+    capsule_size: 'small'
+    surface_style: 'standard'
+    surface_shadow: 'middle'
+    border_style: 'solid'
+    border_color_secondary: ''
+    show_grid: 'true'
+    grid_pattern: 'dots'
+    footer_size: 'small'
+  actual:
+    title: 'AI Voice Cloning in 45 Seconds'
+    title_size: 'lg'
+    split_title_side: 'left'
+    split_partition_points: '(12, 3), (12, 24)'
+    split_breakpoint_effect: 'glass'
+    split_background_svg_asset_id: ''
+    split_background_opacity: '55'
+    split_background_scale: '100'
+    split_background_x: '0'
+    split_background_y: '0'
+    split_foreground_asset_id: ''
+    split_foreground_scale: '108'
+    split_foreground_x: '0'
+    split_foreground_y: '0'
+    split_type_capsule: 'bite'
+    split_title_width: '46'
+    split_title_block_y: '0'
+    split_quote_enabled: 'false'
+    split_quote_style: 'size_1'
+    split_quote_text: 'What if your data pipeline fixed itself before you even got the alert?'
+    split_quote_y: '0'
+    split_quote_font_size: '100'
+    split_quote_width: '72'
+    split_course_title: 'GitHub Copilot Bootcamp'
+    split_course_lesson_current: '01'
+    split_course_lesson_total: '10'
+    split_course_title_gap: '60'
+    split_course_block_size: '100'
+    split_corner_icon_asset_id_1: ''
+    split_corner_icon_asset_id_2: ''
+    split_corner_icon_asset_id_3: ''
+    split_corner_icon_size: '100'
+    show_duration_capsule: 'false'
+    show_level_capsule: 'false'
+    show_instructor_capsule: 'false'
+    show_hands_on_lab_capsule: 'false'
+    capsule_style: 'glass-40'
+    capsule_size: 'small'
+    surface_style: 'standard'
+    surface_shadow: 'middle'
+    border_style: 'solid'
+    border_color_secondary: ''
+    show_grid: 'true'
+    grid_pattern: 'dots'
+    footer_size: 'small'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (D:\.sources\utils\audio\voice_clone_translate\apps\localm_intro_outro\frontend\tests\templates\index.test.ts:301:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: tutorial template supports larger secondary text and glass styling
+ok 35 - tutorial template supports larger secondary text and glass styling
+  ---
+  duration_ms: 16.7292
+  type: 'test'
+  ...
+# Subtest: gradient borders stay inside the frame and use both configured border colors
+ok 36 - gradient borders stay inside the frame and use both configured border colors
+  ---
+  duration_ms: 0.2974
+  type: 'test'
+  ...
+# Subtest: gradient borders fall back to the theme border accent instead of a dark text color
+ok 37 - gradient borders fall back to the theme border accent instead of a dark text color
+  ---
+  duration_ms: 0.3178
+  type: 'test'
+  ...
+# Subtest: frame backgrounds use the configured theme background without adding extra overlay layers
+ok 38 - frame backgrounds use the configured theme background without adding extra overlay layers
+  ---
+  duration_ms: 0.1684
+  type: 'test'
+  ...
+# Subtest: panel shadows can be pushed farther from the title surface
+ok 39 - panel shadows can be pushed farther from the title surface
+  ---
+  duration_ms: 0.2709
+  type: 'test'
+  ...
+# Subtest: glass percentage values produce graduated panel and border treatments
+ok 40 - glass percentage values produce graduated panel and border treatments
+  ---
+  duration_ms: 0.3998
+  type: 'test'
+  ...
+# Subtest: centered course metadata honors secondary text size scaling
+ok 41 - centered course metadata honors secondary text size scaling
+  ---
+  duration_ms: 2.791
+  type: 'test'
+  ...
+# Subtest: centered course renders a faded separator line using the selected border styling
+ok 42 - centered course renders a faded separator line using the selected border styling
+  ---
+  duration_ms: 1.6671
+  type: 'test'
+  ...
+# Subtest: centered course skips the background image when the source is blank
+ok 43 - centered course skips the background image when the source is blank
+  ---
+  duration_ms: 1.7637
+  type: 'test'
+  ...
+# Subtest: centered templates render top-left and top-right capsules only when enabled
+ok 44 - centered templates render top-left and top-right capsules only when enabled
+  ---
+  duration_ms: 4.1038
+  type: 'test'
+  ...
+# Subtest: centered templates apply capsule style and color overrides
+ok 45 - centered templates apply capsule style and color overrides
+  ---
+  duration_ms: 1.6969
+  type: 'test'
+  ...
+# Subtest: centered templates accept percentage-based glass capsule styles
+ok 46 - centered templates accept percentage-based glass capsule styles
+  ---
+  duration_ms: 1.6577
+  type: 'test'
+  ...
+# Subtest: centered templates keep capsules hidden when their toggles stay off
+ok 47 - centered templates keep capsules hidden when their toggles stay off
+  ---
+  duration_ms: 1.4428
+  type: 'test'
+  ...
+# Subtest: footer size can be increased for centered templates
+ok 48 - footer size can be increased for centered templates
+  ---
+  duration_ms: 1.4757
+  type: 'test'
+  ...
+# Subtest: intro bite template renders source attribution with bite, duration, and speed capsules
+ok 49 - intro bite template renders source attribution with bite, duration, and speed capsules
+  ---
+  duration_ms: 3.7806
+  type: 'test'
+  ...
+# Subtest: intro bite template can hide Bite From and Original Video Title independently
+ok 50 - intro bite template can hide Bite From and Original Video Title independently
+  ---
+  duration_ms: 1.7763
+  type: 'test'
+  ...
+# Subtest: intro bite content stays centered in the capsule-safe region whether source attribution is shown or hidden
+ok 51 - intro bite content stays centered in the capsule-safe region whether source attribution is shown or hidden
+  ---
+  duration_ms: 2.7013
+  type: 'test'
+  ...
+# Subtest: intro split template renders side-aware regions with glass glow divider treatment
+ok 52 - intro split template renders side-aware regions with glass glow divider treatment
+  ---
+  duration_ms: 5.8441
+  type: 'test'
+  ...
+# Subtest: intro split supports adjustable title width and side-aware combined course blocks
+ok 53 - intro split supports adjustable title width and side-aware combined course blocks
+  ---
+  duration_ms: 4.6623
+  type: 'test'
+  ...
+# Subtest: intro split lets course gap be tightened independently of course block size
+ok 54 - intro split lets course gap be tightened independently of course block size
+  ---
+  duration_ms: 2.633
+  type: 'test'
+  ...
+# Subtest: intro split foreground uses contain fit when scale is reduced below 100
+ok 55 - intro split foreground uses contain fit when scale is reduced below 100
+  ---
+  duration_ms: 3.4077
+  type: 'test'
+  ...
+# Subtest: intro split template switches breakpoint divider effects
+ok 56 - intro split template switches breakpoint divider effects
+  ---
+  duration_ms: 9.7188
+  type: 'test'
+  ...
+# Subtest: intro split type capsule uses the same scale-aware sizing as other capsules
+ok 57 - intro split type capsule uses the same scale-aware sizing as other capsules
+  ---
+  duration_ms: 3.0341
+  type: 'test'
+  ...
+# Subtest: intro split renders optional quote style 1 in a title-aligned layer with separate text and mark sizing
+not ok 58 - intro split renders optional quote style 1 in a title-aligned layer with separate text and mark sizing
+  ---
+  duration_ms: 10.9721
+  type: 'test'
+  location: 'D:\\.sources\\utils\\audio\\voice_clone_translate\\apps\\localm_intro_outro\\frontend\\tests\\templates\\styles.test.tsx:1:22688'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /What if your data pipeline/. Input:
+    
+    '<div style="width:3840px;height:2160px;box-sizing:border-box;position:relative;overflow:hidden;font-family:&#x27;Outfit&#x27;, sans-serif;background:linear-gradient(135deg, #0b1120, #111827, #1e293b);border-width:24px;border-style:solid;border-color:#22d3ee"><svg width="3840" height="2160" style="position:absolute;top:0;left:0;opacity:0.22"><defs><pattern id="intro-split-dots" x="0" y="0" width="113" height="113" patternUnits="userSpaceOnUse"><circle cx="56" cy="56" r="8" fill="#22d3ee"></circle></pattern></defs><rect width="100%" height="100%" fill="url(#intro-split-dots)"></rect></svg><div data-template-region="intro-split-foreground-right" style="position:absolute;inset:0;clip-path:polygon(100% 0%, 50.00% 100.00%, 50.00% 100.00%, 50.00% 12.50%, 50.00% 0.00%, 100% 100%);z-index:2;overflow:hidden"><div style="position:absolute;inset:0;background:radial-gradient(circle at 72% 28%, rgba(255,255,255,0.16), rgba(255,255,255,0) 58%), radial-gradient(circle at 55% 72%, rgba(255,255,255,0.12), rgba(255,255,255,0) 64%)"></div></div><div data-template-region="intro-split-title-left" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-start;padding:0 336px;z-index:30;pointer-events:none"><div data-template-region="intro-split-quote-anchor" style="position:absolute;top:0px;width:1766px;max-width:46%;left:336px;display:flex;justify-content:flex-start"><div data-template-region="intro-split-quote-block" style="width:68%;max-width:100%;display:flex;flex-direction:column;align-items:flex-start"><div data-template-region="intro-split-quote-content" style="position:relative;width:100%;min-height:830px;padding-left:295px"><div data-template-region="intro-split-quote-mark" style="position:absolute;top:0;left:0;color:#94a3b8;font-family:Georgia, serif;font-size:189px;font-weight:700;line-height:0.82">ÔÇ£</div><div data-template-region="intro-split-quote-text" style="color:#f8fafc;font-family:&#x27;Outfit&#x27;, sans-serif;font-size:126px;font-weight:500;line-height:166px;text-align:left"><div>What if your</div><div>data pipeline</div><div>fixed itself</div><div>before you even</div><div>got the alert?</div></div></div></div></div><div data-template-region="intro-split-title-panel" style="width:1766px;max-width:46%;position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:60px 0;text-align:left"><div data-template-region="intro-split-title-stack" style="display:flex;flex-direction:column;align-items:flex-start;width:100%"><div data-template-region="intro-split-title-text" style="color:#f8fafc;font-size:166px;font-weight:820;line-height:1.1;letter-spacing:-0.01em;font-family:&#x27;Share Tech Mono&#x27;, monospace;width:100%;text-align:left">Context Engineering</div></div></div></div><svg data-template-region="intro-split-divider-glow" width="3840" height="2160" style="position:absolute;inset:0;z-index:3;pointer-events:none"><defs><linearGradient id="intro-split-glass-gradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="rgba(255,255,255,0)"></stop><stop offset="50%" stop-color="rgba(255,255,255,0.9)"></stop><stop offset="100%" stop-color="rgba(255,255,255,0)"></stop></linearGradient></defs><polyline points="1920.00,0.00 1920.00,270.00 1920.00,2160.00 1920.00,2160.00" fill="none" stroke="url(#intro-split-glass-gradient)" stroke-width="72" stroke-linejoin="round" stroke-linecap="round" opacity="0.14" style="filter:blur(15px)"></polyline><polyline points="1920.00,0.00 1920.00,270.00 1920.00,2160.00 1920.00,2160.00" fill="none" stroke="#22d3ee" stroke-width="42" stroke-linejoin="round" stroke-linecap="round" opacity="0.08" style="filter:blur(12px)"></polyline></svg><div data-capsule-position="top-left" style="position:absolute;top:108px;left:120px;display:flex;align-items:center;justify-content:flex-start;gap:36px;z-index:40"><div data-capsule-kind="split-type" style="display:inline-flex;align-items:center;gap:30px;padding:30px 54px;border-radius:2997px;background:rgba(34, 211, 238, 0.220);border:1px solid rgba(34, 211, 238, 0.520);box-shadow:0 27px 63px rgba(34, 211, 238, 0.180);color:#f8fafc;font-weight:700;letter-spacing:0.03em;white-space:nowrap;font-family:&#x27;Outfit&#x27;, sans-serif;font-size:54px"><svg width="68" height="68" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5.5 7.5L12 4.2L18.5 7.5V16.5L12 19.8L5.5 16.5V7.5Z" stroke="#22d3ee" stroke-width="1.8" stroke-linejoin="round"></path><path d="M9 12H15" stroke="#22d3ee" stroke-width="1.8" stroke-linecap="round"></path></svg><span>BITE</span></div></div><div style="position:absolute;bottom:36px;left:72px;right:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:4"><div style="margin-top:24px;color:#94a3b8;font-family:&#x27;Outfit&#x27;, sans-serif;font-size:81px;opacity:0.72;text-align:center">┬® 2026 LocalMÔäó</div></div></div>'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: '<div style="width:3840px;height:2160px;box-sizing:border-box;position:relative;overflow:hidden;font-family:&#x27;Outfit&#x27;, sans-serif;background:linear-gradient(135deg, #0b1120, #111827, #1e293b);border-width:24px;border-style:solid;border-color:#22d3ee"><svg width="3840" height="2160" style="position:absolute;top:0;left:0;opacity:0.22"><defs><pattern id="intro-split-dots" x="0" y="0" width="113" height="113" patternUnits="userSpaceOnUse"><circle cx="56" cy="56" r="8" fill="#22d3ee"></circle></pattern></defs><rect width="100%" height="100%" fill="url(#intro-split-dots)"></rect></svg><div data-template-region="intro-split-foreground-right" style="position:absolute;inset:0;clip-path:polygon(100% 0%, 50.00% 100.00%, 50.00% 100.00%, 50.00% 12.50%, 50.00% 0.00%, 100% 100%);z-index:2;overflow:hidden"><div style="position:absolute;inset:0;background:radial-gradient(circle at 72% 28%, rgba(255,255,255,0.16), rgba(255,255,255,0) 58%), radial-gradient(circle at 55% 72%, rgba(255,255,255,0.12), rgba(255,255,255,0) 64%)"></div></div><div data-template-region="intro-split-title-left" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-start;padding:0 336px;z-index:30;pointer-events:none"><div data-template-region="intro-split-quote-anchor" style="position:absolute;top:0px;width:1766px;max-width:46%;left:336px;display:flex;justify-content:flex-start"><div data-template-region="intro-split-quote-block" style="width:68%;max-width:100%;display:flex;flex-direction:column;align-items:flex-start"><div data-template-region="intro-split-quote-content" style="position:relative;width:100%;min-height:830px;padding-left:295px"><div data-template-region="intro-split-quote-mark" style="position:absolute;top:0;left:0;color:#94a3b8;font-family:Georgia, serif;font-size:189px;font-weight:700;line-height:0.82">ÔÇ£</div><div data-template-region="intro-split-quote-text" style="color:#f8fafc;font-family:&#x27;Outfit&#x27;, sans-serif;font-size:126px;font-weight:500;line-height:166px;text-align:left"><div>What if your</div><div>data pipeline</div><div>fixed itself</div><div>before you even</div><div>got the alert?</div></div></div></div></div><div data-template-region="intro-split-title-panel" style="width:1766px;max-width:46%;position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:60px 0;text-align:left"><div data-template-region="intro-split-title-stack" style="display:flex;flex-direction:column;align-items:flex-start;width:100%"><div data-template-region="intro-split-title-text" style="color:#f8fafc;font-size:166px;font-weight:820;line-height:1.1;letter-spacing:-0.01em;font-family:&#x27;Share Tech Mono&#x27;, monospace;width:100%;text-align:left">Context Engineering</div></div></div></div><svg data-template-region="intro-split-divider-glow" width="3840" height="2160" style="position:absolute;inset:0;z-index:3;pointer-events:none"><defs><linearGradient id="intro-split-glass-gradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="rgba(255,255,255,0)"></stop><stop offset="50%" stop-color="rgba(255,255,255,0.9)"></stop><stop offset="100%" stop-color="rgba(255,255,255,0)"></stop></linearGradient></defs><polyline points="1920.00,0.00 1920.00,270.00 1920.00,2160.00 1920.00,2160.00" fill="none" stroke="url(#intro-split-glass-gradient)" stroke-width="72" stroke-linejoin="round" stroke-linecap="round" opacity="0.14" style="filter:blur(15px)"></polyline><polyline points="1920.00,0.00 1920.00,270.00 1920.00,2160.00 1920.00,2160.00" fill="none" stroke="#22d3ee" stroke-width="42" stroke-linejoin="round" stroke-linecap="round" opacity="0.08" style="filter:blur(12px)"></polyline></svg><div data-capsule-position="top-left" style="position:absolute;top:108px;left:120px;display:flex;align-items:center;justify-content:flex-start;gap:36px;z-index:40"><div data-capsule-kind="split-type" style="display:inline-flex;align-items:center;gap:30px;padding:30px 54px;border-radius:2997px;background:rgba(34, 211, 238, 0.220);border:1px solid rgba(34, 211, 238, 0.520);box-shadow:0 27px 63px rgba(34, 211, 238, 0.180);color:#f8fafc;font-weight:700;letter-spacing:0.03em;white-space:nowrap;font-family:&#x27;Outfit&#x27;, sans-serif;font-size:54px"><svg width="68" height="68" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5.5 7.5L12 4.2L18.5 7.5V16.5L12 19.8L5.5 16.5V7.5Z" stroke="#22d3ee" stroke-width="1.8" stroke-linejoin="round"></path><path d="M9 12H15" stroke="#22d3ee" stroke-width="1.8" stroke-linecap="round"></path></svg><span>BITE</span></div></div><div style="position:absolute;bottom:36px;left:72px;right:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:4"><div style="margin-top:24px;color:#94a3b8;font-family:&#x27;Outfit&#x27;, sans-serif;font-size:81px;opacity:0.72;text-align:center">┬® 2026 LocalMÔäó</div></div></div>'
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (D:\.sources\utils\audio\voice_clone_translate\apps\localm_intro_outro\frontend\tests\templates\styles.test.tsx:898:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: intro split loads the course capsule into the shared top capsule sequence
+ok 59 - intro split loads the course capsule into the shared top capsule sequence
+  ---
+  duration_ms: 3.4361
+  type: 'test'
+  ...
+# Subtest: intro split title block Y spans the full vertical range
+ok 60 - intro split title block Y spans the full vertical range
+  ---
+  duration_ms: 3.6376
+  type: 'test'
+  ...
+# Subtest: intro split keeps capsules above divider and title layers
+ok 61 - intro split keeps capsules above divider and title layers
+  ---
+  duration_ms: 2.254
+  type: 'test'
+  ...
+# Subtest: intro split supports debug mode type capsule with an icon
+ok 62 - intro split supports debug mode type capsule with an icon
+  ---
+  duration_ms: 2.0366
+  type: 'test'
+  ...
+# Subtest: intro split renders up to three bottom-corner asset icons opposite the title side
+ok 63 - intro split renders up to three bottom-corner asset icons opposite the title side
+  ---
+  duration_ms: 2.5878
+  type: 'test'
+  ...
+# Subtest: intro split foreground can blend selected edges into the background over the last 10 percent
+ok 64 - intro split foreground can blend selected edges into the background over the last 10 percent
+  ---
+  duration_ms: 2.3618
+  type: 'test'
+  ...
+# Subtest: intro split template flips title and foreground regions when title side is right
+ok 65 - intro split template flips title and foreground regions when title side is right
+  ---
+  duration_ms: 1.8352
+  type: 'test'
+  ...
+# Subtest: outro template keeps the CTA band clean for the audio-only outro flow
+ok 66 - outro template keeps the CTA band clean for the audio-only outro flow
+  ---
+  duration_ms: 1.7086
+  type: 'test'
+  ...
+# Subtest: outro template ignores social handles and keeps only headline and support line
+ok 67 - outro template ignores social handles and keeps only headline and support line
+  ---
+  duration_ms: 0.9145
+  type: 'test'
+  ...
+# Subtest: outro support line stays at 80% of headline size
+ok 68 - outro support line stays at 80% of headline size
+  ---
+  duration_ms: 0.9485
+  type: 'test'
+  ...
+# Subtest: outro renders a background svg layer and keeps the stage free of preview-image and arrow overlays
+ok 69 - outro renders a background svg layer and keeps the stage free of preview-image and arrow overlays
+  ---
+  duration_ms: 1.0126
+  type: 'test'
+  ...
+# Subtest: outro renders newline-delimited support lines as separate rows
+ok 70 - outro renders newline-delimited support lines as separate rows
+  ---
+  duration_ms: 0.8756
+  type: 'test'
+  ...
+1..70
+# tests 70
+# suites 0
+# pass 68
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 653.8027

@@ -75,7 +75,7 @@ test("background template keeps border and grid controls while making the logo o
   });
 });
 
-test("intro bite and outro stay on the shared audio workflow without youtube overlay controls", () => {
+test("intro bite, intro split, and outro stay on the shared audio workflow without youtube overlay controls", () => {
   assert.deepEqual(getThumbnailTemplateCapabilities("intro_bite_thumbnail"), {
     showsBrandLogo: false,
     showsTutorialImage: false,
@@ -100,13 +100,17 @@ test("intro bite and outro stay on the shared audio workflow without youtube ove
     showsTutorialImageBottomPadding: false,
     showsTutorialImageOpacity: false,
     showsYoutubeOverlayAsset: false,
-    showsSharedAudioAsset: false,
+    showsSharedAudioAsset: true,
   });
 });
 
-test("intro and outro templates persist shared audio selections under stable field ids", () => {
+test("intro, intro split, and outro templates persist shared audio selections under stable field ids", () => {
   assert.equal(
     getTemplateAudioAssetFieldId("intro_bite_thumbnail"),
+    "intro_audio_asset_id",
+  );
+  assert.equal(
+    getTemplateAudioAssetFieldId("intro_split_thumbnail"),
     "intro_audio_asset_id",
   );
   assert.equal(
@@ -117,6 +121,10 @@ test("intro and outro templates persist shared audio selections under stable fie
 
   assert.equal(
     getTemplateAudioStartFieldId("intro_bite_thumbnail"),
+    "intro_audio_start_seconds",
+  );
+  assert.equal(
+    getTemplateAudioStartFieldId("intro_split_thumbnail"),
     "intro_audio_start_seconds",
   );
   assert.equal(
@@ -531,6 +539,51 @@ test("content field rows keep intro split course controls grouped with the type 
         type: "select",
       },
       {
+        id: "split_title_block_y",
+        label: "Title Block Y",
+        type: "slider",
+      },
+      {
+        id: "split_quote_style",
+        label: "Quote Style",
+        type: "select",
+      },
+      {
+        id: "split_quote_bold",
+        label: "Quote Bold",
+        type: "select",
+      },
+      {
+        id: "split_quote_text",
+        label: "Quote Text",
+        type: "text",
+      },
+      {
+        id: "split_quote_x",
+        label: "Quote X",
+        type: "slider",
+      },
+      {
+        id: "split_quote_y",
+        label: "Quote Y",
+        type: "slider",
+      },
+      {
+        id: "split_quote_font_size",
+        label: "Quote Text Size",
+        type: "slider",
+      },
+      {
+        id: "split_quote_mark_size",
+        label: "Quote Mark Size",
+        type: "slider",
+      },
+      {
+        id: "split_quote_width",
+        label: "Quote Width",
+        type: "slider",
+      },
+      {
         id: "split_course_block_size",
         label: "Course Block Size",
         type: "slider",
@@ -550,15 +603,31 @@ test("content field rows keep intro split course controls grouped with the type 
         label: "Total Lessons",
         type: "text",
       },
+      {
+        id: "split_course_title_gap",
+        label: "Course Gap",
+        type: "slider",
+      },
       { id: "show_grid", label: "Show Grid Pattern", type: "select" },
       { id: "grid_pattern", label: "Grid Pattern", type: "select" },
     ]),
     [
       ["title"],
       ["split_type_capsule", "split_course_title"],
+      ["split_title_block_y"],
+      ["split_quote_style", "split_quote_bold"],
+      ["split_quote_text"],
+      [
+        "split_quote_x",
+        "split_quote_y",
+        "split_quote_font_size",
+        "split_quote_mark_size",
+        "split_quote_width",
+      ],
       [
         "split_course_lesson_current",
         "split_course_lesson_total",
+        "split_course_title_gap",
         "split_course_block_size",
       ],
       ["show_grid", "grid_pattern"],
@@ -571,6 +640,11 @@ test("content field rows keep outro background asset controls out of the content
     buildThumbnailContentFieldRows([
       { id: "title", label: "Headline", type: "text" },
       { id: "subtitle", label: "Support Line", type: "text" },
+      {
+        id: "outro_headline_background",
+        label: "Headline Background",
+        type: "select",
+      },
       {
         id: "outro_background_svg_asset_id",
         label: "Background SVG Asset",
@@ -604,7 +678,7 @@ test("content field rows keep outro background asset controls out of the content
     [
       ["title"],
       ["subtitle"],
-      ["title_size", "secondary_size"],
+      ["title_size", "secondary_size", "outro_headline_background"],
       ["show_grid", "grid_pattern"],
     ],
   );

@@ -15,7 +15,9 @@ type CapsuleKind =
   | "instructor"
   | "hands-on-lab"
   | "bite"
-  | "speed";
+  | "speed"
+  | "split-type";
+export type ThumbnailCapsulePosition = "top-left" | "top-right";
 type CapsuleLevel = "beginner" | "intermediate" | "advanced" | "expert";
 type CapsuleSizePreset = "small" | "medium" | "large";
 type CapsuleVariant = "default" | "intro-bite";
@@ -36,11 +38,25 @@ interface CapsuleSizing {
 }
 
 interface CapsuleDescriptor {
+  key: string;
   kind: CapsuleKind;
   text: string;
-  position: CapsulePosition;
+  position: ThumbnailCapsulePosition;
   color: string;
   icon: ReactNode;
+  order: number;
+  styleOverrides?: CSSProperties;
+}
+
+export interface ExtraThumbnailCapsule {
+  key: string;
+  kind?: CapsuleKind;
+  text: string;
+  position: ThumbnailCapsulePosition;
+  color: string;
+  icon: ReactNode;
+  order?: number;
+  styleOverrides?: CSSProperties;
 }
 
 const LEVEL_CONFIG: Record<CapsuleLevel, { label: string; color: string }> = {
@@ -264,10 +280,12 @@ function buildCapsules(
 
     capsules.push({
       kind: "duration",
+      key: "duration",
       text: durationText,
       position: isIntroBiteVariant ? "top-right" : "top-left",
       color: durationColor,
       icon: <ClockIcon size={sizing.iconSize} color={durationColor} />,
+      order: 10,
     });
   }
 
@@ -280,10 +298,12 @@ function buildCapsules(
 
     capsules.push({
       kind: "bite",
+      key: "bite",
       text: biteText,
       position: "top-left",
       color: biteColor,
       icon: <BiteIcon size={sizing.iconSize} color={biteColor} />,
+      order: 10,
     });
   }
 
@@ -296,10 +316,12 @@ function buildCapsules(
 
     capsules.push({
       kind: "speed",
+      key: "speed",
       text: speedText,
       position: "top-right",
       color: speedColor,
       icon: <SpeedIcon size={sizing.iconSize} color={speedColor} />,
+      order: 10,
     });
   }
 
@@ -314,6 +336,7 @@ function buildCapsules(
 
     capsules.push({
       kind: "level",
+      key: "level",
       text: config.label,
       position: "top-right",
       color: levelColor,
@@ -330,6 +353,7 @@ function buildCapsules(
           }}
         />
       ),
+      order: 10,
     });
   }
 
@@ -338,10 +362,12 @@ function buildCapsules(
 
     capsules.push({
       kind: "instructor",
+      key: "instructor",
       text: instructorText,
       position: "top-right",
       color: instructorColor,
       icon: <InstructorIcon size={sizing.iconSize} color={instructorColor} />,
+      order: 30,
     });
   }
 
@@ -350,10 +376,12 @@ function buildCapsules(
 
     capsules.push({
       kind: "hands-on-lab",
+      key: "hands-on-lab",
       text: handsOnLabText,
       position: "top-right",
       color: handsOnLabColor,
       icon: <LabIcon size={sizing.iconSize} color={handsOnLabColor} />,
+      order: 40,
     });
   }
 
@@ -435,10 +463,13 @@ function buildCapsuleStyle({
     gap: sizing.capsuleGap,
     padding: `${sizing.paddingY}px ${sizing.paddingX}px`,
     borderRadius: Math.round(999 * scale),
+    overflow: "hidden",
+    isolation: "isolate",
     background: `linear-gradient(145deg, ${colorWithAlpha(theme.surface, interpolateGlassValue(glassIntensity, 0.5, 0.76))}, ${colorWithAlpha(theme.background, interpolateGlassValue(glassIntensity, 0.28, 0.58))})`,
     border: `1px solid ${colorWithAlpha(accentColor, interpolateGlassValue(glassIntensity, 0.32, 0.48))}`,
     boxShadow: `0 ${sizing.shadowY}px ${sizing.shadowBlur}px ${colorWithAlpha(theme.background, interpolateGlassValue(glassIntensity, 0.22, 0.34))}`,
     backdropFilter: `blur(${Math.round(interpolateGlassValue(glassIntensity, 10, 24) * scale)}px) saturate(${Math.round(interpolateGlassValue(glassIntensity, 136, 165))}%)`,
+    WebkitBackdropFilter: `blur(${Math.round(interpolateGlassValue(glassIntensity, 10, 24) * scale)}px) saturate(${Math.round(interpolateGlassValue(glassIntensity, 136, 165))}%)`,
     color: theme.textPrimary,
     fontWeight: 700,
     letterSpacing: "0.03em",
@@ -452,25 +483,39 @@ export function ThumbnailCapsules({
   scale,
   fontFamily,
   variant = "default",
+  extraCapsules = [],
 }: {
   values: Record<string, string>;
   theme: ThemeColors;
   scale: number;
   fontFamily: string;
   variant?: CapsuleVariant;
+  extraCapsules?: ExtraThumbnailCapsule[];
 }) {
   const stylePreset = resolveTemplateSurfaceStyle(values["capsule_style"]);
   const sizing = buildCapsuleSizing(
     resolveCapsuleSize(values["capsule_size"]),
     scale,
   );
-  const capsules = buildCapsules(values, sizing, variant);
-  const leftCapsules = capsules.filter(
-    (capsule) => capsule.position === "top-left",
-  );
-  const rightCapsules = capsules.filter(
-    (capsule) => capsule.position === "top-right",
-  );
+  const capsules = [
+    ...buildCapsules(values, sizing, variant),
+    ...extraCapsules.map((capsule) => ({
+      key: capsule.key,
+      kind: capsule.kind ?? "split-type",
+      text: capsule.text,
+      position: capsule.position,
+      color: capsule.color,
+      icon: capsule.icon,
+      order: capsule.order ?? 100,
+      styleOverrides: capsule.styleOverrides,
+    })),
+  ];
+  const leftCapsules = capsules
+    .filter((capsule) => capsule.position === "top-left")
+    .sort((left, right) => left.order - right.order);
+  const rightCapsules = capsules
+    .filter((capsule) => capsule.position === "top-right")
+    .sort((left, right) => left.order - right.order);
 
   if (leftCapsules.length === 0 && rightCapsules.length === 0) {
     return null;
@@ -485,7 +530,7 @@ export function ThumbnailCapsules({
         >
           {leftCapsules.map((capsule) => (
             <div
-              key={capsule.kind}
+              key={capsule.key}
               data-capsule-kind={capsule.kind}
               style={{
                 ...buildCapsuleStyle({
@@ -501,6 +546,7 @@ export function ThumbnailCapsules({
                       letterSpacing: "0.08em",
                     }
                   : {}),
+                ...(capsule.styleOverrides ?? {}),
                 fontFamily,
                 fontSize: sizing.textSize,
               }}
@@ -518,7 +564,7 @@ export function ThumbnailCapsules({
         >
           {rightCapsules.map((capsule) => (
             <div
-              key={capsule.kind}
+              key={capsule.key}
               data-capsule-kind={capsule.kind}
               style={{
                 ...buildCapsuleStyle({
@@ -534,6 +580,7 @@ export function ThumbnailCapsules({
                       letterSpacing: "0.08em",
                     }
                   : {}),
+                ...(capsule.styleOverrides ?? {}),
                 fontFamily,
                 fontSize: sizing.textSize,
               }}

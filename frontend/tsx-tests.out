@@ -1,0 +1,682 @@
+TAP version 13
+# Subtest: tutorial-style templates expose pip logo and anchored tutorial image controls
+ok 1 - tutorial-style templates expose pip logo and anchored tutorial image controls
+  ---
+  duration_ms: 2.7939
+  type: 'test'
+  ...
+# Subtest: centered templates hide tutorial image controls entirely
+ok 2 - centered templates hide tutorial image controls entirely
+  ---
+  duration_ms: 0.425
+  type: 'test'
+  ...
+# Subtest: background template keeps border and grid controls while making the logo optional
+ok 3 - background template keeps border and grid controls while making the logo optional
+  ---
+  duration_ms: 0.1845
+  type: 'test'
+  ...
+# Subtest: intro bite and outro stay on the shared audio workflow without youtube overlay controls
+ok 4 - intro bite and outro stay on the shared audio workflow without youtube overlay controls
+  ---
+  duration_ms: 0.1838
+  type: 'test'
+  ...
+# Subtest: intro and outro templates persist shared audio selections under stable field ids
+ok 5 - intro and outro templates persist shared audio selections under stable field ids
+  ---
+  duration_ms: 0.2439
+  type: 'test'
+  ...
+# Subtest: motion audio start offset defaults to 2 seconds and clamps to the available range
+ok 6 - motion audio start offset defaults to 2 seconds and clamps to the available range
+  ---
+  duration_ms: 0.3244
+  type: 'test'
+  ...
+# Subtest: save dialog starts from the current banner and keeps overwrite intent explicit
+ok 7 - save dialog starts from the current banner and keeps overwrite intent explicit
+  ---
+  duration_ms: 0.3262
+  type: 'test'
+  ...
+# Subtest: save dialog defaults to a new copy when the draft is not linked to a saved banner
+ok 8 - save dialog defaults to a new copy when the draft is not linked to a saved banner
+  ---
+  duration_ms: 0.1648
+  type: 'test'
+  ...
+# Subtest: load dialog falls back to the most recent banner when nothing is selected yet
+ok 9 - load dialog falls back to the most recent banner when nothing is selected yet
+  ---
+  duration_ms: 0.3392
+  type: 'test'
+  ...
+# Subtest: theme border color follows the selected theme accent by default
+ok 10 - theme border color follows the selected theme accent by default
+  ---
+  duration_ms: 0.6952
+  type: 'test'
+  ...
+# Subtest: theme border color prefers the saved dynamic theme value when provided
+ok 11 - theme border color prefers the saved dynamic theme value when provided
+  ---
+  duration_ms: 0.1794
+  type: 'test'
+  ...
+# Subtest: brand logo size is clamped to the supported thumbnail range
+ok 12 - brand logo size is clamped to the supported thumbnail range
+  ---
+  duration_ms: 0.1541
+  type: 'test'
+  ...
+# Subtest: motion duration defaults to 3 seconds and clamps unsupported values
+ok 13 - motion duration defaults to 3 seconds and clamps unsupported values
+  ---
+  duration_ms: 0.1936
+  type: 'test'
+  ...
+# Subtest: export action loading state only marks the currently running export control as loading
+ok 14 - export action loading state only marks the currently running export control as loading
+  ---
+  duration_ms: 0.2674
+  type: 'test'
+  ...
+# Subtest: copyright defaults stay aligned across thumbnail templates
+ok 15 - copyright defaults stay aligned across thumbnail templates
+  ---
+  duration_ms: 0.1159
+  type: 'test'
+  ...
+# Subtest: content field rows keep centered template controls paired on one line
+ok 16 - content field rows keep centered template controls paired on one line
+  ---
+  duration_ms: 0.4153
+  type: 'test'
+  ...
+# Subtest: content field rows keep intro bite attribution and capsule controls paired
+ok 17 - content field rows keep intro bite attribution and capsule controls paired
+  ---
+  duration_ms: 0.3282
+  type: 'test'
+  ...
+# Subtest: content field rows keep intro split partition and asset controls paired
+ok 18 - content field rows keep intro split partition and asset controls paired
+  ---
+  duration_ms: 0.401
+  type: 'test'
+  ...
+# Subtest: content field rows keep intro split course controls grouped with the type capsule
+not ok 19 - content field rows keep intro split course controls grouped with the type capsule
+  ---
+  duration_ms: 6.9084
+  type: 'test'
+  location: 'D:\\.sources\\utils\\audio\\voice_clone_translate\\apps\\localm_intro_outro\\frontend\\tests\\pages\\thumbnailSettings.test.ts:1:11672'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    ... Skipped lines
+    
+      [
+        [
+          'title'
+        ],
+        [
+    ...
+          'split_quote_style',
+    +   ],
+    +   [
+          'split_quote_bold'
+        ],
+        [
+          'split_quote_text'
+        ],
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0:
+      0: 'title'
+    1:
+      0: 'split_type_capsule'
+      1: 'split_course_title'
+    2:
+      0: 'split_title_block_y'
+    3:
+      0: 'split_quote_style'
+      1: 'split_quote_bold'
+    4:
+      0: 'split_quote_text'
+    5:
+      0: 'split_quote_x'
+      1: 'split_quote_y'
+      2: 'split_quote_font_size'
+      3: 'split_quote_mark_size'
+      4: 'split_quote_width'
+    6:
+      0: 'split_course_lesson_current'
+      1: 'split_course_lesson_total'
+      2: 'split_course_title_gap'
+      3: 'split_course_block_size'
+    7:
+      0: 'show_grid'
+      1: 'grid_pattern'
+  actual:
+    0:
+      0: 'title'
+    1:
+      0: 'split_type_capsule'
+      1: 'split_course_title'
+    2:
+      0: 'split_title_block_y'
+    3:
+      0: 'split_quote_style'
+    4:
+      0: 'split_quote_bold'
+    5:
+      0: 'split_quote_text'
+    6:
+      0: 'split_quote_x'
+      1: 'split_quote_y'
+      2: 'split_quote_font_size'
+      3: 'split_quote_mark_size'
+      4: 'split_quote_width'
+    7:
+      0: 'split_course_lesson_current'
+      1: 'split_course_lesson_total'
+      2: 'split_course_title_gap'
+      3: 'split_course_block_size'
+    8:
+      0: 'show_grid'
+      1: 'grid_pattern'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (D:\.sources\utils\audio\voice_clone_translate\apps\localm_intro_outro\frontend\tests\pages\thumbnailSettings.test.ts:525:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: content field rows keep outro background asset controls out of the content section
+ok 20 - content field rows keep outro background asset controls out of the content section
+  ---
+  duration_ms: 0.2256
+  type: 'test'
+  ...
+# Subtest: thumbnail page title includes app, module, and active template name
+ok 21 - thumbnail page title includes app, module, and active template name
+  ---
+  duration_ms: 0.1542
+  type: 'test'
+  ...
+# Subtest: split templates bind the selected foreground asset to the rendered foreground image
+ok 22 - split templates bind the selected foreground asset to the rendered foreground image
+  ---
+  duration_ms: 0.2231
+  type: 'test'
+  ...
+# Subtest: shared settings logo replaces the preview logo when the preview still points at the previous shared asset
+ok 23 - shared settings logo replaces the preview logo when the preview still points at the previous shared asset
+  ---
+  duration_ms: 0.1785
+  type: 'test'
+  ...
+# Subtest: shared settings logo sync does not overwrite a custom local preview logo
+ok 24 - shared settings logo sync does not overwrite a custom local preview logo
+  ---
+  duration_ms: 0.1272
+  type: 'test'
+  ...
+# Subtest: persisted banner state omits inherited shared logos so saved banners do not snapshot stale shared assets
+ok 25 - persisted banner state omits inherited shared logos so saved banners do not snapshot stale shared assets
+  ---
+  duration_ms: 0.4306
+  type: 'test'
+  ...
+# Subtest: loaded banner state upgrades previously saved shared logo paths to the current shared logo
+ok 26 - loaded banner state upgrades previously saved shared logo paths to the current shared logo
+  ---
+  duration_ms: 0.2443
+  type: 'test'
+  ...
+# Subtest: background template is registered for thumbnail exports
+ok 27 - background template is registered for thumbnail exports
+  ---
+  duration_ms: 2.3586
+  type: 'test'
+  ...
+# Subtest: intro bite and outro templates are registered for thumbnail exports
+ok 28 - intro bite and outro templates are registered for thumbnail exports
+  ---
+  duration_ms: 0.2863
+  type: 'test'
+  ...
+# Subtest: intro split template is registered for thumbnail exports
+ok 29 - intro split template is registered for thumbnail exports
+  ---
+  duration_ms: 0.2048
+  type: 'test'
+  ...
+# Subtest: background template defaults keep only background-specific controls
+ok 30 - background template defaults keep only background-specific controls
+  ---
+  duration_ms: 1.1415
+  type: 'test'
+  ...
+# Subtest: tutorial and centered course templates expose secondary size and advanced style defaults
+ok 31 - tutorial and centered course templates expose secondary size and advanced style defaults
+  ---
+  duration_ms: 0.7031
+  type: 'test'
+  ...
+# Subtest: intro bite and outro templates expose specialized banner defaults
+ok 32 - intro bite and outro templates expose specialized banner defaults
+  ---
+  duration_ms: 0.4431
+  type: 'test'
+  ...
+# Subtest: glass configuration options use percentage-based labels across surfaces, capsules, and borders
+ok 33 - glass configuration options use percentage-based labels across surfaces, capsules, and borders
+  ---
+  duration_ms: 0.5593
+  type: 'test'
+  ...
+# Subtest: intro split template exposes partition, side and split-asset defaults
+not ok 34 - intro split template exposes partition, side and split-asset defaults
+  ---
+  duration_ms: 6.6763
+  type: 'test'
+  location: 'D:\\.sources\\utils\\audio\\voice_clone_translate\\apps\\localm_intro_outro\\frontend\\tests\\templates\\index.test.ts:1:9007'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    ... Skipped lines
+    
+      {
+        border_color_secondary: '',
+        border_style: 'solid',
+        capsule_size: 'small',
+        capsule_style: 'glass-40',
+    ...
+        split_partition_points: '(12, 3), (12, 24)',
+    +   split_quote_bold: undefined,
+    -   split_quote_bold: 'false',
+        split_quote_enabled: 'false',
+        split_quote_font_size: '100',
+        split_quote_mark_size: '100',
+        split_quote_style: 'size_1',
+        split_quote_text: 'What if your data pipeline fixed itself before you even got the alert?',
+        split_quote_width: '72',
+    +   split_quote_x: '0',
+    -   split_quote_x: '-100',
+        split_quote_y: '0',
+        split_title_block_y: '0',
+        split_title_side: 'left',
+        split_title_width: '46',
+        split_type_capsule: 'bite',
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    title: 'AI Voice Cloning in 45 Seconds'
+    title_size: 'lg'
+    split_title_side: 'left'
+    split_partition_points: '(12, 3), (12, 24)'
+    split_breakpoint_effect: 'glass'
+    split_background_svg_asset_id: ''
+    split_background_opacity: '55'
+    split_background_scale: '100'
+    split_background_x: '0'
+    split_background_y: '0'
+    split_foreground_asset_id: ''
+    split_foreground_scale: '108'
+    split_foreground_x: '0'
+    split_foreground_y: '0'
+    split_type_capsule: 'bite'
+    split_title_width: '46'
+    split_title_block_y: '0'
+    split_quote_enabled: 'false'
+    split_quote_style: 'size_1'
+    split_quote_bold: 'false'
+    split_quote_text: 'What if your data pipeline fixed itself before you even got the alert?'
+    split_quote_x: '-100'
+    split_quote_y: '0'
+    split_quote_font_size: '100'
+    split_quote_mark_size: '100'
+    split_quote_width: '72'
+    split_course_title: 'GitHub Copilot Bootcamp'
+    split_course_lesson_current: '01'
+    split_course_lesson_total: '10'
+    split_course_title_gap: '60'
+    split_course_block_size: '100'
+    split_corner_icon_asset_id_1: ''
+    split_corner_icon_asset_id_2: ''
+    split_corner_icon_asset_id_3: ''
+    split_corner_icon_size: '100'
+    show_duration_capsule: 'false'
+    show_level_capsule: 'false'
+    show_instructor_capsule: 'false'
+    show_hands_on_lab_capsule: 'false'
+    capsule_style: 'glass-40'
+    capsule_size: 'small'
+    surface_style: 'standard'
+    surface_shadow: 'middle'
+    border_style: 'solid'
+    border_color_secondary: ''
+    show_grid: 'true'
+    grid_pattern: 'dots'
+    footer_size: 'small'
+  actual:
+    title: 'AI Voice Cloning in 45 Seconds'
+    title_size: 'lg'
+    split_title_side: 'left'
+    split_partition_points: '(12, 3), (12, 24)'
+    split_breakpoint_effect: 'glass'
+    split_background_svg_asset_id: ''
+    split_background_opacity: '55'
+    split_background_scale: '100'
+    split_background_x: '0'
+    split_background_y: '0'
+    split_foreground_asset_id: ''
+    split_foreground_scale: '108'
+    split_foreground_x: '0'
+    split_foreground_y: '0'
+    split_type_capsule: 'bite'
+    split_title_width: '46'
+    split_title_block_y: '0'
+    split_quote_enabled: 'false'
+    split_quote_style: 'size_1'
+    split_quote_text: 'What if your data pipeline fixed itself before you even got the alert?'
+    split_quote_x: '0'
+    split_quote_y: '0'
+    split_quote_font_size: '100'
+    split_quote_mark_size: '100'
+    split_quote_width: '72'
+    split_course_title: 'GitHub Copilot Bootcamp'
+    split_course_lesson_current: '01'
+    split_course_lesson_total: '10'
+    split_course_title_gap: '60'
+    split_course_block_size: '100'
+    split_corner_icon_asset_id_1: ''
+    split_corner_icon_asset_id_2: ''
+    split_corner_icon_asset_id_3: ''
+    split_corner_icon_size: '100'
+    show_duration_capsule: 'false'
+    show_level_capsule: 'false'
+    show_instructor_capsule: 'false'
+    show_hands_on_lab_capsule: 'false'
+    capsule_style: 'glass-40'
+    capsule_size: 'small'
+    surface_style: 'standard'
+    surface_shadow: 'middle'
+    border_style: 'solid'
+    border_color_secondary: ''
+    show_grid: 'true'
+    grid_pattern: 'dots'
+    footer_size: 'small'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (D:\.sources\utils\audio\voice_clone_translate\apps\localm_intro_outro\frontend\tests\templates\index.test.ts:301:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: tutorial template supports larger secondary text and glass styling
+ok 35 - tutorial template supports larger secondary text and glass styling
+  ---
+  duration_ms: 16.8318
+  type: 'test'
+  ...
+# Subtest: gradient borders stay inside the frame and use both configured border colors
+ok 36 - gradient borders stay inside the frame and use both configured border colors
+  ---
+  duration_ms: 0.3299
+  type: 'test'
+  ...
+# Subtest: gradient borders fall back to the theme border accent instead of a dark text color
+ok 37 - gradient borders fall back to the theme border accent instead of a dark text color
+  ---
+  duration_ms: 0.3022
+  type: 'test'
+  ...
+# Subtest: frame backgrounds use the configured theme background without adding extra overlay layers
+ok 38 - frame backgrounds use the configured theme background without adding extra overlay layers
+  ---
+  duration_ms: 0.1902
+  type: 'test'
+  ...
+# Subtest: panel shadows can be pushed farther from the title surface
+ok 39 - panel shadows can be pushed farther from the title surface
+  ---
+  duration_ms: 0.2701
+  type: 'test'
+  ...
+# Subtest: glass percentage values produce graduated panel and border treatments
+ok 40 - glass percentage values produce graduated panel and border treatments
+  ---
+  duration_ms: 0.3755
+  type: 'test'
+  ...
+# Subtest: centered course metadata honors secondary text size scaling
+ok 41 - centered course metadata honors secondary text size scaling
+  ---
+  duration_ms: 2.783
+  type: 'test'
+  ...
+# Subtest: centered course renders a faded separator line using the selected border styling
+ok 42 - centered course renders a faded separator line using the selected border styling
+  ---
+  duration_ms: 1.445
+  type: 'test'
+  ...
+# Subtest: centered course skips the background image when the source is blank
+ok 43 - centered course skips the background image when the source is blank
+  ---
+  duration_ms: 1.3874
+  type: 'test'
+  ...
+# Subtest: centered templates render top-left and top-right capsules only when enabled
+ok 44 - centered templates render top-left and top-right capsules only when enabled
+  ---
+  duration_ms: 3.826
+  type: 'test'
+  ...
+# Subtest: centered templates apply capsule style and color overrides
+ok 45 - centered templates apply capsule style and color overrides
+  ---
+  duration_ms: 1.7095
+  type: 'test'
+  ...
+# Subtest: centered templates accept percentage-based glass capsule styles
+ok 46 - centered templates accept percentage-based glass capsule styles
+  ---
+  duration_ms: 1.9456
+  type: 'test'
+  ...
+# Subtest: centered templates keep capsules hidden when their toggles stay off
+ok 47 - centered templates keep capsules hidden when their toggles stay off
+  ---
+  duration_ms: 1.9534
+  type: 'test'
+  ...
+# Subtest: footer size can be increased for centered templates
+ok 48 - footer size can be increased for centered templates
+  ---
+  duration_ms: 1.4119
+  type: 'test'
+  ...
+# Subtest: intro bite template renders source attribution with bite, duration, and speed capsules
+ok 49 - intro bite template renders source attribution with bite, duration, and speed capsules
+  ---
+  duration_ms: 3.6791
+  type: 'test'
+  ...
+# Subtest: intro bite template can hide Bite From and Original Video Title independently
+ok 50 - intro bite template can hide Bite From and Original Video Title independently
+  ---
+  duration_ms: 1.6943
+  type: 'test'
+  ...
+# Subtest: intro bite content stays centered in the capsule-safe region whether source attribution is shown or hidden
+ok 51 - intro bite content stays centered in the capsule-safe region whether source attribution is shown or hidden
+  ---
+  duration_ms: 2.589
+  type: 'test'
+  ...
+# Subtest: intro split template renders side-aware regions with glass glow divider treatment
+ok 52 - intro split template renders side-aware regions with glass glow divider treatment
+  ---
+  duration_ms: 5.6573
+  type: 'test'
+  ...
+# Subtest: intro split supports adjustable title width and side-aware combined course blocks
+ok 53 - intro split supports adjustable title width and side-aware combined course blocks
+  ---
+  duration_ms: 4.4252
+  type: 'test'
+  ...
+# Subtest: intro split lets course gap be tightened independently of course block size
+ok 54 - intro split lets course gap be tightened independently of course block size
+  ---
+  duration_ms: 3.1659
+  type: 'test'
+  ...
+# Subtest: intro split foreground uses contain fit when scale is reduced below 100
+ok 55 - intro split foreground uses contain fit when scale is reduced below 100
+  ---
+  duration_ms: 1.8355
+  type: 'test'
+  ...
+# Subtest: intro split template switches breakpoint divider effects
+ok 56 - intro split template switches breakpoint divider effects
+  ---
+  duration_ms: 6.8258
+  type: 'test'
+  ...
+# Subtest: intro split type capsule uses the same scale-aware sizing as other capsules
+ok 57 - intro split type capsule uses the same scale-aware sizing as other capsules
+  ---
+  duration_ms: 5.3863
+  type: 'test'
+  ...
+# Subtest: intro split renders optional quote style 1 using the updated svg quote layout
+not ok 58 - intro split renders optional quote style 1 using the updated svg quote layout
+  ---
+  duration_ms: 11.1332
+  type: 'test'
+  location: 'D:\\.sources\\utils\\audio\\voice_clone_translate\\apps\\localm_intro_outro\\frontend\\tests\\templates\\styles.test.tsx:1:22688'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /font-weight:700/. Input:
+    
+    'data-template-region="intro-split-quote-text" x="140" y="140" fill="#f8fafc" text-anchor="start" style="font-family:&#x27;Outfit&#x27;, sans-serif;font-size:42px;font-weight:500"'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: 'data-template-region="intro-split-quote-text" x="140" y="140" fill="#f8fafc" text-anchor="start" style="font-family:&#x27;Outfit&#x27;, sans-serif;font-size:42px;font-weight:500"'
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (D:\.sources\utils\audio\voice_clone_translate\apps\localm_intro_outro\frontend\tests\templates\styles.test.tsx:898:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: intro split loads the course capsule into the shared top capsule sequence
+ok 59 - intro split loads the course capsule into the shared top capsule sequence
+  ---
+  duration_ms: 3.3128
+  type: 'test'
+  ...
+# Subtest: intro split course meta shows only lesson progress when course title is empty
+ok 60 - intro split course meta shows only lesson progress when course title is empty
+  ---
+  duration_ms: 2.1763
+  type: 'test'
+  ...
+# Subtest: intro split title block Y spans the full vertical range
+ok 61 - intro split title block Y spans the full vertical range
+  ---
+  duration_ms: 3.5466
+  type: 'test'
+  ...
+# Subtest: intro split keeps capsules above divider and title layers
+ok 62 - intro split keeps capsules above divider and title layers
+  ---
+  duration_ms: 2.33
+  type: 'test'
+  ...
+# Subtest: intro split supports debug mode type capsule with an icon
+ok 63 - intro split supports debug mode type capsule with an icon
+  ---
+  duration_ms: 2.3925
+  type: 'test'
+  ...
+# Subtest: intro split renders up to three bottom-corner asset icons opposite the title side
+ok 64 - intro split renders up to three bottom-corner asset icons opposite the title side
+  ---
+  duration_ms: 2.8751
+  type: 'test'
+  ...
+# Subtest: intro split foreground can blend selected edges into the background over the last 10 percent
+ok 65 - intro split foreground can blend selected edges into the background over the last 10 percent
+  ---
+  duration_ms: 2.1265
+  type: 'test'
+  ...
+# Subtest: intro split template flips title and foreground regions when title side is right
+ok 66 - intro split template flips title and foreground regions when title side is right
+  ---
+  duration_ms: 1.8431
+  type: 'test'
+  ...
+# Subtest: outro template keeps the CTA band clean for the audio-only outro flow
+ok 67 - outro template keeps the CTA band clean for the audio-only outro flow
+  ---
+  duration_ms: 1.7536
+  type: 'test'
+  ...
+# Subtest: outro template ignores social handles and keeps only headline and support line
+ok 68 - outro template ignores social handles and keeps only headline and support line
+  ---
+  duration_ms: 0.9072
+  type: 'test'
+  ...
+# Subtest: outro support line stays at 80% of headline size
+ok 69 - outro support line stays at 80% of headline size
+  ---
+  duration_ms: 0.9076
+  type: 'test'
+  ...
+# Subtest: outro renders a background svg layer and keeps the stage free of preview-image and arrow overlays
+ok 70 - outro renders a background svg layer and keeps the stage free of preview-image and arrow overlays
+  ---
+  duration_ms: 0.9494
+  type: 'test'
+  ...
+# Subtest: outro renders newline-delimited support lines as separate rows
+ok 71 - outro renders newline-delimited support lines as separate rows
+  ---
+  duration_ms: 0.8854
+  type: 'test'
+  ...
+1..71
+# tests 71
+# suites 0
+# pass 68
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 635.2138

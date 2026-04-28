@@ -3,7 +3,6 @@ import { textSizeToMultiplier } from "./index";
 import {
   buildTemplateFrameStyle,
   buildTemplatePanelStyle,
-  colorWithAlpha,
   getGridPatternMetrics,
   resolveTemplateBorderStyle,
   resolveTemplateSurfaceShadowStyle,
@@ -208,7 +207,6 @@ function GridPattern({
 }
 
 const DEFAULT_OUTRO_TITLE = "Thank You for Watching";
-const DEFAULT_OUTRO_SUBTITLE = "Want more? Subscribe and press the bell";
 
 export function OutroThumbnailTemplate({
   width,
@@ -266,17 +264,25 @@ export function OutroThumbnailTemplate({
     Math.min(180, Math.max(50, overlayImageScale ?? 100)) / 100;
   const resolvedBackgroundX = Math.min(24, Math.max(-24, overlayImageX ?? 0));
   const resolvedBackgroundY = Math.min(24, Math.max(-24, overlayImageY ?? 0));
-  const supportLines = (values["subtitle"] ?? DEFAULT_OUTRO_SUBTITLE)
+  const supportLines = (values["subtitle"] ?? "")
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
-  const resolvedSupportLines =
-    supportLines.length > 0 ? supportLines : [DEFAULT_OUTRO_SUBTITLE];
   const borderColorSecondary =
     values["border_color_secondary"]?.trim() || undefined;
   const footerSize = resolveFooterSize(values["footer_size"]);
   const contentPanelStyle = buildTemplatePanelStyle({
     surfaceStyle,
+    theme,
+    scale,
+    shadowStyle: surfaceShadow,
+  });
+  const headlineBackgroundStyle = resolveTemplateSurfaceStyle(
+    values["outro_headline_background"] === "glass" ? "glass" : "standard",
+  );
+  const hasHeadlineGlassBackground = headlineBackgroundStyle !== "standard";
+  const headlinePanelStyle = buildTemplatePanelStyle({
+    surfaceStyle: headlineBackgroundStyle,
     theme,
     scale,
     shadowStyle: surfaceShadow,
@@ -376,17 +382,31 @@ export function OutroThumbnailTemplate({
         }}
       >
         <div
+          data-template-region="outro-headline-panel"
           style={{
-            fontSize: titleSize,
-            fontWeight: 900,
-            color: theme.textPrimary,
-            lineHeight: 1.04,
-            fontFamily: secondaryFont,
-            textTransform: "uppercase",
             maxWidth: "92%",
+            padding: hasHeadlineGlassBackground
+              ? `${Math.round(18 * scale)}px ${Math.round(32 * scale)}px`
+              : undefined,
+            borderRadius: hasHeadlineGlassBackground
+              ? `${Math.round(28 * scale)}px`
+              : undefined,
+            ...headlinePanelStyle,
           }}
         >
-          {values["title"] ?? DEFAULT_OUTRO_TITLE}
+          <div
+            style={{
+              fontSize: titleSize,
+              fontWeight: 900,
+              color: theme.textPrimary,
+              lineHeight: 1.04,
+              fontFamily: secondaryFont,
+              textTransform: "uppercase",
+              maxWidth: "100%",
+            }}
+          >
+            {values["title"] ?? DEFAULT_OUTRO_TITLE}
+          </div>
         </div>
 
         <div
@@ -399,7 +419,7 @@ export function OutroThumbnailTemplate({
             maxWidth: "74%",
           }}
         >
-          {resolvedSupportLines.map((line, index) => (
+          {supportLines.map((line, index) => (
             <div
               key={`${line}-${index}`}
               style={{

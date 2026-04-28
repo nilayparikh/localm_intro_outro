@@ -592,7 +592,7 @@ test("thumbnail route restores stored per-template values when switching templat
   await expect(page.getByText("Release Ready Thumbnail")).toBeVisible();
 });
 
-test("intro bite and outro use the shared audio flow without overlay controls", async ({
+test("intro bite, intro split, and outro use the shared audio flow without overlay controls", async ({
   page,
 }) => {
   await mockAzureTableReads(page);
@@ -605,6 +605,13 @@ test("intro bite and outro use the shared audio flow without overlay controls", 
   await expect(page.getByLabel("Shared Audio Asset")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Open Asset Library" }),
+  ).toBeVisible();
+
+  await page.getByRole("combobox", { name: "Template" }).click();
+  await page.getByRole("option", { name: "Intro (Split)" }).click();
+  await expect(page.getByLabel("Shared Audio Asset")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Open Asset Library" }).first(),
   ).toBeVisible();
 
   await page.getByRole("combobox", { name: "Template" }).click();
@@ -805,14 +812,19 @@ test("intro split template exposes split controls and validates partition points
   await expect(page.getByLabel("Lesson Number")).toBeVisible();
   await expect(page.getByLabel("Total Lessons")).toBeVisible();
   await expect(page.getByLabel("Course Block Size")).toBeVisible();
+  await expect(page.getByLabel("Title Block Y")).toBeVisible();
+  const introSplitTypeCapsule = page.locator(
+    '[data-capsule-kind="split-type"]',
+  );
   const introSplitCourseBlock = page.locator(
     '[data-template-region="intro-split-course-block"]',
   );
-  await expect(
-    introSplitCourseBlock.getByText("COURSE", { exact: true }),
-  ).toBeVisible({
+  await expect(introSplitTypeCapsule).toContainText("Course", {
     timeout: 4000,
   });
+  await expect(
+    page.locator('[data-template-region="intro-split-type-capsule-row"]'),
+  ).toHaveCount(0);
   await expect(
     introSplitCourseBlock.getByText("GitHub Copilot Bootcamp"),
   ).toBeVisible({
@@ -826,6 +838,32 @@ test("intro split template exposes split controls and validates partition points
   await expect(introSplitCourseBlock.getByText("01 of 10")).toBeVisible({
     timeout: 4000,
   });
+
+  const addQuoteButton = page.getByRole("button", { name: "Add Quote" });
+  await expect(addQuoteButton).toBeVisible();
+  await addQuoteButton.click();
+
+  await expect(page.getByLabel("Quote Style")).toBeVisible();
+  await expect(page.getByLabel("Quote Bold")).toBeVisible();
+  await expect(
+    page.getByRole("textbox", { name: "Quote Text", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Quote X")).toBeVisible();
+  await expect(page.getByLabel("Quote Y")).toBeVisible();
+  await expect(page.getByLabel("Quote Text Size")).toBeVisible();
+  await expect(page.getByLabel("Quote Mark Size")).toBeVisible();
+  await expect(page.getByLabel("Quote Width")).toBeVisible();
+
+  const introSplitQuoteBlock = page.locator(
+    '[data-template-region="intro-split-quote-block"]',
+  );
+  await expect(introSplitQuoteBlock).toContainText("What if your", {
+    timeout: 4000,
+  });
+  await expect(introSplitQuoteBlock).toContainText("before you even", {
+    timeout: 4000,
+  });
+  await expect(introSplitQuoteBlock).toBeVisible();
 });
 
 test("thumbnail preview applies setting changes after a debounce window", async ({
@@ -881,12 +919,25 @@ test("outro exposes support-line and background asset controls with the template
   await expect(
     page.getByRole("button", { name: "Add Support Line" }),
   ).toBeVisible();
+  await expect(page.getByLabel("Headline Background")).toBeVisible();
   await expect(page.getByLabel("Background SVG Asset")).toBeVisible();
   const supportLines = page.locator(
     '[data-template-region="outro-support-lines"]',
   );
+  const headlinePanel = page.locator(
+    '[data-template-region="outro-headline-panel"]',
+  );
   await expect(supportLines.getByText("Keep building")).toBeVisible();
   await expect(supportLines.getByText("See you in the next one")).toBeVisible();
+
+  await page.getByLabel("Headline Background").click();
+  await page.getByRole("option", { name: "Glass" }).click();
+  await expect(headlinePanel).toHaveAttribute("style", /backdrop-filter:/);
+
+  await page.getByLabel("Support Line").fill("");
+  await expect(
+    supportLines.getByText("Want more? Subscribe and press the bell"),
+  ).toHaveCount(0);
 });
 
 test("intro split does not emit out-of-range select warnings for persisted split asset ids", async ({
